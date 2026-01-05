@@ -1,0 +1,83 @@
+{
+  "name": "@taekie/voronoi-treemap-class",
+  "version": "1.0.0",
+  "description": "A reusable Voronoi treemap visualization library with pebble-style rendering and label adjustment",
+  "main": "dist/voronoi-treemap.umd.js",
+  "module": "dist/voronoi-treemap.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/voronoi-treemap.esm.js",
+      "require": "./dist/voronoi-treemap.umd.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "sideEffects": false,
+  "homepage": "https://github.com/taekie/voronoi-treemap-class",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/taekie/voronoi-treemap-class.git"
+  },
+  "author": {
+    "name": "taekie"
+  },
+  "license": "MIT",
+  "keywords": [
+    "voronoi",
+    "treemap",
+    "d3",
+    "visualization",
+    "data-visualization",
+    "svg"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "build:watch": "rollup -c -w",
+    "dev": "serve . -l 3000",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean"
+  },
+  "peerDependencies": {
+    "d3": "^7.0.0",
+    "d3-weighted-voronoi": "^1.1.0",
+    "d3-voronoi-map": "^2.1.0",
+    "d3-voronoi-treemap": "^1.1.0",
+    "seedrandom": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "d3": {
+      "optional": false
+    },
+    "d3-weighted-voronoi": {
+      "optional": false
+    },
+    "d3-voronoi-map": {
+      "optional": false
+    },
+    "d3-voronoi-treemap": {
+      "optional": false
+    },
+    "seedrandom": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.0",
+    "@rollup/plugin-terser": "^0.4.0",
+    "d3": "^7.8.0",
+    "d3-weighted-voronoi": "^1.1.3",
+    "d3-voronoi-map": "^2.1.1",
+    "d3-voronoi-treemap": "^1.1.1",
+    "rollup": "^4.9.0",
+    "seedrandom": "^3.0.5",
+    "serve": "^14.2.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
