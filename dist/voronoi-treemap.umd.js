@@ -7,7 +7,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3'), require('d3-weighted-voronoi'), require('d3-voronoi-map'), require('d3-voronoi-treemap'), require('seedrandom')) :
   typeof define === 'function' && define.amd ? define(['exports', 'd3', 'd3-weighted-voronoi', 'd3-voronoi-map', 'd3-voronoi-treemap', 'seedrandom'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.VoronoiTreemap = {}, global.d3, global.d3, global.d3, global.d3, global.seedrandom));
-})(this, (function (exports, d3Core, d3WeightedVoronoi, d3VoronoiMap, d3VoronoiTreemap, seedrandom) { 'use strict';
+})(this, (function (exports, d3Core, d3WeightedVoronoi, d3VoronoiMap, d3VoronoiTreemap, seedrandomModule) { 'use strict';
 
   function _interopNamespaceDefault(e) {
     var n = Object.create(null);
@@ -30,6 +30,7 @@
   var d3WeightedVoronoi__namespace = /*#__PURE__*/_interopNamespaceDefault(d3WeightedVoronoi);
   var d3VoronoiMap__namespace = /*#__PURE__*/_interopNamespaceDefault(d3VoronoiMap);
   var d3VoronoiTreemap__namespace = /*#__PURE__*/_interopNamespaceDefault(d3VoronoiTreemap);
+  var seedrandomModule__namespace = /*#__PURE__*/_interopNamespaceDefault(seedrandomModule);
 
   /**
    * D3 Bundle Utility
@@ -65,7 +66,7 @@
 
   // Attach seedrandom for reproducible random number generation
   // This allows usage like: d3.seedrandom('myseed')
-  d3.seedrandom = seedrandom;
+  d3.seedrandom = seedrandomModule__namespace.default || seedrandomModule__namespace;
 
   /**
    * PebbleRenderer

@@ -7,7 +7,7 @@ import * as d3Core from 'd3';
 import * as d3WeightedVoronoi from 'd3-weighted-voronoi';
 import * as d3VoronoiMap from 'd3-voronoi-map';
 import * as d3VoronoiTreemap from 'd3-voronoi-treemap';
-import seedrandom from 'seedrandom';
+import * as seedrandomModule from 'seedrandom';
 
 /**
  * D3 Bundle Utility
@@ -43,7 +43,7 @@ const d3 = Object.assign(
 
 // Attach seedrandom for reproducible random number generation
 // This allows usage like: d3.seedrandom('myseed')
-d3.seedrandom = seedrandom;
+d3.seedrandom = seedrandomModule.default || seedrandomModule;
 
 /**
  * PebbleRenderer
