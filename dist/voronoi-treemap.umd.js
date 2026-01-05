@@ -2174,6 +2174,200 @@
   }
 
   /**
+   * PopupHelpers
+   *
+   * Helper functions for creating popup displays when cells are clicked.
+   * These are optional utilities that can be used with the clickFunc option.
+   */
+
+  /**
+   * Default popup function for Observable notebooks
+   * Returns an HTML element that displays information about the clicked cell
+   *
+   * @param {Object} clickedData - The data object passed from the click event
+   * @param {Object} clickedData.data - The data associated with the clicked cell
+   * @param {Event} clickedData.event - The original click event
+   * @returns {HTMLElement|null} HTML element for Observable to display, or null if no data
+   *
+   * @example
+   * // In Observable notebook
+   * import { VoronoiTreemap, showVoronoiPopup } from "..."
+   *
+   * chart = {
+   *   const treemap = new VoronoiTreemap();
+   *   return treemap.render(data, {
+   *     clickFunc: showVoronoiPopup
+   *   });
+   * }
+   */
+  function showVoronoiPopup(clickedData) {
+    if (!clickedData) return null;
+
+    const data = clickedData.data || {};
+
+    // This uses Observable's html template literal
+    // For non-Observable environments, use createDOMPopup instead
+    if (typeof html !== 'undefined') {
+      return html`<div style="
+      background: #fffe;
+      border: 2px solid #555;
+      border-radius: 15px;
+      padding: 15px;
+      max-width: 350px;
+      min-width: 200px;
+    ">
+      <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
+        ${data.bigClusterLabel || 'N/A'}
+      </div>
+      <div style="margin-bottom: 0.3em;">
+        <strong>Region:</strong> ${data.region || 'N/A'}
+      </div>
+      <div>
+        <strong>Size:</strong> ${data.bubbleSize || 'N/A'}
+      </div>
+    </div>`;
+    }
+
+    // Fallback for non-Observable environments
+    return createDOMPopup(clickedData);
+  }
+
+  /**
+   * Create a DOM-based popup for standard web pages (non-Observable)
+   * This creates an absolutely positioned popup at the click location
+   *
+   * @param {Object} clickedData - The data object passed from the click event
+   * @param {Object} clickedData.data - The data associated with the clicked cell
+   * @param {Event} clickedData.event - The original click event
+   * @returns {HTMLElement|null} DOM element to be appended to the page
+   *
+   * @example
+   * // In standard HTML/JavaScript
+   * const treemap = new VoronoiTreemap();
+   * const svg = treemap.render(data, {
+   *   clickFunc: createDOMPopup
+   * });
+   */
+  function createDOMPopup(clickedData) {
+    // Remove existing popup
+    const existingPopup = document.querySelector('.voronoi-popup-content');
+    if (existingPopup) existingPopup.remove();
+
+    if (!clickedData) {
+      return null;
+    }
+
+    const event = clickedData.event;
+    const data = clickedData.data || {};
+
+    // Create popup
+    const popup = document.createElement('div');
+    popup.className = 'voronoi-popup-content';
+
+    // Position at click location
+    const x = event.pageX;
+    const y = event.pageY;
+    popup.style.left = x + 'px';
+    popup.style.top = y + 'px';
+
+    // Create popup content
+    const content = document.createElement('div');
+    content.className = 'voronoi-popup-message';
+    content.innerHTML = `
+    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
+      ${data.bigClusterLabel || 'N/A'}
+    </div>
+    <div style="margin-bottom: 0.3em;">
+      <strong>Region:</strong> ${data.region || 'N/A'}
+    </div>
+    <div>
+      <strong>Size:</strong> ${data.bubbleSize || 'N/A'}
+    </div>
+  `;
+
+    popup.appendChild(content);
+    document.body.appendChild(popup);
+
+    // Close on click outside
+    setTimeout(() => {
+      const closeHandler = (e) => {
+        if (!popup.contains(e.target)) {
+          popup.remove();
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      document.addEventListener('click', closeHandler);
+    }, 0);
+
+    return popup;
+  }
+
+  /**
+   * Get the recommended CSS styles for popups
+   * Returns a string of CSS that can be added to your page
+   *
+   * @returns {string} CSS string for popup styles
+   *
+   * @example
+   * // In Observable
+   * html`<style>${getPopupStyles()}</style>`
+   *
+   * @example
+   * // In standard HTML
+   * const style = document.createElement('style');
+   * style.textContent = getPopupStyles();
+   * document.head.appendChild(style);
+   */
+  function getPopupStyles() {
+    return `
+.voronoi-popup-content {
+  position: absolute;
+  background: #fffe;
+  border: 2px solid #555;
+  border-radius: 30px;
+  padding: 10px;
+  z-index: 1000000;
+  transform: translateX(-50%) translateY(-100%);
+  min-width: 100px;
+}
+
+.voronoi-popup-content::before {
+  content: " ";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -10px;
+  border-width: 10px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.voronoi-popup-content::after {
+  content: " ";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -8px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: #fff transparent transparent transparent;
+}
+
+.voronoi-popup-message {
+  max-width: 350px;
+  min-width: 200px;
+  padding: 1em;
+  line-height: 1.5;
+  color: #444;
+  text-align: left;
+  max-height: 400px;
+  overflow-y: scroll;
+  overflow-x: clip;
+}
+`;
+  }
+
+  /**
    * Voronoi Treemap Library
    * Main entry point - exports VoronoiTreemap as default and helpers as named exports
    *
@@ -2181,14 +2375,18 @@
    * Consumers can import like:
    *   import VoronoiTreemap from '@taekie/voronoi-treemap-class';
    *   import { VoronoiTreemap, nestingForVoronoi, VoronoiTreemapHelpers } from '@taekie/voronoi-treemap-class';
+   *   import { showVoronoiPopup, createDOMPopup } from '@taekie/voronoi-treemap-class';
    */
 
   exports.LabelAdjuster = LabelAdjuster;
   exports.PebbleRenderer = PebbleRenderer;
   exports.VoronoiTreemap = VoronoiTreemap;
   exports.VoronoiTreemapHelpers = VoronoiTreemapHelpers;
+  exports.createDOMPopup = createDOMPopup;
   exports.default = VoronoiTreemap;
+  exports.getPopupStyles = getPopupStyles;
   exports.nestingForVoronoi = nestingForVoronoi;
+  exports.showVoronoiPopup = showVoronoiPopup;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

@@ -37,22 +37,22 @@ const svg = treemap.render(data, options);
 
 ## Observable Usage
 
+### Recommended: Standalone Bundle - 760KB
+
+For Observable notebooks, use the standalone bundle that includes all dependencies. While larger in file size, it's the simplest and most reliable option for Observable's module system.
+
 ```javascript
-// Cell 1: Import dependencies
-d3 = require("d3@7")
-d3WeightedVoronoi = require("d3-weighted-voronoi@1")
-d3VoronoiMap = require("d3-voronoi-map@2")
-d3VoronoiTreemap = require("d3-voronoi-treemap@1")
-seedrandom = require("seedrandom@3")
+// Cell 1: Import library with popup helpers
+{
+  const module = await import("https://cdn.jsdelivr.net/gh/pxd-uxtech/affinitybubble-dist@1.0.3/dist/voronoi-treemap.standalone.js");
+  VoronoiTreemap = module.VoronoiTreemap;
+  showVoronoiPopup = module.showVoronoiPopup;  // Import popup helper from library
+  return module;
+}
 ```
 
 ```javascript
-// Cell 2: Import library from CDN
-VoronoiTreemap = import("https://cdn.jsdelivr.net/gh/pxd-uxtech/affinitybubble-dist@1.0.0/dist/voronoi-treemap.esm.js")
-```
-
-```javascript
-// Cell 3: Create visualization
+// Cell 2: Create visualization with popup
 chart = {
   const data = [
     { region: "A", bigClusterLabel: "Item 1", bubbleSize: "100" },
@@ -60,7 +60,7 @@ chart = {
     { region: "B", bigClusterLabel: "Item 3", bubbleSize: "120" }
   ];
 
-  const treemap = new VoronoiTreemap.VoronoiTreemap();
+  const treemap = new VoronoiTreemap();
 
   return treemap.render(data, {
     width: 900,
@@ -72,10 +72,13 @@ chart = {
     showPercent: true,
     pebble: true,
     pebbleRound: 5,
-    pebbleWidth: 2
+    pebbleWidth: 2,
+    clickFunc: showVoronoiPopup  // Use the imported popup helper
   });
 }
 ```
+
+**Note**: The standalone bundle (760KB) includes all D3 dependencies bundled together. Observable caches imported modules efficiently, so the file is only loaded once per notebook session.
 
 ## Data Format
 
@@ -104,10 +107,56 @@ chart = {
   pebble: true,            // Enable pebble rendering
   pebbleRound: 5,          // Corner rounding
   pebbleWidth: 2,          // Pebble stroke width
-  clickFunc: function(d) { // Click handler
+  clickFunc: function(d) { // Click handler (receives {data, event})
     console.log('Clicked:', d);
   }
 }
+```
+
+## Popup Helper Functions
+
+The library includes built-in popup helper functions that you can use with `clickFunc`:
+
+### `showVoronoiPopup(clickedData)`
+
+Default popup function for Observable notebooks. Returns an HTML element using Observable's `html` template literal.
+
+```javascript
+// Observable usage
+import { VoronoiTreemap, showVoronoiPopup } from "..."
+
+const treemap = new VoronoiTreemap();
+treemap.render(data, {
+  clickFunc: showVoronoiPopup
+});
+```
+
+### `createDOMPopup(clickedData)`
+
+DOM-based popup for standard web pages. Creates an absolutely positioned popup at the click location.
+
+```javascript
+// Standard HTML/JavaScript usage
+import { VoronoiTreemap, createDOMPopup } from "..."
+
+const treemap = new VoronoiTreemap();
+treemap.render(data, {
+  clickFunc: createDOMPopup
+});
+```
+
+### `getPopupStyles()`
+
+Returns CSS styles for the popup elements as a string.
+
+```javascript
+// Observable
+html`<style>${getPopupStyles()}</style>`
+
+// Standard HTML
+const style = document.createElement('style');
+style.textContent = getPopupStyles();
+document.head.appendChild(style);
 ```
 
 ## Recommended CSS
@@ -140,21 +189,39 @@ chart = {
 
 ## Files
 
-- `dist/voronoi-treemap.esm.js` - ES Module bundle (68KB)
-- `dist/voronoi-treemap.umd.js` - UMD bundle (74KB)
-- `dist/voronoi-treemap.min.js` - Minified UMD bundle (26KB)
+- `dist/voronoi-treemap.standalone.js` - Standalone ESM bundle with all dependencies (760KB) - **Use this for Observable**
+- `dist/voronoi-treemap.esm.js` - ES Module bundle with external dependencies (68KB) - For npm/build tools
+- `dist/voronoi-treemap.umd.js` - UMD bundle with external dependencies (74KB) - For browsers with script tags
+- `dist/voronoi-treemap.min.js` - Minified UMD bundle (26KB) - For production
 - Source maps included for all bundles
 
 ## Dependencies
 
-Peer dependencies (must be loaded separately):
+The ESM and UMD bundles have peer dependencies (must be loaded separately):
 - d3 (^7.0.0)
 - d3-weighted-voronoi (^1.0.0)
 - d3-voronoi-map (^2.0.0)
 - d3-voronoi-treemap (^1.0.0)
 - seedrandom (^3.0.0)
 
+The standalone bundle includes all dependencies pre-bundled.
+
 ## Version History
+
+### 1.0.3 (2026-01-06)
+- Added built-in popup helper functions
+- `showVoronoiPopup()` - Observable-compatible popup
+- `createDOMPopup()` - Standard DOM popup
+- `getPopupStyles()` - Get popup CSS styles
+- Export popup helpers from main module
+
+### 1.0.2 (2026-01-06)
+- Fixed CommonJS module compatibility for standalone bundle
+- Improved seedrandom module handling
+
+### 1.0.1 (2026-01-06)
+- Added standalone bundle with all dependencies
+- Fixed Observable module compatibility
 
 ### 1.0.0 (2026-01-06)
 - Initial release
