@@ -159,6 +159,27 @@ style.textContent = getPopupStyles();
 document.head.appendChild(style);
 ```
 
+### `getBubbleStyles()`
+
+Returns comprehensive CSS styles for bubble/voronoi visualizations including fonts, regions, areas, labels, and popups.
+
+```javascript
+// Observable
+html`<style>${getBubbleStyles()}</style>`
+
+// Standard HTML
+const style = document.createElement('style');
+style.textContent = getBubbleStyles();
+document.head.appendChild(style);
+```
+
+This includes:
+- KoddiUD OnGothic font faces (Regular & Bold)
+- `.region`, `.area1`, `.area2`, `.regionArea1~3` styles
+- `.field`, `.sector`, `.budget` label styles
+- Highlight and click states (`.highlite`, `.clicked`)
+- Popup styles (`.voronoi-popup-content`, `.voronoi-popup-message`)
+
 ## Recommended CSS
 
 ```css
@@ -207,6 +228,10 @@ The ESM and UMD bundles have peer dependencies (must be loaded separately):
 The standalone bundle includes all dependencies pre-bundled.
 
 ## Version History
+
+### 1.0.4 (2026-01-06)
+- Added `getBubbleStyles()` for comprehensive bubble visualization CSS
+- Includes Korean fonts, region/area styles, label styles, and popup styles
 
 ### 1.0.3 (2026-01-06)
 - Added built-in popup helper functions
