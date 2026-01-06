@@ -27862,6 +27862,184 @@ function getPopupStyles() {
 }
 
 /**
+ * Get comprehensive CSS styles for bubble/voronoi visualizations
+ * Returns a string of CSS including fonts, regions, areas, labels, and popups
+ *
+ * @returns {string} CSS string for all bubble styles
+ *
+ * @example
+ * // In Observable
+ * html`<style>${getBubbleStyles()}</style>`
+ *
+ * @example
+ * // In standard HTML
+ * const style = document.createElement('style');
+ * style.textContent = getBubbleStyles();
+ * document.head.appendChild(style);
+ */
+function getBubbleStyles() {
+  return `
+@font-face {
+    font-family: 'KoddiUD OnGothic';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'KoddiUDOnGothic-Bold';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Bold.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    font-family: "KoddiUD OnGothic", sans-serif;
+}
+
+.caption {
+    color: #888;
+}
+
+.region {
+    font-family: "KoddiUDOnGothic-Bold", "KoddiUD OnGothic", sans-serif;
+    fill: #fff;
+    fill-opacity: 1;
+    font-weight: 700;
+    stroke-width: 3px;
+    pointer-events: none;
+}
+
+.area1 {
+    stroke: #464749aa;
+    stroke-width: 2;
+}
+
+.area2 {
+    stroke: #ffffffb0;
+    stroke-width: 0.5;
+}
+
+.area2.highlite {
+    filter: hue-rotate(-5deg) brightness(0.95);
+}
+
+.area2.clicked {
+    stroke: #000;
+    stroke-width: 3px;
+    filter: brightness(0.9);
+}
+
+.regionArea1 {
+    stroke: #464749aa;
+    stroke-width: 1.5;
+}
+
+.regionArea2 {
+    stroke: #46474955;
+    stroke-width: 0.7;
+}
+
+.regionArea3 {
+    stroke: #ffffffb0;
+    stroke-width: 0.5;
+    cursor: pointer;
+}
+
+.regionArea3.clicked {
+    stroke-width: 1px;
+    filter: hue-rotate(-5deg) brightness(0.9);
+}
+
+.regionArea3.highlite {
+    filter: hue-rotate(-5deg) brightness(0.95);
+}
+
+.field {
+    font-size: 1.2em;
+    font-weight: 600;
+    fill: #000d;
+    pointer-events: none;
+}
+
+.sector {
+    font-size: 0.8em;
+    font-weight: 400;
+    fill: #a95b5bdd;
+    cursor: default;
+    pointer-events: none;
+}
+
+.budget {
+    fill: #c25a50;
+    font-size: 12px;
+    cursor: default;
+    pointer-events: none;
+}
+
+.percent .budget {
+    fill: #fff;
+}
+
+.bubblepopup {
+    max-width: 350px;
+    min-width: 200px;
+    padding: 1em;
+    line-height: 1.5;
+    color: #444;
+    text-align: left;
+    max-height: 400px;
+    overflow: scroll;
+}
+
+.voronoi-popup-content {
+    position: absolute;
+    background: #fffe;
+    border: 2px solid #555;
+    border-radius: 30px;
+    padding: 10px;
+    z-index: 1000000;
+    transform: translateX(-50%) translateY(-100%);
+    min-width: 100px;
+}
+
+.voronoi-popup-content::before {
+    content: " ";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -10px;
+    border-width: 10px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+.voronoi-popup-content::after {
+    content: " ";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -8px;
+    border-width: 8px;
+    border-style: solid;
+    border-color: #fff transparent transparent transparent;
+}
+
+.voronoi-popup-message {
+    max-width: 350px;
+    min-width: 200px;
+    padding: 1em;
+    line-height: 1.5;
+    color: #444;
+    text-align: left;
+    max-height: 400px;
+    overflow-y: scroll;
+    overflow-x: clip;
+}
+`;
+}
+
+/**
  * Voronoi Treemap Library
  * Main entry point - exports VoronoiTreemap as default and helpers as named exports
  *
@@ -27872,5 +28050,5 @@ function getPopupStyles() {
  *   import { showVoronoiPopup, createDOMPopup } from '@taekie/voronoi-treemap-class';
  */
 
-export { LabelAdjuster, PebbleRenderer, VoronoiTreemap, VoronoiTreemapHelpers, createDOMPopup, VoronoiTreemap as default, getPopupStyles, nestingForVoronoi, showVoronoiPopup };
+export { LabelAdjuster, PebbleRenderer, VoronoiTreemap, VoronoiTreemapHelpers, createDOMPopup, VoronoiTreemap as default, getBubbleStyles, getPopupStyles, nestingForVoronoi, showVoronoiPopup };
 //# sourceMappingURL=voronoi-treemap.standalone.js.map
