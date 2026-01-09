@@ -2729,7 +2729,7 @@ body {
   exports.getPopupStyles = getPopupStyles;
   exports.nestingForVoronoi = nestingForVoronoi;
   exports.showVoronoiPopup = showVoronoiPopup;
-  exports.showVoronoiPopupHelper = showVoronoiPopup$1;
+  exports.showVoronoiPopupLegacy = showVoronoiPopup$1;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

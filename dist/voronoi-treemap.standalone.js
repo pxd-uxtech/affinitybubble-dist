@@ -28213,5 +28213,5 @@ function showVoronoiPopup(clicked, options = {}) {
  *   import { showVoronoiPopup, createDOMPopup } from '@taekie/voronoi-treemap-class';
  */
 
-export { LabelAdjuster, PebbleRenderer, VoronoiTreemap, VoronoiTreemapHelpers, createDOMPopup, VoronoiTreemap as default, getBubbleStyles, getPopupStyles, nestingForVoronoi, showVoronoiPopup, showVoronoiPopup$1 as showVoronoiPopupHelper };
+export { LabelAdjuster, PebbleRenderer, VoronoiTreemap, VoronoiTreemapHelpers, createDOMPopup, VoronoiTreemap as default, getBubbleStyles, getPopupStyles, nestingForVoronoi, showVoronoiPopup, showVoronoiPopup$1 as showVoronoiPopupLegacy };
 //# sourceMappingURL=voronoi-treemap.standalone.js.map
