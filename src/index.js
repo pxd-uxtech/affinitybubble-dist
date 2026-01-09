@@ -20,11 +20,14 @@ import PebbleRenderer from './PebbleRenderer.js';
 
 // Popup helpers
 import {
-  showVoronoiPopup,
+  showVoronoiPopup as showVoronoiPopupHelper,
   createDOMPopup,
   getPopupStyles,
   getBubbleStyles
 } from './PopupHelpers.js';
+
+// Utility popup function (newer implementation)
+import showVoronoiPopup from './utils/showVoronoiPopup.js';
 
 // Default export - the main VoronoiTreemap class
 export default VoronoiTreemap;
@@ -36,7 +39,8 @@ export {
   VoronoiTreemapHelpers,
   LabelAdjuster,
   PebbleRenderer,
-  showVoronoiPopup,
+  showVoronoiPopup,        // Primary popup function (from utils)
+  showVoronoiPopupHelper,  // Legacy popup function (from PopupHelpers)
   createDOMPopup,
   getPopupStyles,
   getBubbleStyles
