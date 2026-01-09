@@ -1677,17 +1677,30 @@
     }
 
     _createRegionColorScale() {
-      const categories = Array.from(new Set(this.data.map((d) => d.region)));
+      // Calculate total size (budget) per region
+      const regionSizes = d3.rollup(
+        this.data,
+        (v) => d3.sum(v, (d) => d.budget),
+        (d) => d.region
+      );
+
+      // Sort regions by size (descending - largest first)
+      const sortedRegions = Array.from(regionSizes.entries())
+        .sort((a, b) => b[1] - a[1]) // b[1] - a[1]: descending order
+        .map((d) => d[0]); // Extract region names
+
       const { regionColors, colors: cellColors } = this.params;
       const regionColorKeys = regionColors.map((d) => d.key);
       const regionColorValues = regionColors.map((d) => d.color);
 
       let colorMapping = {};
 
-      categories.forEach((key, i) => {
+      // Assign colors to sorted regions (largest region gets first color)
+      sortedRegions.forEach((key, i) => {
         colorMapping[key] = cellColors[i % cellColors.length];
       });
 
+      // Override with custom region colors if specified
       regionColorKeys.forEach((key, i) => {
         colorMapping[key] = regionColorValues[i];
       });
@@ -1714,7 +1727,7 @@
         ];
       });
 
-      const seed = new Math.seedrandom(this.params.seedRandom);
+      const seed = d3.seedrandom(this.params.seedRandom);
 
       let voronoiTreeMap = d3.voronoiTreemap().prng(seed).clip(ellipse);
       voronoiTreeMap(this.hierarchy);
