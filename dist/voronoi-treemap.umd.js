@@ -2601,10 +2601,7 @@ body {
     const svgElement = clickedPath.ownerSVGElement;
     if (!svgElement) return;
 
-    // === Calculate position relative to container ===
-    const container = svgElement.parentElement || document.body;
-    const containerRect = container.getBoundingClientRect();
-
+    // === Calculate position in page coordinates (unaffected by container zoom) ===
     // Get the path's bounding box in SVG coordinate space
     const pathBBox = clickedPath.getBBox();
 
@@ -2612,20 +2609,20 @@ body {
     const svgCenterX = pathBBox.x + pathBBox.width / 2;
     const svgCenterY = pathBBox.y + pathBBox.height / 2;
 
-    // Convert SVG coordinates to screen coordinates
+    // Convert SVG coordinates to screen (page) coordinates
+    // This handles all transformations including zoom, scale, translate
     const svgPoint = svgElement.createSVGPoint();
     svgPoint.x = svgCenterX;
     svgPoint.y = svgCenterY;
     const screenPoint = svgPoint.matrixTransform(svgElement.getScreenCTM());
 
-    // Convert screen coordinates to container-relative coordinates
-    const x = screenPoint.x - containerRect.left;
-    const y = screenPoint.y - containerRect.top;
+    // Use screen coordinates directly (relative to viewport)
+    const x = screenPoint.x + window.scrollX;
+    const y = screenPoint.y + window.scrollY;
 
     // Determine popup direction based on available space
-    // Use container-relative position for better mobile support
-    const spaceAbove = y;
-    const spaceBelow = containerRect.height - y;
+    const spaceAbove = screenPoint.y;
+    const spaceBelow = window.innerHeight - screenPoint.y;
     const placeBelow = spaceAbove < 150 || spaceBelow > spaceAbove;
 
     // === Template substitution ===
@@ -2661,11 +2658,8 @@ body {
     <div class="voronoi-popup-message">${content}</div>
   </div>`;
 
-    // Ensure container has relative positioning
-    if (window.getComputedStyle(container).position === "static") {
-      container.style.position = "relative";
-    }
-    container.appendChild(popup);
+    // Append to body (not container) to avoid zoom/transform effects
+    document.body.appendChild(popup);
 
     // Measure size using offsetWidth/offsetHeight (synchronous)
     const popupWidth = popup.offsetWidth;
@@ -2675,17 +2669,17 @@ body {
     let finalX = x - popupWidth / 2;
     const padding = 10; // Minimum padding from edges
 
-    // Keep popup within container bounds (horizontal)
+    // Keep popup within viewport bounds (horizontal)
     if (finalX < padding) {
       finalX = padding;
-    } else if (finalX + popupWidth > containerRect.width - padding) {
-      finalX = containerRect.width - popupWidth - padding;
+    } else if (finalX + popupWidth > window.innerWidth - padding) {
+      finalX = window.innerWidth - popupWidth - padding;
     }
 
     // Calculate vertical position
     const finalY = placeBelow ? y + 5 : y - 5 - popupHeight;
 
-    // Set final position
+    // Set final position (fixed to page, not container)
     popup.style.left = `${finalX}px`;
     popup.style.top = `${finalY}px`;
 
