@@ -4,7 +4,19 @@
  * 입력 3안: 기본화면에서 입력창이 바로 표시되고, 확인 버튼 클릭 시 팝업에서 컬럼 선택
  * 최종 출력: chunkData 배열 [{ textid, chunk, text, size?, date?, ...원본컬럼 }]
  *
+ * ⚠️ 배포 주의사항:
+ * - affinitybubble-library 레포는 PRIVATE → 외부에서 import 불가
+ * - 반드시 affinitybubble-dist (PUBLIC) 레포에 배포해야 함
+ * - 배포: cp file-input-library-v3.js → affinitybubble-dist 레포에 push
+ *
  * Observable 사용법:
+ * InputLib3 = {
+ *   const { createFileInputUIv3 } = await import(
+ *     "https://cdn.jsdelivr.net/gh/pxd-uxtech/affinitybubble-dist@main/file-input-library-v3.js"
+ *   );
+ *   return { createFileInputUIv3 };
+ * }
+ *
  * viewof fileInput = InputLib3.createFileInputUIv3(Papa, {
  *   maxSize: 1000,
  *   sampleButtons: [
