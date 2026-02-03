@@ -248,7 +248,10 @@ function renderInsight(insights, options = {}) {
     onCopy = null,
     onSave = null,
     onEditToggle = null,
-    containerId = "insightDiv"
+    containerId = null,
+    // null이면 항상 새 엘리먼트 생성
+    createNew = !options.containerId
+    // containerId 없으면 새로 생성
   } = options;
   const parser = markdownParser || simpleMarkdownParse;
   const parsedContent = parser(insights || "");
@@ -260,19 +263,29 @@ function renderInsight(insights, options = {}) {
       ${editMode ? '<i class="fi fi-br-check"></i> \uC644\uB8CC' : '<i class="fi fi-br-pencil"></i> \uD3B8\uC9D1'}
     </button>
   `;
-  let container = document.getElementById(containerId);
-  if (container) {
-    const buttonsDiv = container.querySelector("#insightButtons") || container.querySelector(".sub-buttons");
-    const reportDiv = container.querySelector("#insightReport") || container.querySelector(".report");
-    if (buttonsDiv) buttonsDiv.innerHTML = buttons;
-    if (reportDiv) reportDiv.innerHTML = content;
-  } else {
+  let container;
+  if (createNew || !containerId) {
     container = document.createElement("div");
-    container.id = containerId;
+    if (containerId) container.id = containerId;
     container.innerHTML = `
       <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px;">${buttons}</div>
       <div class="report" id="insightReport">${content}</div>
     `;
+  } else {
+    container = document.getElementById(containerId);
+    if (container) {
+      const buttonsDiv = container.querySelector("#insightButtons") || container.querySelector(".sub-buttons");
+      const reportDiv = container.querySelector("#insightReport") || container.querySelector(".report");
+      if (buttonsDiv) buttonsDiv.innerHTML = buttons;
+      if (reportDiv) reportDiv.innerHTML = content;
+    } else {
+      container = document.createElement("div");
+      container.id = containerId;
+      container.innerHTML = `
+        <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px;">${buttons}</div>
+        <div class="report" id="insightReport">${content}</div>
+      `;
+    }
   }
   const copyBtn = container.querySelector("#copyBtn");
   const saveBtn = container.querySelector("#saveBtn");
