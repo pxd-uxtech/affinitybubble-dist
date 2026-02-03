@@ -19,9 +19,7 @@
  *
  * viewof fileInput = InputLib3.createFileInputUIv3(Papa, {
  *   maxSize: 1000,
- *   sampleButtons: [
- *     { label: "샘플1", content: "text\n첫번째 텍스트\n두번째 텍스트" }
- *   ]
+ *   guideContainerId: "my-guide-container"  // 외부 가이드 DOM ID (선택)
  * })
  */
 
@@ -186,7 +184,7 @@ function reservoirSample(arr, k) {
  * @param {number} options.maxSize - 최대 데이터 수 (기본값: 1000)
  * @param {number} options.width - 컴포넌트 너비 (기본값: 800)
  * @param {boolean} options.showPreview - 미리보기 표시 여부 (기본값: true)
- * @param {Array} options.sampleButtons - 샘플 버튼 배열 [{label, content}]
+ * @param {string} options.guideContainerId - 외부 가이드 컨테이너 DOM ID (선택, 데이터 입력 시 자동 숨김)
  * @param {Object} options.moment - moment.js 라이브러리 (선택, 날짜 컬럼 감지용)
  */
 function createFileInputUIv3(Papa, options = {}) {
@@ -194,9 +192,12 @@ function createFileInputUIv3(Papa, options = {}) {
     maxSize = 1000,
     width = 800,
     showPreview = true,
-    sampleButtons = [],
-    moment = null
+    moment = null,
+    guideContainerId = null  // 외부 가이드 컨테이너 DOM ID (사용자가 직접 구현)
   } = options;
+
+  // 외부 가이드 컨테이너 참조
+  let guideContainer = null;
 
   // 상태 관리
   let rawText = [];
@@ -345,118 +346,6 @@ function createFileInputUIv3(Papa, options = {}) {
     }
     .file-input-v3 .confirm-btn:hover {
       background: #14b8a6;
-    }
-    .file-input-v3 .action-buttons {
-      display: flex;
-      gap: 12px;
-    }
-    .file-input-v3 .action-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
-      padding: 12px 20px;
-      font-size: 14px;
-      color: #444;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .file-input-v3 .action-btn:hover {
-      background: #f8f9fa;
-      border-color: #ddd;
-    }
-    .file-input-v3 .action-btn svg {
-      width: 18px;
-      height: 18px;
-    }
-    .file-input-v3 .guide-section {
-      border: 1px solid #e5e5e5;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .file-input-v3 .guide-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 16px 20px;
-      background: #fff;
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-    }
-    .file-input-v3 .guide-header svg {
-      width: 18px;
-      height: 18px;
-      color: #666;
-    }
-    .file-input-v3 .guide-tabs {
-      display: flex;
-      border-bottom: 1px solid #e5e5e5;
-      background: #fff;
-      padding: 0 20px;
-    }
-    .file-input-v3 .guide-tab {
-      padding: 12px 16px;
-      font-size: 13px;
-      color: #888;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-      transition: all 0.2s;
-    }
-    .file-input-v3 .guide-tab:hover {
-      color: #555;
-    }
-    .file-input-v3 .guide-tab.active {
-      color: #2dd4bf;
-      border-bottom-color: #2dd4bf;
-      font-weight: 600;
-    }
-    .file-input-v3 .guide-content {
-      padding: 20px;
-      background: #fafafa;
-    }
-    .file-input-v3 .guide-item {
-      display: none;
-      font-size: 13px;
-      color: #555;
-      line-height: 1.8;
-    }
-    .file-input-v3 .guide-item.active {
-      display: block;
-    }
-    .file-input-v3 .guide-item .highlight {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #e8f7f5;
-      color: #0d9488;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-    .file-input-v3 .guide-item .optional {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #fff3cd;
-      color: #856404;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-    .file-input-v3 .guide-image {
-      margin-top: 16px;
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #fff;
-    }
-    .file-input-v3 .guide-image img {
-      width: 100%;
-      display: block;
     }
 
     /* 팝업 스타일 */
@@ -780,61 +669,6 @@ function createFileInputUIv3(Papa, options = {}) {
       <button class="confirm-btn">확인</button>
     </div>
 
-    <div class="action-buttons">
-      <button class="action-btn app-review-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-          <line x1="12" y1="18" x2="12" y2="18"/>
-        </svg>
-        앱 리뷰 불러오기
-      </button>
-      <button class="action-btn youtube-btn">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
-        </svg>
-        유튜브 댓글 불러오기
-      </button>
-    </div>
-
-    <div class="guide-section">
-      <div class="guide-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="16" x2="12" y2="12"/>
-          <line x1="12" y1="8" x2="12" y2="8"/>
-        </svg>
-        데이터 입력 가이드
-      </div>
-      <div class="guide-tabs">
-        <div class="guide-tab active" data-tab="text">텍스트 데이터</div>
-        <div class="guide-tab" data-tab="spreadsheet">스프레드 시트</div>
-        <div class="guide-tab" data-tab="csv">CSV 파일</div>
-        <div class="guide-tab" data-tab="sample">샘플 데이터</div>
-      </div>
-      <div class="guide-content">
-        <div class="guide-item active" data-tab="text">
-          어피니티버블로 분석할 스프레드 시트 데이터를 복사해서 붙여넣기 하세요.<br><br>
-          <span class="highlight">📝 텍스트 컬럼</span> (필수) 분석할 텍스트 데이터가 있는 컬럼입니다.<br>
-          <span class="optional">🔢 숫자 컬럼</span> (선택) 별점, 좋아요 등 데이터의 가중치로 적용되는 컬럼입니다.
-        </div>
-        <div class="guide-item" data-tab="spreadsheet">
-          어피니티버블로 분석할 스프레드 시트 데이터를 복사해서 붙여넣기 하세요.<br><br>
-          <span class="highlight">📝 텍스트 컬럼</span> (필수) 분석할 텍스트 데이터가 있는 컬럼입니다.<br>
-          <span class="optional">🔢 숫자 컬럼</span> (선택) 별점, 좋아요 등 데이터의 가중치로 적용되는 컬럼입니다.
-        </div>
-        <div class="guide-item" data-tab="csv">
-          CSV 또는 TSV 파일을 드래그 앤 드롭하거나 직접 선택해서 업로드하세요.<br><br>
-          <span class="highlight">📝 텍스트 컬럼</span> (필수) 분석할 텍스트 데이터가 있는 컬럼입니다.<br>
-          <span class="optional">🔢 숫자 컬럼</span> (선택) 별점, 좋아요 등 데이터의 가중치로 적용되는 컬럼입니다.
-        </div>
-        <div class="guide-item" data-tab="sample">
-          샘플 데이터를 로드하여 어피니티버블의 기능을 체험해보세요.
-          <div class="sample-buttons-container" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="preview-section">
       <div class="preview-header">
         <span class="preview-title">미리보기</span>
@@ -857,13 +691,15 @@ function createFileInputUIv3(Papa, options = {}) {
   const inputArea = container.querySelector(".input-area");
   const inputHint = container.querySelector(".input-hint");
   const confirmBtn = container.querySelector(".confirm-btn");
-  const guideTabs = container.querySelectorAll(".guide-tab");
-  const guideItems = container.querySelectorAll(".guide-item");
   const previewSection = container.querySelector(".preview-section");
   const previewTable = container.querySelector(".preview-table");
   const dataCountDiv = container.querySelector(".data-count");
   const editBtn = container.querySelector(".preview-edit-btn");
-  const sampleButtonsContainer = container.querySelector(".sample-buttons-container");
+
+  // 외부 가이드 컨테이너 초기화
+  if (guideContainerId) {
+    guideContainer = document.getElementById(guideContainerId);
+  }
 
   // 첨부 파일 상태
   let attachedFile = null;
@@ -982,54 +818,6 @@ function createFileInputUIv3(Papa, options = {}) {
       fileInput.value = "";
     }
   });
-
-  // 가이드 탭 전환
-  guideTabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      const tabName = tab.dataset.tab;
-      guideTabs.forEach(t => t.classList.remove("active"));
-      guideItems.forEach(item => item.classList.remove("active"));
-      tab.classList.add("active");
-      container.querySelector(`.guide-item[data-tab="${tabName}"]`).classList.add("active");
-    });
-  });
-
-  // 샘플 데이터 버튼 생성
-  if (sampleButtons && sampleButtons.length > 0) {
-    sampleButtons.forEach((sample, idx) => {
-      const btn = document.createElement("button");
-      btn.className = "action-btn";
-      btn.style.display = "inline-flex";
-      btn.textContent = sample.label || `샘플 ${idx + 1}`;
-      btn.addEventListener("click", () => {
-        attachedFile = { name: sample.label || `Sample ${idx + 1}`, content: sample.content };
-        inputContent = sample.content;
-        updateFilePreview();
-        updateInputState();
-      });
-      sampleButtonsContainer.appendChild(btn);
-    });
-  } else {
-    // 기본 샘플 버튼
-    const defaultBtn = document.createElement("button");
-    defaultBtn.className = "action-btn";
-    defaultBtn.style.display = "inline-flex";
-    defaultBtn.textContent = "샘플 데이터 불러오기";
-    defaultBtn.addEventListener("click", () => {
-      const sampleData = `유저\t세탁기 사용 경험을 알려주세요.\tSize
-User 1\t세제가 많이 들어갔을 때는 빨래가 뻣뻣해진 못한 느낌이 들어서 통돌이 세탁기를 살걸 그랬나 후회하기도 했다...\t1
-User 1\t여러번빨지않고한번빨고바로말리니까건사간의세탁이필요없는것같다. 잘 쓰고 있으면 짧게 돌린다.\t1
-User 1\t세탁물 별로 물온도를 계속 신경 쓰는 편이다.\t1
-User 1\t세탁양보다 세제가 많이 들어가면 도어에 거품이 보인다.\t1
-User 1\t시간도 길고 세탁이란 게 그때그때 빨래 종류, 양도 다 다르기 때문에 고정된 한 두 개의 코스로 사용할 수가 없다.\t1
-User 1\t청소를 하다 보면 수건, 먼지 등이 나오는 경우가 많은데 세탁 돌린 시간이 얼마 안 지났으면 추가를 한다. '아이구 늦었네~' 그날은 그랬다.\t1`;
-      attachedFile = { name: "Sample Data", content: sampleData };
-      inputContent = sampleData;
-      updateFilePreview();
-      updateInputState();
-    });
-    sampleButtonsContainer.appendChild(defaultBtn);
-  }
 
   // 확인 버튼 클릭 - 팝업 표시
   confirmBtn.addEventListener("click", () => {
@@ -1406,8 +1194,7 @@ User 1\t청소를 하다 보면 수건, 먼지 등이 나오는 경우가 많은
 
     // 입력 영역 숨기기, 미리보기 표시
     inputArea.style.display = "none";
-    container.querySelector(".action-buttons").style.display = "none";
-    container.querySelector(".guide-section").style.display = "none";
+    if (guideContainer) guideContainer.style.display = "none";
 
     updatePreview();
     updateValue();
@@ -1460,8 +1247,7 @@ User 1\t청소를 하다 보면 수건, 먼지 등이 나오는 경우가 많은
     // 미리보기 숨기고 입력 영역 다시 표시
     previewSection.classList.remove("active");
     inputArea.style.display = "";
-    container.querySelector(".action-buttons").style.display = "";
-    container.querySelector(".guide-section").style.display = "";
+    if (guideContainer) guideContainer.style.display = "";
 
     const sizeCandidates = findSizeKeyCandidates(rawCols, rawText);
     const dateCandidates = findDateKeyCandidates(moment, rawCols, rawText);
@@ -1519,8 +1305,7 @@ User 1\t청소를 하다 보면 수건, 먼지 등이 나오는 경우가 많은
     updateInputState();
     previewSection.classList.remove("active");
     inputArea.style.display = "";
-    container.querySelector(".action-buttons").style.display = "";
-    container.querySelector(".guide-section").style.display = "";
+    if (guideContainer) guideContainer.style.display = "";
   };
 
   return container;
