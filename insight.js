@@ -207,6 +207,160 @@ function getReportTypeOptions() {
   ];
 }
 
+// src/insight/insightRenderer.js
+function simpleMarkdownParse(text) {
+  if (!text) return "";
+  return text.replace(/^### (.+)$/gm, "<h3>$1</h3>").replace(/^## (.+)$/gm, "<h2>$1</h2>").replace(/^# (.+)$/gm, "<h1>$1</h1>").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>").replace(/^- (.+)$/gm, "<li>$1</li>").replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>").replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>").replace(/^/, "<p>").replace(/$/, "</p>");
+}
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (err) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return true;
+  }
+}
+async function saveAsImage(element, filename = "insight-report.png") {
+  if (typeof html2canvas === "undefined") {
+    try {
+      await import("https://html2canvas.hertzen.com/dist/html2canvas.min.js");
+    } catch (e) {
+      alert("\uC774\uBBF8\uC9C0 \uC800\uC7A5\uC744 \uC704\uD574 html2canvas \uB77C\uC774\uBE0C\uB7EC\uB9AC\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4.");
+      return;
+    }
+  }
+  const canvas = await html2canvas(element);
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = canvas.toDataURL();
+  link.click();
+}
+function renderInsight(insights, options = {}) {
+  const {
+    editMode = false,
+    markdownParser = null,
+    onCopy = null,
+    onSave = null,
+    onEditToggle = null,
+    containerId = "insightDiv"
+  } = options;
+  const parser = markdownParser || simpleMarkdownParse;
+  const parsedContent = parser(insights || "");
+  const content = editMode ? `<div id="mdEditor" contentEditable="true" style="width:100%; line-height:1.5; font-size:1.2em; min-height:400px; white-space: pre-wrap; border:1px solid #ddd; padding:10px; border-radius:4px;">${insights || ""}</div>` : `<div class="parsed-content">${parsedContent.replace(/&quot;\n&quot;/g, '"<br>"')}</div>`;
+  const buttons = `
+    <button id="copyBtn" class="insight-btn"><i class="fi fi-br-duplicate"></i> \uD14D\uC2A4\uD2B8 \uBCF5\uC0AC</button>
+    <button id="saveBtn" class="insight-btn"><i class="fi fi-br-download"></i> \uC774\uBBF8\uC9C0 \uC800\uC7A5</button>
+    <button id="editBtn" class="insight-btn ${editMode ? "edit" : "richtext"}" data-action="toggle-edit">
+      ${editMode ? '<i class="fi fi-br-check"></i> \uC644\uB8CC' : '<i class="fi fi-br-pencil"></i> \uD3B8\uC9D1'}
+    </button>
+  `;
+  let container = document.getElementById(containerId);
+  if (container) {
+    const buttonsDiv = container.querySelector("#insightButtons") || container.querySelector(".sub-buttons");
+    const reportDiv = container.querySelector("#insightReport") || container.querySelector(".report");
+    if (buttonsDiv) buttonsDiv.innerHTML = buttons;
+    if (reportDiv) reportDiv.innerHTML = content;
+  } else {
+    container = document.createElement("div");
+    container.id = containerId;
+    container.innerHTML = `
+      <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px;">${buttons}</div>
+      <div class="report" id="insightReport">${content}</div>
+    `;
+  }
+  const copyBtn = container.querySelector("#copyBtn");
+  const saveBtn = container.querySelector("#saveBtn");
+  const editBtn = container.querySelector("#editBtn");
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      if (onCopy) {
+        onCopy(insights);
+      } else {
+        await copyToClipboard(insights);
+        alert("\uD14D\uC2A4\uD2B8\uAC00 \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.");
+      }
+    };
+  }
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      if (onSave) {
+        onSave(container.querySelector("#insightReport"));
+      } else {
+        const reportEl = container.querySelector("#insightReport");
+        await saveAsImage(reportEl, "insight-report.png");
+      }
+    };
+  }
+  if (editBtn && onEditToggle) {
+    editBtn.onclick = () => {
+      if (editMode) {
+        const editor = container.querySelector("#mdEditor");
+        const newContent = editor ? editor.textContent : insights;
+        onEditToggle(false, newContent);
+      } else {
+        onEditToggle(true, insights);
+      }
+    };
+  }
+  return container;
+}
+function toggleInsightVisibility(containerId = "insightDiv", show = true) {
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.style.display = show ? "block" : "none";
+  }
+}
+function getInsightStyles() {
+  return `
+    #insightDiv {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    #insightDiv .insight-btn {
+      padding: 8px 16px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    #insightDiv .insight-btn:hover {
+      background: #f5f5f5;
+      border-color: #ccc;
+    }
+
+    #insightDiv h1 { font-size: 1.8em; margin: 0.5em 0; }
+    #insightDiv h2 { font-size: 1.4em; margin: 0.5em 0; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+    #insightDiv h3 { font-size: 1.2em; margin: 0.5em 0; }
+
+    #insightDiv ul { margin: 0.5em 0; padding-left: 1.5em; }
+    #insightDiv li { margin: 0.3em 0; }
+
+    #insightDiv .report {
+      line-height: 1.6;
+      font-size: 1.1em;
+    }
+
+    #insightDiv tr th:first-child { background: #f5f5f5; }
+    #insightDiv th { background: #fafafa; padding: 8px; text-align: left; }
+    #insightDiv td { padding: 8px; border-bottom: 1px solid #eee; }
+  `;
+}
+
 // src/insight/index.js
 var index_default = {
   // 요약
@@ -216,15 +370,22 @@ var index_default = {
   getInsightStream,
   generateReport,
   getReportTypeOptions,
-  REPORT_TYPES
+  REPORT_TYPES,
+  // 렌더링
+  renderInsight,
+  toggleInsightVisibility,
+  getInsightStyles
 };
 export {
   REPORT_TYPES,
   index_default as default,
   generateReport,
   getInsightStream,
+  getInsightStyles,
   getReportTypeOptions,
   makeCompactData,
   makeCompactText,
-  reservoirSample
+  renderInsight,
+  reservoirSample,
+  toggleInsightVisibility
 };
