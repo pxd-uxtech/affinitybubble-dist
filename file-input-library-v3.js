@@ -316,17 +316,15 @@ width:250px;
       padding: 12px;
       position: relative;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-
-    height: 150px;
     }
     .file-input-v3 .file-content-preview {
       font-size: 12px;
       color: #555;
-      max-height: 100px;
       overflow: hidden;
       white-space: pre-wrap;
       line-height: 1.6;
       font-family: monospace;
+height:150px;
     }
     .file-input-v3 .file-name {
       font-size: 13px;
