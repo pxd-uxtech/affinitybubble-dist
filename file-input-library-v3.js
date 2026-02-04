@@ -302,14 +302,17 @@ function createFileInputUIv3(Papa, options = {}) {
     .file-input-v3 .file-item {
       position: relative;
       margin-bottom: 8px;
+width:250px;
     }
     .file-input-v3 .file-content-box {
-      background: #fff;
-      border: 1px solid #e5e5e5;
+    background: #f6f8f9;
+    border: 1px solid #cfdae2;
       border-radius: 8px;
       padding: 12px;
       position: relative;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+
+    height: 150px;
     }
     .file-input-v3 .file-content-preview {
       font-size: 12px;
