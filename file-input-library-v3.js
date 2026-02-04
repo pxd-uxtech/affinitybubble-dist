@@ -1247,10 +1247,14 @@ height:150px;
   function updatePreview() {
     if (!showPreview || chunks.length === 0) {
       previewSection.classList.remove("active");
+      document.body.classList.remove("data-attached");
+      document.body.classList.add("no-data");
       return;
     }
 
     previewSection.classList.add("active");
+    document.body.classList.add("data-attached");
+    document.body.classList.remove("no-data");
 
     const rows = chunks.slice(0, 100);
     const hasSizeCol = columnMapping.size !== "없음";
@@ -1289,6 +1293,8 @@ height:150px;
   editBtn.addEventListener("click", () => {
     // 미리보기 숨기고 입력 영역 다시 표시
     previewSection.classList.remove("active");
+    document.body.classList.remove("data-attached");
+    document.body.classList.add("no-data");
     inputArea.style.display = "";
     if (guideContainer) guideContainer.style.display = "";
 
@@ -1347,9 +1353,14 @@ height:150px;
     updateFilePreview();
     updateInputState();
     previewSection.classList.remove("active");
+    document.body.classList.remove("data-attached");
+    document.body.classList.add("no-data");
     inputArea.style.display = "";
     if (guideContainer) guideContainer.style.display = "";
   };
+
+  // 초기 상태: no-data 클래스 추가
+  document.body.classList.add("no-data");
 
   return container;
 }
