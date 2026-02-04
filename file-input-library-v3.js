@@ -239,7 +239,7 @@ function createFileInputUIv3(Papa, options = {}) {
       border-radius: 12px;
       padding: 0;
       min-height: 120px;
-height:200px;
+height:250px;
 
     }
     .file-input-v3 .input-area.dragover {
@@ -287,7 +287,7 @@ top: 10px;
       line-height: 1.6;
       box-sizing: border-box;
       background: transparent;
-height:200px;
+height:250px;
     }
     .file-input-v3 textarea:focus {
       outline: none;
@@ -303,6 +303,7 @@ height:200px;
     }
     .file-input-v3 .file-preview.visible {
       display: block;
+    padding: 30px;
     }
     .file-input-v3 .file-item {
       position: relative;
@@ -772,8 +773,10 @@ height:150px;
       attachedFile = null;
       inputContent = "";
       textarea.value = "";
+      chunks = [];
       updateFilePreview();
       updateInputState();
+      updateValue();
     });
   }
 
