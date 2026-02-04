@@ -235,11 +235,12 @@ function createFileInputUIv3(Papa, options = {}) {
     }
     .file-input-v3 .input-area {
       position: relative;
-      background: #fff;
-      border: 1px dashed #d0d0d0;
+      background: #fff; 
       border-radius: 12px;
-      padding: 16px;
+      padding: 0;
       min-height: 120px;
+height:200px;
+
     }
     .file-input-v3 .input-area.dragover {
       background: #e8f7f5;
@@ -250,6 +251,9 @@ function createFileInputUIv3(Papa, options = {}) {
       display: flex;
       justify-content: flex-end;
       margin-bottom: 8px;
+position: absolute;
+right: 10px;
+top: 10px;
     }
     .file-input-v3 .attach-btn {
       display: flex;
@@ -283,6 +287,7 @@ function createFileInputUIv3(Papa, options = {}) {
       line-height: 1.6;
       box-sizing: border-box;
       background: transparent;
+height:200px;
     }
     .file-input-v3 textarea:focus {
       outline: none;
@@ -338,7 +343,7 @@ width:250px;
       height: 24px;
       background: #666;
       color: #fff;
-      border: 2px solid #fff;
+      border: 0;
       border-radius: 50%;
       font-size: 14px;
       font-weight: bold;
@@ -348,7 +353,7 @@ width:250px;
       justify-content: center;
       transition: background 0.2s;
       z-index: 1;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 1px 1px rgba(0,0,0,0.2);
     }
     .file-input-v3 .delete-btn:hover {
       background: #444;
@@ -680,11 +685,9 @@ width:250px;
   // HTML 구조 생성
   container.innerHTML += `
     <div class="main-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>
-      분석할 텍스트나 데이터 시트를 붙여 넣으세요. 또는 CSV 파일을 첨부하세요.
+<h2>
+      분석할 데이터를 입력하세요.
+</h2>
     </div>
 
     <div class="input-area">
