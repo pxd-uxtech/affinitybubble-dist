@@ -369,7 +369,11 @@ height:150px;
       cursor: pointer;
       transition: all 0.2s;
       margin-top: 12px;
-      float: right;
+      float: right;    
+position: absolute;
+    bottom: 10px;
+    right: 10px;
+
     }
     .file-input-v3 .confirm-btn.visible {
       display: inline-block;
