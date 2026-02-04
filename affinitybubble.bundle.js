@@ -2192,7 +2192,7 @@ async function getInsightStream(api, textList, options = {}) {
       try {
         response = chunk;
         buffer = response?.markdown || buffer + (chunk?.text || "");
-        onProgress(buffer + "\u25CF");
+        onProgress(buffer);
       } catch (e) {
         console.error("Chunk processing error:", e);
       }
