@@ -1077,8 +1077,8 @@ function createFileInputUIv3(Papa, options = {}) {
     // 제외된 행 인덱스 관리
     let excludedRows = new Set();
 
-    // transpose 가능 여부 (열이 50개 이하일 때만)
-    const canTranspose = rawCols.length <= 50;
+    // transpose 가능 여부 (행이 50개 이하일 때만 - transpose 후 열이 됨)
+    const canTranspose = rawText.length <= 50;
 
     // transpose 아이콘 SVG (요청된 아이콘)
     const transposeIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1106,7 +1106,7 @@ function createFileInputUIv3(Papa, options = {}) {
                 필요 시 테이블의 헤더 위치를 변환하세요.
               </div>
             </div>
-            <button class="file-input-v3-transpose-btn" ${!canTranspose ? 'disabled title="열이 50개를 초과하여 사용할 수 없습니다"' : ''}>
+            <button class="file-input-v3-transpose-btn" ${!canTranspose ? 'disabled title="행이 50개를 초과하여 사용할 수 없습니다"' : ''}>
               ${transposeIcon}
               테이블 행열 바꾸기
             </button>
@@ -1285,17 +1285,6 @@ function createFileInputUIv3(Papa, options = {}) {
     const transposeBtn = popup.querySelector(".file-input-v3-transpose-btn");
     if (transposeBtn && canTranspose) {
       transposeBtn.addEventListener("click", () => {
-        // 행열 바꾸기: rawText와 rawCols 교환
-        const newCols = rawText.slice(0, 50).map((_, i) => `Row ${i + 1}`);
-        const newData = rawCols.map(col => {
-          const obj = {};
-          rawText.slice(0, 50).forEach((row, i) => {
-            obj[`Row ${i + 1}`] = row[col];
-          });
-          obj._originalCol = col;
-          return obj;
-        });
-
         // 원본 저장 (토글용)
         if (!popup._originalData) {
           popup._originalData = { cols: [...rawCols], data: [...rawText] };
@@ -1307,6 +1296,21 @@ function createFileInputUIv3(Papa, options = {}) {
           rawText = popup._originalData.data;
           popup._isTransposed = false;
         } else {
+          // 행열 바꾸기: 첫 번째 열의 값들을 새 헤더로 사용
+          const firstCol = rawCols[0];
+          const newCols = rawText.map(row => String(row[firstCol] || '').trim() || `Row`);
+
+          // 나머지 열들이 새로운 행이 됨
+          const otherCols = rawCols.slice(1);
+          const newData = otherCols.map(col => {
+            const obj = {};
+            rawText.forEach((row, i) => {
+              obj[newCols[i]] = row[col];
+            });
+            obj._originalCol = col;
+            return obj;
+          });
+
           rawCols = newCols;
           rawText = newData;
           popup._isTransposed = true;
