@@ -777,6 +777,9 @@ function createFileInputUIv3(Papa, options = {}) {
     }
     .file-input-v3 .preview-section.active {
       display: block;
+      padding: 20px;
+      background: #f9fafc;
+      border-radius: 8px;
     }
     /* 미리보기 활성화 시 메인 타이틀 숨김 */
     .file-input-v3 .preview-section.active ~ .main-title,
@@ -809,29 +812,6 @@ function createFileInputUIv3(Papa, options = {}) {
     }
     .file-input-v3 .preview-edit-btn:hover {
       background: #f5f5f5;
-    }
-    .file-input-v3 .preview-collapse-btn {
-      margin-left: auto;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px;
-      color: #666;
-      transition: transform 0.2s;
-    }
-    .file-input-v3 .preview-section.collapsed .preview-collapse-btn {
-      transform: rotate(180deg);
-    }
-    .file-input-v3 .preview-content {
-      transition: all 0.3s;
-    }
-    .file-input-v3 .preview-section.collapsed .preview-content {
-      display: none;
-    }
-    .file-input-v3 .preview-count-header {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 12px;
     }
     .file-input-v3 .preview-table-wrapper {
       max-height: 350px;
@@ -943,22 +923,14 @@ function createFileInputUIv3(Papa, options = {}) {
       <div class="preview-header">
         <span class="preview-title">입력한 데이터</span>
         <button class="preview-edit-btn">수정 ✎</button>
-        <button class="preview-collapse-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="18 15 12 9 6 15"></polyline>
-          </svg>
-        </button>
       </div>
-      <div class="preview-content">
-        <div class="preview-count-header"></div>
-        <div class="preview-table-wrapper">
-          <table class="preview-table">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="data-count"></div>
+      <div class="preview-table-wrapper">
+        <table class="preview-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
       </div>
+      <div class="data-count"></div>
     </div>
   `;
 
@@ -973,7 +945,6 @@ function createFileInputUIv3(Papa, options = {}) {
   const previewTable = container.querySelector(".preview-table");
   const dataCountDiv = container.querySelector(".data-count");
   const editBtn = container.querySelector(".preview-edit-btn");
-  const collapseBtn = container.querySelector(".preview-collapse-btn");
   const mainTitle = container.querySelector(".main-title");
 
   // 외부 가이드 컨테이너 초기화
@@ -1673,26 +1644,25 @@ function createFileInputUIv3(Papa, options = {}) {
 
     const rows = chunks.slice(0, 100);
     const hasSizeCol = columnMapping.size !== "없음";
-
-    // 카운트 헤더 업데이트
-    const countHeader = container.querySelector(".preview-count-header");
-    if (countHeader) {
-      countHeader.innerHTML = `<span style="font-weight:bold;">${chunks.length}</span><span style="opacity:0.5;"> / ${maxSize}</span>`;
-    }
+    const hasDateCol = columnMapping.date !== "없음";
 
     const thead = previewTable.querySelector("thead");
     const tbody = previewTable.querySelector("tbody");
 
     thead.innerHTML = `
       <tr>
+        <th style="width:40px;">#</th>
         <th>${columnMapping.text}</th>
+        ${hasDateCol ? '<th style="width:100px;">날짜</th>' : ''}
         ${hasSizeCol ? '<th class="size-col" style="width:80px;">Size</th>' : ''}
       </tr>
     `;
 
     tbody.innerHTML = rows.map(d => `
       <tr>
+        <td>${d.textid}</td>
         <td class="chunk" title="${escapeHtml(d.chunk)}">${escapeHtml(d.chunk.slice(0, 200))}</td>
+        ${hasDateCol ? `<td>${d.date || ''}</td>` : ''}
         ${hasSizeCol ? `<td class="size-col">${d.size}</td>` : ''}
       </tr>
     `).join("");
@@ -1723,7 +1693,15 @@ function createFileInputUIv3(Papa, options = {}) {
       actionButton = `<a href="/plan" target="_blank">업그레이드하기 ↗</a>`;
     }
 
-    dataCountDiv.innerHTML = showNotice ? `
+    // 숫자 표시 + 메시지
+    const textLength = `
+      <div class="textLength">
+        <span style="font-weight:bold;" class="${isOver ? 'over' : ''}">${chunks.length}</span>
+        <span style="opacity:0.5;"><span style="padding:0 5px;">/</span>${maxSize}</span>
+      </div>
+    `;
+
+    const notice = showNotice ? `
       <div class="notice">
         <div style="display:grid; grid-template-columns:1fr auto; gap:16px; align-items:center;">
           <div class="_left">${noticeContent}</div>
@@ -1731,12 +1709,9 @@ function createFileInputUIv3(Papa, options = {}) {
         </div>
       </div>
     ` : '';
-  }
 
-  // 접기/펼치기 버튼
-  collapseBtn.addEventListener("click", () => {
-    previewSection.classList.toggle("collapsed");
-  });
+    dataCountDiv.innerHTML = textLength + notice;
+  }
 
   // 수정하기 버튼
   editBtn.addEventListener("click", () => {
