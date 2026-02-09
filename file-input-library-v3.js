@@ -1296,23 +1296,37 @@ function createFileInputUIv3(Papa, options = {}) {
           rawText = popup._originalData.data;
           popup._isTransposed = false;
         } else {
-          // 행열 바꾸기: 첫 번째 열의 값들을 새 헤더로 사용
-          const firstCol = rawCols[0];
-          const newCols = rawText.map(row => String(row[firstCol] || '').trim() || `Row`);
+          // 원본 inputContent에서 다시 파싱 (header: false로)
+          const format = detectFormat(Papa, inputContent);
+          const reparsed = Papa.parse(
+            format === "text" ? inputContent : inputContent,
+            {
+              header: false,  // 헤더 없이 파싱
+              skipEmptyLines: true,
+              delimiter: format === "tsv" ? "\t" : (format === "csv" ? "," : undefined),
+              quoteChar: '"'
+            }
+          );
 
-          // 나머지 열들이 새로운 행이 됨
-          const otherCols = rawCols.slice(1);
-          const newData = otherCols.map(col => {
-            const obj = {};
-            rawText.forEach((row, i) => {
-              obj[newCols[i]] = row[col];
-            });
-            obj._originalCol = col;
-            return obj;
-          });
+          const matrix = reparsed.data.filter(row => row.some(cell => cell && String(cell).trim()));
 
-          rawCols = newCols;
-          rawText = newData;
+          if (matrix.length > 0 && matrix[0].length > 0) {
+            // 첫 번째 열을 헤더로, 나머지 열들을 데이터로
+            const newCols = matrix.map(row => String(row[0] || '').trim() || 'Row');
+            const colCount = Math.max(...matrix.map(row => row.length));
+
+            const newData = [];
+            for (let c = 1; c < colCount; c++) {
+              const obj = {};
+              matrix.forEach((row, r) => {
+                obj[newCols[r]] = row[c] || '';
+              });
+              newData.push(obj);
+            }
+
+            rawCols = newCols;
+            rawText = newData;
+          }
           popup._isTransposed = true;
         }
 
