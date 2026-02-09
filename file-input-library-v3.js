@@ -376,37 +376,82 @@ function createFileInputUIv3(Papa, options = {}) {
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.4);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 10000;
     }
     .file-input-v3-popup {
-      background: #fff;
-      border-radius: 16px;
+      background: #f8f8f8;
+      border-radius: 20px;
       width: 90%;
-      max-width: 800px;
-      max-height: 80vh;
+      max-width: 1000px;
+      max-height: 85vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      box-shadow: 0 25px 80px rgba(0,0,0,0.25);
     }
     .file-input-v3-popup-header {
-      padding: 24px;
-      border-bottom: 1px solid #eee;
+      padding: 28px 32px 24px;
+      background: #fff;
+    }
+    .file-input-v3-popup-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
     }
     .file-input-v3-popup-title {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 700;
       color: #1a1a1a;
-      margin: 0 0 20px 0;
+      margin: 0;
+    }
+    .file-input-v3-popup-tooltip {
+      background: #555;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 280px;
+    }
+    .file-input-v3-popup-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .file-input-v3-transpose-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .file-input-v3-transpose-btn:hover:not(:disabled) {
+      background: #f5f5f5;
+      border-color: #ccc;
+    }
+    .file-input-v3-transpose-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .file-input-v3-transpose-btn svg {
+      width: 18px;
+      height: 18px;
     }
     .file-input-v3-popup-selectors {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
     .file-input-v3-popup-selector-row {
       display: flex;
@@ -414,159 +459,162 @@ function createFileInputUIv3(Papa, options = {}) {
       gap: 12px;
       font-size: 14px;
     }
-    .file-input-v3-popup-selector-row .icon {
-      display: flex;
+    .file-input-v3-popup-selector-row .label {
+      color: #666;
+      min-width: 120px;
+    }
+    .file-input-v3-popup-selector-row .label.required::after {
+      content: ' *';
+      color: #e53e3e;
+    }
+    .file-input-v3-popup-selector-row .label .info-icon {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: #f0f0f0;
-      border-radius: 6px;
+      width: 16px;
+      height: 16px;
+      background: #ddd;
+      border-radius: 50%;
+      font-size: 11px;
       color: #666;
-    }
-    .file-input-v3-popup-selector-row .label {
-      color: #333;
-    }
-    .file-input-v3-popup-selector-row .label a {
-      color: #2dd4bf;
-      text-decoration: underline;
-      cursor: pointer;
+      margin-left: 4px;
+      cursor: help;
     }
     .file-input-v3-popup-tag {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 6px;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 20px;
       font-size: 13px;
       font-weight: 500;
-    }
-    .file-input-v3-popup-tag.text-tag {
-      background: #afc7dd;
-      color: #1e3a5f;
-    }
-    .file-input-v3-popup-tag.date-tag {
-      background: #ffe9a9;
-      color: #7a5c00;
-    }
-    .file-input-v3-popup-tag.size-tag {
-      background: #f69f8f;
-      color: #7a1f0f;
+      background: #e0f7f4;
+      color: #0d7680;
     }
     .file-input-v3-popup-tag .remove {
       cursor: pointer;
-      font-size: 16px;
+      font-size: 14px;
       line-height: 1;
+      opacity: 0.7;
+    }
+    .file-input-v3-popup-tag .remove:hover {
+      opacity: 1;
     }
     .file-input-v3-popup-body {
       flex: 1;
       overflow: auto;
       padding: 0;
+      background: #fff;
     }
     .file-input-v3-popup-table {
       width: max-content;
       min-width: 100%;
       border-collapse: collapse;
       font-size: 13px;
-      table-layout: fixed;
     }
     .file-input-v3-popup-table th {
       background: #f8f9fa;
-      padding: 12px 16px;
+      padding: 14px 16px;
       text-align: left;
-      font-weight: 600;
-      color: #555;
+      font-weight: 500;
+      color: #666;
       border-bottom: 1px solid #eee;
       position: sticky;
       top: 0;
       white-space: nowrap;
-      max-width: 180px;
+      max-width: 200px;
       min-width: 80px;
       overflow: hidden;
       text-overflow: ellipsis;
       cursor: pointer;
       user-select: none;
-      transition: background 0.15s;
+      transition: all 0.15s;
+    }
+    .file-input-v3-popup-table th .col-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .file-input-v3-popup-table th .check-icon {
+      color: #2dd4bf;
+      font-size: 14px;
     }
     .file-input-v3-popup-table th:hover {
-      background: #eee;
+      background: #f0f0f0;
+    }
+    .file-input-v3-popup-table th.row-num {
+      background: #f0f0f0;
+      color: #999;
+      font-weight: 400;
+      min-width: 50px;
+      max-width: 50px;
+      text-align: center;
+      cursor: default;
     }
     .file-input-v3-popup-table td {
       padding: 12px 16px;
       border-bottom: 1px solid #f0f0f0;
       color: #333;
-      max-width: 300px;
+      max-width: 400px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .file-input-v3-popup-table tr:hover td {
+    .file-input-v3-popup-table td.row-num {
+      background: #f8f9fa;
+      color: #999;
+      text-align: center;
+      font-size: 12px;
+    }
+    .file-input-v3-popup-table tr:hover td:not(.row-num) {
       background: #fafafa;
     }
-    .file-input-v3-popup-table th.highlight-text {
-      background: #afc7dd;
+    .file-input-v3-popup-table th.selected {
+      background: #e0f7f4;
+      color: #0d7680;
+      font-weight: 600;
     }
-    .file-input-v3-popup-table td.highlight-text {
-      background: #afc7dd;
+    .file-input-v3-popup-table td.selected {
+      background: #e0f7f4;
     }
-    .file-input-v3-popup-table th.highlight-size {
-      background: #f69f8f;
+    .file-input-v3-popup-table th.selected:hover {
+      background: #c8f0eb;
     }
-    .file-input-v3-popup-table td.highlight-size {
-      background: #f69f8f;
-    }
-    .file-input-v3-popup-table th.highlight-text:hover {
-      background: #95b3cc;
-    }
-    .file-input-v3-popup-table th.highlight-size:hover {
-      background: #e88878;
-    }
-    .file-input-v3-popup-table tr:hover td.highlight-text {
-      background: #95b3cc;
-    }
-    .file-input-v3-popup-table tr:hover td.highlight-size {
-      background: #e88878;
-    }
-    .file-input-v3-popup-table th.highlight-date {
-      background: #ffe9a9;
-    }
-    .file-input-v3-popup-table td.highlight-date {
-      background: #ffe9a9;
-    }
-    .file-input-v3-popup-table th.highlight-date:hover {
-      background: #f5d989;
-    }
-    .file-input-v3-popup-table tr:hover td.highlight-date {
-      background: #f5d989;
+    .file-input-v3-popup-table tr:hover td.selected {
+      background: #c8f0eb;
     }
     .file-input-v3-popup-footer {
-      padding: 16px 24px;
+      padding: 20px 32px;
+      background: #fff;
       border-top: 1px solid #eee;
       display: flex;
-      justify-content: flex-end;
-      gap: 12px;
+      justify-content: center;
+      gap: 16px;
     }
     .file-input-v3-popup-footer .cancel-btn {
       background: #fff;
       border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 10px 24px;
-      font-size: 14px;
+      border-radius: 25px;
+      padding: 14px 40px;
+      font-size: 15px;
       color: #666;
       cursor: pointer;
+      transition: all 0.2s;
     }
     .file-input-v3-popup-footer .cancel-btn:hover {
       background: #f5f5f5;
+      border-color: #ccc;
     }
     .file-input-v3-popup-footer .complete-btn {
       background: #2dd4bf;
       color: #fff;
       border: none;
-      border-radius: 8px;
-      padding: 10px 24px;
-      font-size: 14px;
+      border-radius: 25px;
+      padding: 14px 40px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
+      transition: all 0.2s;
     }
     .file-input-v3-popup-footer .complete-btn:hover {
       background: #14b8a6;
@@ -581,16 +629,16 @@ function createFileInputUIv3(Papa, options = {}) {
       appearance: none;
       background: #fff;
       border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 6px 28px 6px 12px;
+      border-radius: 20px;
+      padding: 8px 32px 8px 14px;
       font-size: 13px;
       cursor: pointer;
     }
     .file-input-v3-dropdown::after {
       content: '▼';
-      font-size: 10px;
+      font-size: 9px;
       position: absolute;
-      right: 10px;
+      right: 12px;
       top: 50%;
       transform: translateY(-50%);
       pointer-events: none;
@@ -896,12 +944,36 @@ function createFileInputUIv3(Papa, options = {}) {
     const hasSizeOptions = sizeCandidates.length > 0;
     const hasDateOptions = dateCandidates.length > 0;
 
+    // 제외된 행 인덱스 관리
+    let excludedRows = new Set();
+
+    // transpose 가능 여부 (열이 50개 이하일 때만)
+    const canTranspose = rawCols.length <= 50;
+
+    // transpose 아이콘 SVG
+    const transposeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
+      <path d="M7 10v4M10 7h4M17 10v4M10 17h4" stroke-linecap="round"/>
+    </svg>`;
+
     popup.innerHTML = `
       <div class="file-input-v3-popup-header">
-        <h2 class="file-input-v3-popup-title">분석 데이터 선택 및 다듬기</h2>
+        <div class="file-input-v3-popup-title-row">
+          <h2 class="file-input-v3-popup-title">분석 데이터 선택 및 다듬기</h2>
+          <div class="file-input-v3-popup-actions">
+            <div class="file-input-v3-popup-tooltip">
+              분석할 주데이터는 반드시 하나의 컬럼에 있어야 합니다.<br>
+              필요 시 테이블의 헤더 위치를 변환하세요.
+            </div>
+            <button class="file-input-v3-transpose-btn" ${!canTranspose ? 'disabled title="열이 50개를 초과하여 사용할 수 없습니다"' : ''}>
+              ${transposeIcon}
+              테이블 행열 바꾸기
+            </button>
+          </div>
+        </div>
         <div class="file-input-v3-popup-selectors">
           <div class="file-input-v3-popup-selector-row">
-            <span class="label">분석할 <b>텍스트 컬럼</b>을 선택하세요.</span>
+            <span class="label required">분석할 텍스트 컬럼</span>
             <span class="file-input-v3-popup-tag text-tag">
               ${columnMapping.text}
               <span class="remove">×</span>
@@ -912,24 +984,9 @@ function createFileInputUIv3(Papa, options = {}) {
               </select>
             </div>
           </div>
-          ${hasDateOptions ? `
-          <div class="file-input-v3-popup-selector-row">
-            <span class="label">시간순 정렬에 사용할 <b>날짜 컬럼</b>을 선택하세요.</span>
-            <span class="file-input-v3-popup-tag date-tag" ${columnMapping.date === '없음' ? 'style="display:none;"' : ''}>
-              ${columnMapping.date}
-              <span class="remove">×</span>
-            </span>
-            <div class="file-input-v3-dropdown" ${columnMapping.date !== '없음' ? 'style="display:none;"' : ''}>
-              <select class="date-column-select">
-                <option value="없음">없음</option>
-                ${dateCandidates.map(col => `<option value="${col}" ${col === columnMapping.date ? 'selected' : ''}>${col}</option>`).join('')}
-              </select>
-            </div>
-          </div>
-          ` : ''}
           ${hasSizeOptions ? `
           <div class="file-input-v3-popup-selector-row">
-            <span class="label">가중치로 설정할 <b>숫자 컬럼</b>을 선택하세요.</span>
+            <span class="label">가중치 컬럼 <span class="info-icon" title="숫자 컬럼을 가중치로 사용합니다">ⓘ</span></span>
             <span class="file-input-v3-popup-tag size-tag" ${columnMapping.size === '없음' ? 'style="display:none;"' : ''}>
               ${columnMapping.size}
               <span class="remove">×</span>
@@ -942,36 +999,27 @@ function createFileInputUIv3(Papa, options = {}) {
             </div>
           </div>
           ` : ''}
+          ${hasDateOptions ? `
+          <div class="file-input-v3-popup-selector-row">
+            <span class="label">날짜 컬럼</span>
+            <span class="file-input-v3-popup-tag date-tag" ${columnMapping.date === '없음' ? 'style="display:none;"' : ''}>
+              ${columnMapping.date}
+              <span class="remove">×</span>
+            </span>
+            <div class="file-input-v3-dropdown" ${columnMapping.date !== '없음' ? 'style="display:none;"' : ''}>
+              <select class="date-column-select">
+                <option value="없음">없음</option>
+                ${dateCandidates.map(col => `<option value="${col}" ${col === columnMapping.date ? 'selected' : ''}>${col}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          ` : ''}
         </div>
       </div>
       <div class="file-input-v3-popup-body">
         <table class="file-input-v3-popup-table">
-          <thead>
-            <tr>
-              ${rawCols.map(col => {
-                const isText = col === columnMapping.text;
-                const isSize = col === columnMapping.size;
-                const isDate = col === columnMapping.date;
-                const highlightClass = isText ? 'highlight-text' : (isSize ? 'highlight-size' : (isDate ? 'highlight-date' : ''));
-                return `<th class="${highlightClass}" data-col="${col}" title="${col}">${col}</th>`;
-              }).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${rawText.slice(0, 50).map((row) => `
-              <tr>
-                ${rawCols.map(col => {
-                  const isText = col === columnMapping.text;
-                  const isSize = col === columnMapping.size;
-                  const isDate = col === columnMapping.date;
-                  const highlightClass = isText ? 'highlight-text' : (isSize ? 'highlight-size' : (isDate ? 'highlight-date' : ''));
-                  const cellClass = isText ? `text-cell ${highlightClass}` : highlightClass;
-                  const value = String(row[col] || '').slice(0, 200);
-                  return `<td class="${cellClass}" data-col="${col}">${value}</td>`;
-                }).join('')}
-              </tr>
-            `).join('')}
-          </tbody>
+          <thead></thead>
+          <tbody></tbody>
         </table>
       </div>
       <div class="file-input-v3-popup-footer">
@@ -980,8 +1028,120 @@ function createFileInputUIv3(Papa, options = {}) {
       </div>
     `;
 
+    // 테이블 렌더링 함수
+    function renderTable() {
+      const thead = popup.querySelector("thead");
+      const tbody = popup.querySelector("tbody");
+
+      // 체크 아이콘
+      const checkIcon = `<span class="check-icon">✓</span>`;
+
+      thead.innerHTML = `
+        <tr>
+          <th class="row-num"></th>
+          ${rawCols.map(col => {
+            const isSelected = col === columnMapping.text || col === columnMapping.size || col === columnMapping.date;
+            return `<th class="${isSelected ? 'selected' : ''}" data-col="${col}" title="${col}">
+              <span class="col-header">${isSelected ? checkIcon : ''}${col}</span>
+            </th>`;
+          }).join('')}
+        </tr>
+      `;
+
+      tbody.innerHTML = rawText.slice(0, 100).map((row, idx) => {
+        const isExcluded = excludedRows.has(idx);
+        return `
+          <tr data-row-idx="${idx}" style="${isExcluded ? 'opacity:0.4;' : ''}">
+            <td class="row-num">
+              <input type="checkbox" class="row-checkbox" data-idx="${idx}" ${isExcluded ? '' : 'checked'}>
+            </td>
+            ${rawCols.map(col => {
+              const isSelected = col === columnMapping.text || col === columnMapping.size || col === columnMapping.date;
+              const value = String(row[col] || '').slice(0, 200);
+              return `<td class="${isSelected ? 'selected' : ''}" data-col="${col}">${value}</td>`;
+            }).join('')}
+          </tr>
+        `;
+      }).join('');
+
+      // 체크박스 이벤트 설정
+      setupCheckboxHandlers();
+    }
+
+    // 체크박스 핸들러
+    function setupCheckboxHandlers() {
+      const checkboxes = popup.querySelectorAll(".row-checkbox");
+      checkboxes.forEach(cb => {
+        cb.addEventListener("change", (e) => {
+          const idx = parseInt(e.target.dataset.idx);
+          const row = popup.querySelector(`tr[data-row-idx="${idx}"]`);
+          if (e.target.checked) {
+            excludedRows.delete(idx);
+            row.style.opacity = "1";
+          } else {
+            excludedRows.add(idx);
+            row.style.opacity = "0.4";
+          }
+        });
+      });
+    }
+
+    // 초기 테이블 렌더링
+    renderTable();
+
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
+
+    // Transpose 버튼 이벤트
+    const transposeBtn = popup.querySelector(".file-input-v3-transpose-btn");
+    if (transposeBtn && canTranspose) {
+      transposeBtn.addEventListener("click", () => {
+        // 행열 바꾸기: rawText와 rawCols 교환
+        const newCols = rawText.slice(0, 50).map((_, i) => `Row ${i + 1}`);
+        const newData = rawCols.map(col => {
+          const obj = {};
+          rawText.slice(0, 50).forEach((row, i) => {
+            obj[`Row ${i + 1}`] = row[col];
+          });
+          obj._originalCol = col;
+          return obj;
+        });
+
+        // 원본 저장 (토글용)
+        if (!popup._originalData) {
+          popup._originalData = { cols: [...rawCols], data: [...rawText] };
+        }
+
+        // 이미 transpose 상태면 원복
+        if (popup._isTransposed) {
+          rawCols = popup._originalData.cols;
+          rawText = popup._originalData.data;
+          popup._isTransposed = false;
+        } else {
+          rawCols = newCols;
+          rawText = newData;
+          popup._isTransposed = true;
+        }
+
+        // 컬럼 매핑 초기화
+        columnMapping.text = rawCols[0] || "";
+        columnMapping.size = "없음";
+        columnMapping.date = "없음";
+        excludedRows.clear();
+
+        // UI 업데이트
+        updateAllTagsUI();
+        renderTable();
+        setupHeaderClickHandlers();
+      });
+    }
+
+    // 모든 태그 UI 업데이트
+    function updateAllTagsUI() {
+      updateTextTagUI();
+      if (hasSizeOptions) updateSizeTagUI();
+      if (hasDateOptions) updateDateTagUI();
+    }
 
     // 팝업 이벤트 핸들러
     const textTag = popup.querySelector(".text-tag");
@@ -998,7 +1158,11 @@ function createFileInputUIv3(Papa, options = {}) {
       textTag.innerHTML = columnMapping.text + '<span class="remove">×</span>';
       textTag.style.display = "inline-flex";
       textDropdown.style.display = "none";
-      textSelect.value = columnMapping.text;
+
+      // select 옵션 업데이트 (transpose 후 변경될 수 있음)
+      textSelect.innerHTML = rawCols.map(col =>
+        `<option value="${col}" ${col === columnMapping.text ? 'selected' : ''}>${col}</option>`
+      ).join('');
 
       textTag.querySelector(".remove")?.addEventListener("click", () => {
         textTag.style.display = "none";
@@ -1009,7 +1173,7 @@ function createFileInputUIv3(Papa, options = {}) {
     textSelect?.addEventListener("change", () => {
       columnMapping.text = textSelect.value;
       updateTextTagUI();
-      updatePopupTable(popup, sizeCandidates, dateCandidates);
+      renderTable();
       setupHeaderClickHandlers();
     });
 
@@ -1034,7 +1198,7 @@ function createFileInputUIv3(Papa, options = {}) {
         dateTag.querySelector(".remove")?.addEventListener("click", () => {
           columnMapping.date = "없음";
           updateDateTagUI();
-          updatePopupTable(popup, sizeCandidates, dateCandidates);
+          renderTable();
           setupHeaderClickHandlers();
         });
       }
@@ -1044,14 +1208,14 @@ function createFileInputUIv3(Papa, options = {}) {
       dateTag?.querySelector(".remove")?.addEventListener("click", () => {
         columnMapping.date = "없음";
         updateDateTagUI();
-        updatePopupTable(popup, sizeCandidates, dateCandidates);
+        renderTable();
         setupHeaderClickHandlers();
       });
 
       dateSelect?.addEventListener("change", () => {
         columnMapping.date = dateSelect.value;
         updateDateTagUI();
-        updatePopupTable(popup, sizeCandidates, dateCandidates);
+        renderTable();
         setupHeaderClickHandlers();
       });
     }
@@ -1077,7 +1241,7 @@ function createFileInputUIv3(Papa, options = {}) {
         sizeTag.querySelector(".remove")?.addEventListener("click", () => {
           columnMapping.size = "없음";
           updateSizeTagUI();
-          updatePopupTable(popup, sizeCandidates, dateCandidates);
+          renderTable();
           setupHeaderClickHandlers();
         });
       }
@@ -1087,21 +1251,21 @@ function createFileInputUIv3(Papa, options = {}) {
       sizeTag?.querySelector(".remove")?.addEventListener("click", () => {
         columnMapping.size = "없음";
         updateSizeTagUI();
-        updatePopupTable(popup, sizeCandidates, dateCandidates);
+        renderTable();
         setupHeaderClickHandlers();
       });
 
       sizeSelect?.addEventListener("change", () => {
         columnMapping.size = sizeSelect.value;
         updateSizeTagUI();
-        updatePopupTable(popup, sizeCandidates, dateCandidates);
+        renderTable();
         setupHeaderClickHandlers();
       });
     }
 
     // 헤더 클릭으로 컬럼 선택 (타입에 따라 다르게, 날짜/가중치는 토글)
     function setupHeaderClickHandlers() {
-      const headers = popup.querySelectorAll(".file-input-v3-popup-table th");
+      const headers = popup.querySelectorAll(".file-input-v3-popup-table th:not(.row-num)");
       headers.forEach(th => {
         // 기존 리스너 제거를 위해 클론
         const newTh = th.cloneNode(true);
@@ -1136,7 +1300,7 @@ function createFileInputUIv3(Papa, options = {}) {
             updateTextTagUI();
           }
 
-          updatePopupTable(popup, sizeCandidates, dateCandidates);
+          renderTable();
           setupHeaderClickHandlers();
         });
       });
@@ -1150,6 +1314,8 @@ function createFileInputUIv3(Papa, options = {}) {
 
     // 완료 버튼
     popup.querySelector(".complete-btn").addEventListener("click", () => {
+      // 제외된 행 필터링
+      rawText = rawText.filter((_, idx) => !excludedRows.has(idx));
       overlay.remove();
       finalizeData();
     });
@@ -1160,38 +1326,6 @@ function createFileInputUIv3(Papa, options = {}) {
         overlay.remove();
       }
     });
-  }
-
-  // 팝업 테이블 업데이트
-  function updatePopupTable(popup, sizeCandidates, dateCandidates) {
-    const thead = popup.querySelector("thead");
-    const tbody = popup.querySelector("tbody");
-
-    thead.innerHTML = `
-      <tr>
-        ${rawCols.map(col => {
-          const isText = col === columnMapping.text;
-          const isSize = col === columnMapping.size;
-          const isDate = col === columnMapping.date;
-          const highlightClass = isText ? 'highlight-text' : (isSize ? 'highlight-size' : (isDate ? 'highlight-date' : ''));
-          return `<th class="${highlightClass}" data-col="${col}" title="${col}">${col}</th>`;
-        }).join('')}
-      </tr>
-    `;
-
-    tbody.innerHTML = rawText.slice(0, 50).map((row) => `
-      <tr>
-        ${rawCols.map(col => {
-          const isText = col === columnMapping.text;
-          const isSize = col === columnMapping.size;
-          const isDate = col === columnMapping.date;
-          const highlightClass = isText ? 'highlight-text' : (isSize ? 'highlight-size' : (isDate ? 'highlight-date' : ''));
-          const cellClass = isText ? `text-cell ${highlightClass}` : highlightClass;
-          const value = String(row[col] || '').slice(0, 200);
-          return `<td class="${cellClass}" data-col="${col}">${value}</td>`;
-        }).join('')}
-      </tr>
-    `).join('');
   }
 
   // 데이터 최종화 및 미리보기 표시
