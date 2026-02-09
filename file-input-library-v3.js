@@ -961,6 +961,12 @@ function createFileInputUIv3(Papa, options = {}) {
   // 텍스트 붙여넣기 감지
   textarea.addEventListener("paste", (e) => {
     setTimeout(() => {
+      const text = textarea.value.trim();
+      if (text) {
+        attachedFile = { name: "Pasted Data", content: text };
+        inputContent = text;
+        updateFilePreview();
+      }
       updateInputState();
     }, 0);
   });
