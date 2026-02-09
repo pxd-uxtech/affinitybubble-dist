@@ -1029,6 +1029,9 @@ function createFileInputUIv3(Papa, options = {}) {
 
   // 데이터 파싱 및 팝업 표시
   function processDataAndShowPopup() {
+    // 뒷부분 빈 라인 제거
+    inputContent = inputContent.trimEnd();
+
     const format = detectFormat(Papa, inputContent);
 
     const parsed = Papa.parse(
