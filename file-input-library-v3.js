@@ -220,80 +220,73 @@ function createFileInputUIv3(Papa, options = {}) {
       gap: 24px;
     }
     .file-input-v3 .main-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 15px;
-      font-weight: 400;
-      color: #888;
-      margin-bottom: 8px;
+      text-align: center;
+      margin-bottom: 24px;
     }
-    .file-input-v3 .main-title svg {
-      width: 18px;
-      height: 18px;
-      color: #2dd4bf;
+    .file-input-v3 .main-title h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0;
     }
     .file-input-v3 .input-area {
       position: relative;
-      background: #fff; 
-      border-radius: 12px;
-      padding: 0;
-      min-height: 120px;
-height:250px;
-
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      min-height: 160px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     .file-input-v3 .input-area.dragover {
       background: #e8f7f5;
-      border-color: #2dd4bf;
-      border-style: solid;
+      box-shadow: 0 2px 12px rgba(45,212,191,0.2);
     }
-    .file-input-v3 .input-toolbar {
+    .file-input-v3 .input-bottom-bar {
+      position: absolute;
+      bottom: 16px;
+      left: 20px;
+      right: 20px;
       display: flex;
-      justify-content: flex-end;
-      margin-bottom: 8px;
-position: absolute;
-right: 10px;
-top: 10px;
+      justify-content: space-between;
+      align-items: center;
     }
     .file-input-v3 .attach-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: transparent;
-      border: none;
-      border-radius: 6px;
+      width: 36px;
+      height: 36px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 50%;
       cursor: pointer;
-      color: #999;
+      color: #666;
       transition: all 0.2s;
+      font-size: 20px;
+      font-weight: 300;
     }
     .file-input-v3 .attach-btn:hover {
-      background: #f0f0f0;
-      color: #666;
-    }
-    .file-input-v3 .attach-btn svg {
-      width: 18px;
-      height: 18px;
+      background: #f5f5f5;
+      border-color: #ccc;
+      color: #333;
     }
     .file-input-v3 textarea {
       width: 100%;
       height: 100px;
       resize: none;
       border: none;
-      border-radius: 8px;
       padding: 0;
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.6;
       box-sizing: border-box;
       background: transparent;
-height:250px;
+      color: #333;
     }
     .file-input-v3 textarea:focus {
       outline: none;
     }
     .file-input-v3 textarea::placeholder {
-      color: #bbb;
+      color: #999;
     }
     .file-input-v3 textarea.hidden {
       display: none;
@@ -303,20 +296,19 @@ height:250px;
     }
     .file-input-v3 .file-preview.visible {
       display: block;
-    padding: 30px;
+      padding: 0 0 60px 0;
     }
     .file-input-v3 .file-item {
       position: relative;
       margin-bottom: 8px;
-width:250px;
+      width: 250px;
     }
     .file-input-v3 .file-content-box {
-    background: #f6f8f9;
-    border: 1px solid #cfdae2;
+      background: #f6f8f9;
+      border: 1px solid #e0e5e9;
       border-radius: 8px;
       padding: 12px;
       position: relative;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     .file-input-v3 .file-content-preview {
       font-size: 12px;
@@ -325,7 +317,7 @@ width:250px;
       white-space: pre-wrap;
       line-height: 1.6;
       font-family: monospace;
-height:150px;
+      height: 120px;
     }
     .file-input-v3 .file-name {
       font-size: 13px;
@@ -336,15 +328,15 @@ height:150px;
     }
     .file-input-v3 .delete-btn {
       position: absolute;
-      top: -10px;
-      right: -10px;
-      width: 24px;
-      height: 24px;
+      top: -8px;
+      right: -8px;
+      width: 22px;
+      height: 22px;
       background: #666;
       color: #fff;
       border: 0;
       border-radius: 50%;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: bold;
       cursor: pointer;
       display: flex;
@@ -352,31 +344,26 @@ height:150px;
       justify-content: center;
       transition: background 0.2s;
       z-index: 1;
-      box-shadow: 0 1px 1px rgba(0,0,0,0.2);
     }
     .file-input-v3 .delete-btn:hover {
       background: #444;
     }
     .file-input-v3 .confirm-btn {
-      display: none;
       background: #2dd4bf;
       color: #fff;
       border: none;
       border-radius: 8px;
-      padding: 10px 24px;
-      font-size: 14px;
+      padding: 12px 32px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      margin-top: 12px;
-      float: right;    
-position: absolute;
-    bottom: 10px;
-    right: 10px;
-
+      opacity: 0;
+      pointer-events: none;
     }
     .file-input-v3 .confirm-btn.visible {
-      display: inline-block;
+      opacity: 1;
+      pointer-events: auto;
     }
     .file-input-v3 .confirm-btn:hover {
       background: #14b8a6;
@@ -688,23 +675,17 @@ position: absolute;
   // HTML 구조 생성
   container.innerHTML += `
     <div class="main-title">
-<h2>
-      분석할 데이터를 입력하세요.
-</h2>
+      <h2>분석할 데이터를 입력하세요.</h2>
     </div>
 
     <div class="input-area">
-      <div class="input-toolbar">
-        <button class="attach-btn" title="파일 첨부">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-          </svg>
-        </button>
-      </div>
-      <textarea placeholder="텍스트를 붙여넣거나 CSV 파일을 드롭하세요. (아래 데이터 입력 가이드를 참고해보세요.)"></textarea>
+      <textarea placeholder="텍스트를 붙여넣거나 CSV 파일을 드롭하세요."></textarea>
       <div class="file-preview"></div>
       <input type="file" accept=".csv,.tsv,.txt" style="display:none;">
-      <button class="confirm-btn">확인</button>
+      <div class="input-bottom-bar">
+        <button class="attach-btn" title="파일 첨부">+</button>
+        <button class="confirm-btn">확인</button>
+      </div>
     </div>
 
     <div class="preview-section">
@@ -749,10 +730,13 @@ position: absolute;
 
   // 입력 상태 업데이트
   function updateInputState() {
-    const hasContent = attachedFile !== null;
+    const hasFile = attachedFile !== null;
+    const hasText = textarea.value.trim().length > 0;
+    const hasContent = hasFile || hasText;
+
     confirmBtn.classList.toggle("visible", hasContent);
-    textarea.classList.toggle("hidden", hasContent);
-    filePreview.classList.toggle("visible", hasContent);
+    textarea.classList.toggle("hidden", hasFile);
+    filePreview.classList.toggle("visible", hasFile);
   }
 
   // 파일 프리뷰 업데이트
@@ -791,28 +775,16 @@ position: absolute;
     return div.innerHTML;
   }
 
+  // 텍스트 입력 감지 (실시간)
+  textarea.addEventListener("input", () => {
+    updateInputState();
+  });
+
   // 텍스트 붙여넣기 감지
   textarea.addEventListener("paste", (e) => {
     setTimeout(() => {
-      const text = textarea.value.trim();
-      if (text) {
-        attachedFile = { name: "Pasted Data", content: text };
-        inputContent = text;
-        updateFilePreview();
-        updateInputState();
-      }
-    }, 0);
-  });
-
-  // 텍스트 직접 입력 (Enter 후 blur 시)
-  textarea.addEventListener("blur", () => {
-    const text = textarea.value.trim();
-    if (text && !attachedFile) {
-      attachedFile = { name: "Pasted Data", content: text };
-      inputContent = text;
-      updateFilePreview();
       updateInputState();
-    }
+    }, 0);
   });
 
   // 파일 드롭 처리
@@ -868,6 +840,11 @@ position: absolute;
 
   // 확인 버튼 클릭 - 팝업 표시
   confirmBtn.addEventListener("click", () => {
+    // 텍스트 직접 입력한 경우 처리
+    if (!inputContent && textarea.value.trim()) {
+      inputContent = textarea.value.trim();
+      attachedFile = { name: "Pasted Data", content: inputContent };
+    }
     if (!inputContent) return;
     processDataAndShowPopup();
   });
