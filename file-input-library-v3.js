@@ -409,7 +409,29 @@ function createFileInputUIv3(Papa, options = {}) {
       color: #1a1a1a;
       margin: 0;
     }
-    .file-input-v3-popup-tooltip {
+    /* Info icon with hover tooltip */
+    .file-input-v3-popup-info {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    .file-input-v3-popup-info .info-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      cursor: help;
+    }
+    .file-input-v3-popup-info .info-trigger svg {
+      width: 20px;
+      height: 20px;
+    }
+    .file-input-v3-popup-info .info-tooltip {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
       background: #555;
       color: #fff;
       padding: 12px 16px;
@@ -417,6 +439,57 @@ function createFileInputUIv3(Papa, options = {}) {
       font-size: 13px;
       line-height: 1.5;
       max-width: 280px;
+      white-space: normal;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+      z-index: 100;
+    }
+    .file-input-v3-popup-info:hover .info-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+    /* Weight column info tooltip */
+    .file-input-v3-popup-selector-row .label .info-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      margin-left: 4px;
+    }
+    .file-input-v3-popup-selector-row .label .info-wrapper .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      background: #ddd;
+      border-radius: 50%;
+      font-size: 11px;
+      color: #666;
+      cursor: help;
+    }
+    .file-input-v3-popup-selector-row .label .info-wrapper .weight-tooltip {
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-left: 8px;
+      background: #555;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.6;
+      width: 280px;
+      white-space: normal;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+      z-index: 100;
+    }
+    .file-input-v3-popup-selector-row .label .info-wrapper:hover .weight-tooltip {
+      opacity: 1;
+      visibility: visible;
     }
     .file-input-v3-popup-actions {
       display: flex;
@@ -583,6 +656,36 @@ function createFileInputUIv3(Papa, options = {}) {
     .file-input-v3-popup-table tr:hover td.selected {
       background: #c8f0eb;
     }
+    /* Weight column highlight (light blue) */
+    .file-input-v3-popup-table th.selected-size {
+      background: #F5FBFF;
+      color: #0d7680;
+      font-weight: 600;
+    }
+    .file-input-v3-popup-table td.selected-size {
+      background: #F5FBFF;
+    }
+    .file-input-v3-popup-table th.selected-size:hover {
+      background: #e8f4fc;
+    }
+    .file-input-v3-popup-table tr:hover td.selected-size {
+      background: #e8f4fc;
+    }
+    /* Date column highlight (light purple) */
+    .file-input-v3-popup-table th.selected-date {
+      background: #FBF5FF;
+      color: #7c3aed;
+      font-weight: 600;
+    }
+    .file-input-v3-popup-table td.selected-date {
+      background: #FBF5FF;
+    }
+    .file-input-v3-popup-table th.selected-date:hover {
+      background: #f3e8ff;
+    }
+    .file-input-v3-popup-table tr:hover td.selected-date {
+      background: #f3e8ff;
+    }
     .file-input-v3-popup-footer {
       padding: 20px 32px;
       background: #fff;
@@ -651,6 +754,11 @@ function createFileInputUIv3(Papa, options = {}) {
     }
     .file-input-v3 .preview-section.active {
       display: block;
+    }
+    /* 미리보기 활성화 시 메인 타이틀 숨김 */
+    .file-input-v3 .preview-section.active ~ .main-title,
+    .file-input-v3:has(.preview-section.active) .main-title {
+      display: none;
     }
     .file-input-v3 .preview-header {
       display: flex;
@@ -762,6 +870,7 @@ function createFileInputUIv3(Papa, options = {}) {
   const previewTable = container.querySelector(".preview-table");
   const dataCountDiv = container.querySelector(".data-count");
   const editBtn = container.querySelector(".preview-edit-btn");
+  const mainTitle = container.querySelector(".main-title");
 
   // 외부 가이드 컨테이너 초기화
   if (guideContainerId) {
@@ -950,10 +1059,16 @@ function createFileInputUIv3(Papa, options = {}) {
     // transpose 가능 여부 (열이 50개 이하일 때만)
     const canTranspose = rawCols.length <= 50;
 
-    // transpose 아이콘 SVG
-    const transposeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
-      <path d="M7 10v4M10 7h4M17 10v4M10 17h4" stroke-linecap="round"/>
+    // transpose 아이콘 SVG (요청된 아이콘)
+    const transposeIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="5" y="10" width="4" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
+      <rect x="10" y="8" width="4" height="10" rx="1" transform="rotate(-90 10 8)" stroke="currentColor" stroke-width="2"/>
+      <path d="M20 12V15C20 17.2091 18.2091 19 16 19H13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+
+    // info 아이콘 SVG
+    const infoIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10.5 12H12V16H14M12 8H12.01M13.5628 20.8633C14.7268 20.658 15.8389 20.2256 16.8357 19.5905C17.8325 18.9555 18.6945 18.1303 19.3724 17.1622C20.0503 16.194 20.5309 15.1018 20.7867 13.948C21.0425 12.7941 21.0685 11.6011 20.8633 10.4372C20.658 9.27322 20.2256 8.1611 19.5905 7.1643C18.9555 6.1675 18.1303 5.30554 17.1622 4.62763C16.194 3.94972 15.1018 3.46914 13.948 3.21334C12.7941 2.95753 11.6011 2.9315 10.4372 3.13673C9.27322 3.34196 8.1611 3.77444 7.1643 4.40948C6.1675 5.04451 5.30554 5.86966 4.62763 6.83781C3.94972 7.80597 3.46914 8.89816 3.21334 10.052C2.95753 11.2059 2.9315 12.3989 3.13673 13.5628C3.34197 14.7268 3.77445 15.8389 4.40948 16.8357C5.04451 17.8325 5.86966 18.6945 6.83781 19.3724C7.80597 20.0503 8.89816 20.5309 10.052 20.7867C11.2059 21.0425 12.3989 21.0685 13.5628 20.8633Z" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 
     popup.innerHTML = `
@@ -961,9 +1076,12 @@ function createFileInputUIv3(Papa, options = {}) {
         <div class="file-input-v3-popup-title-row">
           <h2 class="file-input-v3-popup-title">분석 데이터 선택 및 다듬기</h2>
           <div class="file-input-v3-popup-actions">
-            <div class="file-input-v3-popup-tooltip">
-              분석할 주데이터는 반드시 하나의 컬럼에 있어야 합니다.<br>
-              필요 시 테이블의 헤더 위치를 변환하세요.
+            <div class="file-input-v3-popup-info">
+              <span class="info-trigger">${infoIcon}</span>
+              <div class="info-tooltip">
+                분석할 주데이터는 반드시 하나의 컬럼에 있어야 합니다.<br>
+                필요 시 테이블의 헤더 위치를 변환하세요.
+              </div>
             </div>
             <button class="file-input-v3-transpose-btn" ${!canTranspose ? 'disabled title="열이 50개를 초과하여 사용할 수 없습니다"' : ''}>
               ${transposeIcon}
@@ -986,7 +1104,7 @@ function createFileInputUIv3(Papa, options = {}) {
           </div>
           ${hasSizeOptions ? `
           <div class="file-input-v3-popup-selector-row">
-            <span class="label">가중치 컬럼 <span class="info-icon" title="숫자 컬럼을 가중치로 사용합니다">ⓘ</span></span>
+            <span class="label">가중치 컬럼 <span class="info-wrapper"><span class="info-icon">ⓘ</span><div class="weight-tooltip">가중치에 따라 중요한 버블 크기를 크게 표시합니다.<br><br><strong>예시:</strong><br>• 클릭수: 50, 120, 35 → 120이 가장 큰 버블<br>• 좋아요: 10, 25, 5 → log 스케일로 변환하여 반영</div></span></span>
             <span class="file-input-v3-popup-tag size-tag" ${columnMapping.size === '없음' ? 'style="display:none;"' : ''}>
               ${columnMapping.size}
               <span class="remove">×</span>
@@ -1036,19 +1154,32 @@ function createFileInputUIv3(Papa, options = {}) {
       // 체크 아이콘
       const checkIcon = `<span class="check-icon">✓</span>`;
 
+      // 전체 선택 여부 계산
+      const displayedRows = rawText.slice(0, 100);
+      const allChecked = displayedRows.every((_, idx) => !excludedRows.has(idx));
+
       thead.innerHTML = `
         <tr>
-          <th class="row-num"></th>
+          <th class="row-num">
+            <input type="checkbox" class="select-all-checkbox" ${allChecked ? 'checked' : ''}>
+          </th>
           ${rawCols.map(col => {
-            const isSelected = col === columnMapping.text || col === columnMapping.size || col === columnMapping.date;
-            return `<th class="${isSelected ? 'selected' : ''}" data-col="${col}" title="${col}">
+            const isText = col === columnMapping.text;
+            const isSize = col === columnMapping.size;
+            const isDate = col === columnMapping.date;
+            let selectedClass = '';
+            if (isText) selectedClass = 'selected';
+            else if (isSize) selectedClass = 'selected-size';
+            else if (isDate) selectedClass = 'selected-date';
+            const isSelected = isText || isSize || isDate;
+            return `<th class="${selectedClass}" data-col="${col}" title="${col}">
               <span class="col-header">${isSelected ? checkIcon : ''}${col}</span>
             </th>`;
           }).join('')}
         </tr>
       `;
 
-      tbody.innerHTML = rawText.slice(0, 100).map((row, idx) => {
+      tbody.innerHTML = displayedRows.map((row, idx) => {
         const isExcluded = excludedRows.has(idx);
         return `
           <tr data-row-idx="${idx}" style="${isExcluded ? 'opacity:0.4;' : ''}">
@@ -1056,9 +1187,15 @@ function createFileInputUIv3(Papa, options = {}) {
               <input type="checkbox" class="row-checkbox" data-idx="${idx}" ${isExcluded ? '' : 'checked'}>
             </td>
             ${rawCols.map(col => {
-              const isSelected = col === columnMapping.text || col === columnMapping.size || col === columnMapping.date;
+              const isText = col === columnMapping.text;
+              const isSize = col === columnMapping.size;
+              const isDate = col === columnMapping.date;
+              let selectedClass = '';
+              if (isText) selectedClass = 'selected';
+              else if (isSize) selectedClass = 'selected-size';
+              else if (isDate) selectedClass = 'selected-date';
               const value = String(row[col] || '').slice(0, 200);
-              return `<td class="${isSelected ? 'selected' : ''}" data-col="${col}">${value}</td>`;
+              return `<td class="${selectedClass}" data-col="${col}">${value}</td>`;
             }).join('')}
           </tr>
         `;
@@ -1071,6 +1208,30 @@ function createFileInputUIv3(Papa, options = {}) {
     // 체크박스 핸들러
     function setupCheckboxHandlers() {
       const checkboxes = popup.querySelectorAll(".row-checkbox");
+      const selectAllCheckbox = popup.querySelector(".select-all-checkbox");
+      const displayedRows = rawText.slice(0, 100);
+
+      // 전체 선택 체크박스
+      if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener("change", (e) => {
+          const isChecked = e.target.checked;
+          displayedRows.forEach((_, idx) => {
+            const row = popup.querySelector(`tr[data-row-idx="${idx}"]`);
+            const cb = popup.querySelector(`.row-checkbox[data-idx="${idx}"]`);
+            if (isChecked) {
+              excludedRows.delete(idx);
+              if (row) row.style.opacity = "1";
+              if (cb) cb.checked = true;
+            } else {
+              excludedRows.add(idx);
+              if (row) row.style.opacity = "0.4";
+              if (cb) cb.checked = false;
+            }
+          });
+        });
+      }
+
+      // 개별 체크박스
       checkboxes.forEach(cb => {
         cb.addEventListener("change", (e) => {
           const idx = parseInt(e.target.dataset.idx);
@@ -1081,6 +1242,11 @@ function createFileInputUIv3(Papa, options = {}) {
           } else {
             excludedRows.add(idx);
             row.style.opacity = "0.4";
+          }
+          // 전체 선택 체크박스 상태 업데이트
+          if (selectAllCheckbox) {
+            const allChecked = displayedRows.every((_, i) => !excludedRows.has(i));
+            selectAllCheckbox.checked = allChecked;
           }
         });
       });
@@ -1353,6 +1519,7 @@ function createFileInputUIv3(Papa, options = {}) {
     // 입력 영역 숨기기, 미리보기 표시
     inputArea.style.display = "none";
     if (guideContainer) guideContainer.style.display = "none";
+    if (mainTitle) mainTitle.style.display = "none";
 
     updatePreview();
     updateValue();
@@ -1412,6 +1579,7 @@ function createFileInputUIv3(Papa, options = {}) {
     document.body.classList.add("no-data");
     inputArea.style.display = "";
     if (guideContainer) guideContainer.style.display = "";
+    if (mainTitle) mainTitle.style.display = "";
 
     const sizeCandidates = findSizeKeyCandidates(rawCols, rawText);
     const dateCandidates = findDateKeyCandidates(moment, rawCols, rawText);
@@ -1472,6 +1640,7 @@ function createFileInputUIv3(Papa, options = {}) {
     document.body.classList.add("no-data");
     inputArea.style.display = "";
     if (guideContainer) guideContainer.style.display = "";
+    if (mainTitle) mainTitle.style.display = "";
   };
 
   // 초기 상태: no-data 클래스 추가
