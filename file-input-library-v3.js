@@ -186,6 +186,7 @@ function reservoirSample(arr, k) {
  * @param {boolean} options.showPreview - 미리보기 표시 여부 (기본값: true)
  * @param {string} options.guideContainerId - 외부 가이드 컨테이너 DOM ID (선택, 데이터 입력 시 자동 숨김)
  * @param {Object} options.moment - moment.js 라이브러리 (선택, 날짜 컬럼 감지용)
+ * @param {string} options.user_subscript - 사용자 구독 유형 (demo, free, basic, standard 등)
  */
 function createFileInputUIv3(Papa, options = {}) {
   const {
@@ -193,7 +194,8 @@ function createFileInputUIv3(Papa, options = {}) {
     width = 800,
     showPreview = true,
     moment = null,
-    guideContainerId = null  // 외부 가이드 컨테이너 DOM ID (사용자가 직접 구현)
+    guideContainerId = null,  // 외부 가이드 컨테이너 DOM ID (사용자가 직접 구현)
+    user_subscript = "free"   // 사용자 구독 유형
   } = options;
 
   // 외부 가이드 컨테이너 참조
@@ -783,68 +785,140 @@ function createFileInputUIv3(Papa, options = {}) {
     }
     .file-input-v3 .preview-header {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
+      gap: 12px;
       margin-bottom: 16px;
     }
     .file-input-v3 .preview-title {
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 700;
       color: #333;
     }
     .file-input-v3 .preview-edit-btn {
       background: #fff;
       border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 8px 16px;
+      border-radius: 20px;
+      padding: 6px 14px;
       font-size: 13px;
       color: #666;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
     .file-input-v3 .preview-edit-btn:hover {
       background: #f5f5f5;
     }
+    .file-input-v3 .preview-collapse-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      color: #666;
+      transition: transform 0.2s;
+    }
+    .file-input-v3 .preview-section.collapsed .preview-collapse-btn {
+      transform: rotate(180deg);
+    }
+    .file-input-v3 .preview-content {
+      transition: all 0.3s;
+    }
+    .file-input-v3 .preview-section.collapsed .preview-content {
+      display: none;
+    }
+    .file-input-v3 .preview-count-header {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+    }
     .file-input-v3 .preview-table-wrapper {
-      max-height: 300px;
+      max-height: 350px;
       overflow: auto;
-      border: 1px solid #eee;
-      border-radius: 8px;
+      background: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 12px;
     }
     .file-input-v3 .preview-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      font-size: 14px;
     }
     .file-input-v3 .preview-table th {
-      background: #f8f9fa;
-      padding: 10px 12px;
+      background: #fff;
+      padding: 14px 16px;
       text-align: left;
       font-weight: 600;
+      color: #2dd4bf;
       position: sticky;
       top: 0;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .file-input-v3 .preview-table th.size-col {
+      text-align: right;
     }
     .file-input-v3 .preview-table td {
-      padding: 10px 12px;
+      padding: 14px 16px;
       border-bottom: 1px solid #f0f0f0;
+      color: #444;
+    }
+    .file-input-v3 .preview-table td.size-col {
+      text-align: right;
+      color: #666;
     }
     .file-input-v3 .preview-table td.chunk {
-      max-width: 400px;
+      max-width: 500px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .file-input-v3 .preview-table tr:last-child td {
+      border-bottom: none;
+    }
     .file-input-v3 .data-count {
-      margin-top: 12px;
+      margin-top: 20px;
+      padding: 16px 20px;
+      background: #f8f9fa;
+      border-radius: 12px;
+    }
+    .file-input-v3 .data-count .textLength {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .file-input-v3 .data-count .textLength .over {
+      color: #e53e3e;
+    }
+    .file-input-v3 .data-count .notice {
       font-size: 13px;
       color: #666;
+      line-height: 1.6;
     }
-    .file-input-v3 .data-count .count {
+    .file-input-v3 .data-count .notice .bodyTitle {
       font-weight: 600;
       color: #333;
     }
-    .file-input-v3 .data-count .over {
-      color: #e53e3e;
+    .file-input-v3 .data-count .notice .bodytext {
+      color: #888;
+    }
+    .file-input-v3 .data-count .notice a {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 20px;
+      background: #fff;
+      border: 1px solid #2dd4bf;
+      border-radius: 24px;
+      color: #2dd4bf;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .file-input-v3 .data-count .notice a:hover {
+      background: #2dd4bf;
+      color: #fff;
     }
   `;
   container.appendChild(style);
@@ -867,16 +941,24 @@ function createFileInputUIv3(Papa, options = {}) {
 
     <div class="preview-section">
       <div class="preview-header">
-        <span class="preview-title">미리보기</span>
-        <button class="preview-edit-btn">수정하기</button>
+        <span class="preview-title">입력한 데이터</span>
+        <button class="preview-edit-btn">수정 ✎</button>
+        <button class="preview-collapse-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+        </button>
       </div>
-      <div class="preview-table-wrapper">
-        <table class="preview-table">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
+      <div class="preview-content">
+        <div class="preview-count-header"></div>
+        <div class="preview-table-wrapper">
+          <table class="preview-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="data-count"></div>
       </div>
-      <div class="data-count"></div>
     </div>
   `;
 
@@ -891,6 +973,7 @@ function createFileInputUIv3(Papa, options = {}) {
   const previewTable = container.querySelector(".preview-table");
   const dataCountDiv = container.querySelector(".data-count");
   const editBtn = container.querySelector(".preview-edit-btn");
+  const collapseBtn = container.querySelector(".preview-collapse-btn");
   const mainTitle = container.querySelector(".main-title");
 
   // 외부 가이드 컨테이너 초기화
@@ -1590,36 +1673,70 @@ function createFileInputUIv3(Papa, options = {}) {
 
     const rows = chunks.slice(0, 100);
     const hasSizeCol = columnMapping.size !== "없음";
-    const hasDateCol = columnMapping.date !== "없음";
+
+    // 카운트 헤더 업데이트
+    const countHeader = container.querySelector(".preview-count-header");
+    if (countHeader) {
+      countHeader.innerHTML = `<span style="font-weight:bold;">${chunks.length}</span><span style="opacity:0.5;"> / ${maxSize}</span>`;
+    }
 
     const thead = previewTable.querySelector("thead");
     const tbody = previewTable.querySelector("tbody");
 
     thead.innerHTML = `
       <tr>
-        <th style="width:40px;">#</th>
-        <th>분석할 텍스트</th>
-        ${hasDateCol ? '<th style="width:100px;">날짜</th>' : ''}
-        ${hasSizeCol ? '<th style="width:60px;">가중치</th>' : ''}
+        <th>${columnMapping.text}</th>
+        ${hasSizeCol ? '<th class="size-col" style="width:80px;">Size</th>' : ''}
       </tr>
     `;
 
     tbody.innerHTML = rows.map(d => `
       <tr>
-        <td>${d.textid}</td>
-        <td class="chunk" title="${d.chunk}">${d.chunk.slice(0, 200)}</td>
-        ${hasDateCol ? `<td>${d.date || ''}</td>` : ''}
-        ${hasSizeCol ? `<td>${d.size}</td>` : ''}
+        <td class="chunk" title="${escapeHtml(d.chunk)}">${escapeHtml(d.chunk.slice(0, 200))}</td>
+        ${hasSizeCol ? `<td class="size-col">${d.size}</td>` : ''}
       </tr>
     `).join("");
 
+    // 하단 메시지 영역
     const isOver = rawText.length > maxSize;
-    dataCountDiv.innerHTML = `
-      <span class="count ${isOver ? 'over' : ''}">${chunks.length}</span>
-      <span style="opacity:0.5;"> / ${maxSize}</span>
-      ${isOver ? `<span style="margin-left:10px;color:#666;font-size:12px;">(${rawText.length}개 중 랜덤 샘플링됨)</span>` : ''}
-    `;
+    const showNotice = isOver || chunks.length > 1500;
+
+    let noticeContent = '';
+    if (user_subscript.match(/demo/i) && isOver) {
+      noticeContent = `<span class="bodyTitle">처음 ${maxSize}개의 데이터를 분석합니다.</span><br>
+<span class="bodytext">Standard 사용자는 1,000개까지 분석할 수 있습니다.</span>`;
+    } else if (user_subscript.match(/free|basic/i) && isOver) {
+      noticeContent = `<span class="bodyTitle">처음 ${maxSize}개의 데이터를 분석합니다.</span><br>
+<span class="bodytext">Standard 사용자는 1,000개까지 분석할 수 있습니다.</span>`;
+    } else if (!user_subscript.match(/free|basic|demo/i) && isOver) {
+      noticeContent = `${maxSize}개를 무작위 표본 추출합니다. 전체를 대표하는 내용이라고 볼 수 있습니다.`;
+    }
+
+    if (chunks.length > 1500) {
+      noticeContent += `${noticeContent ? '<br><br>' : ''}<span style="color:#e53e3e;">주의 : 데이터셋 크기가 크면 컴퓨터 사양에 따라 반응이 느려질 수 있습니다.<br>목적에 따라 적당한 샘플 크기를 사용하는 걸 권장합니다.</span>`;
+    }
+
+    let actionButton = '';
+    if (user_subscript.match(/demo/i) && isOver) {
+      actionButton = `<a href="/welcome" target="_blank">무료 회원 가입 ↗</a>`;
+    } else if (user_subscript.match(/free|basic/i) && isOver) {
+      actionButton = `<a href="/plan" target="_blank">업그레이드하기 ↗</a>`;
+    }
+
+    dataCountDiv.innerHTML = showNotice ? `
+      <div class="notice">
+        <div style="display:grid; grid-template-columns:1fr auto; gap:16px; align-items:center;">
+          <div class="_left">${noticeContent}</div>
+          <div style="display:flex; justify-content:flex-end; align-items:center;">${actionButton}</div>
+        </div>
+      </div>
+    ` : '';
   }
+
+  // 접기/펼치기 버튼
+  collapseBtn.addEventListener("click", () => {
+    previewSection.classList.toggle("collapsed");
+  });
 
   // 수정하기 버튼
   editBtn.addEventListener("click", () => {
