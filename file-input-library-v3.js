@@ -207,6 +207,7 @@ function createFileInputUIv3(Papa, options = {}) {
   let columnMapping = { text: "", size: "없음", date: "없음" };
   let chunks = [];
   let inputContent = "";
+  let excludedRows = new Set();
 
   // 메인 컨테이너 생성
   const container = document.createElement("div");
@@ -1161,8 +1162,10 @@ function createFileInputUIv3(Papa, options = {}) {
     const hasSizeOptions = sizeCandidates.length > 0;
     const hasDateOptions = dateCandidates.length > 0;
 
-    // 제외된 행 인덱스 관리
-    let excludedRows = new Set();
+    // 첫 진입 시 제외 행 초기화 (수정 모드에서는 유지)
+    if (!fromEdit) {
+      excludedRows = new Set();
+    }
 
     // transpose 가능 여부 (행이 50개 이하일 때만 - transpose 후 열이 됨)
     const canTranspose = rawText.length <= 50;
@@ -1615,8 +1618,6 @@ function createFileInputUIv3(Papa, options = {}) {
 
     // 완료 버튼
     popup.querySelector(".complete-btn").addEventListener("click", () => {
-      // 제외된 행 필터링
-      rawText = rawText.filter((_, idx) => !excludedRows.has(idx));
       overlay.remove();
       finalizeData();
     });
@@ -1642,7 +1643,8 @@ function createFileInputUIv3(Papa, options = {}) {
     const sizeKey = columnMapping.size === "없음" ? null : columnMapping.size;
     const dateKey = columnMapping.date === "없음" ? null : columnMapping.date;
 
-    const filtered = rawText.filter(d => {
+    const activeData = rawText.filter((_, idx) => !excludedRows.has(idx));
+    const filtered = activeData.filter(d => {
       const v = d?.[textKey];
       return typeof v === "string" && v.replace(/\\n/g, "\n").trim().length > 0;
     });
@@ -1706,7 +1708,8 @@ function createFileInputUIv3(Papa, options = {}) {
     `).join("");
 
     // 하단 메시지 영역
-    const isOver = rawText.length > maxSize;
+    const activeCount = rawText.filter((_, idx) => !excludedRows.has(idx)).length;
+    const isOver = activeCount > maxSize;
     const showNotice = isOver || chunks.length > 1500;
 
     let noticeContent = '';
@@ -1809,6 +1812,7 @@ function createFileInputUIv3(Papa, options = {}) {
     rawCols = [];
     columnMapping = { text: "", size: "없음", date: "없음" };
     chunks = [];
+    excludedRows = new Set();
     textarea.value = "";
     updateFilePreview();
     updateInputState();
