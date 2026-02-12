@@ -813,6 +813,24 @@ function createFileInputUIv3(Papa, options = {}) {
     .file-input-v3 .preview-edit-btn:hover {
       background: #f5f5f5;
     }
+    .file-input-v3 .preview-delete-btn {
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      font-size: 16px;
+      color: #999;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .file-input-v3 .preview-delete-btn:hover {
+      background: #fee;
+      border-color: #e53e3e;
+      color: #e53e3e;
+    }
     .file-input-v3 .preview-table-wrapper {
       max-height: 350px;
       overflow: auto;
@@ -923,6 +941,8 @@ function createFileInputUIv3(Papa, options = {}) {
       <div class="preview-header">
         <span class="preview-title">입력한 데이터</span>
         <button class="preview-edit-btn">수정 ✎</button>
+        <span style="flex:1;"></span>
+        <button class="preview-delete-btn" title="삭제">×</button>
       </div>
       <div class="preview-table-wrapper">
         <table class="preview-table">
@@ -945,6 +965,7 @@ function createFileInputUIv3(Papa, options = {}) {
   const previewTable = container.querySelector(".preview-table");
   const dataCountDiv = container.querySelector(".data-count");
   const editBtn = container.querySelector(".preview-edit-btn");
+  const deleteBtn = container.querySelector(".preview-delete-btn");
   const mainTitle = container.querySelector(".main-title");
 
   // 외부 가이드 컨테이너 초기화
@@ -1127,7 +1148,10 @@ function createFileInputUIv3(Papa, options = {}) {
   }
 
   // 팝업 생성 및 표시
-  function showPopup(sizeCandidates, dateCandidates) {
+  function showPopup(sizeCandidates, dateCandidates, fromEdit = false) {
+    // 취소 시 복원을 위한 컬럼 매핑 백업
+    const savedMapping = { ...columnMapping };
+
     const overlay = document.createElement("div");
     overlay.className = "file-input-v3-popup-overlay";
 
@@ -1579,7 +1603,14 @@ function createFileInputUIv3(Papa, options = {}) {
 
     // 취소 버튼
     popup.querySelector(".cancel-btn").addEventListener("click", () => {
+      // 컬럼 매핑 복원
+      columnMapping.text = savedMapping.text;
+      columnMapping.size = savedMapping.size;
+      columnMapping.date = savedMapping.date;
       overlay.remove();
+      if (fromEdit) {
+        updatePreview();
+      }
     });
 
     // 완료 버튼
@@ -1593,7 +1624,14 @@ function createFileInputUIv3(Papa, options = {}) {
     // 오버레이 클릭 시 닫기
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) {
+        // 컬럼 매핑 복원
+        columnMapping.text = savedMapping.text;
+        columnMapping.size = savedMapping.size;
+        columnMapping.date = savedMapping.date;
         overlay.remove();
+        if (fromEdit) {
+          updatePreview();
+        }
       }
     });
   }
@@ -1713,19 +1751,18 @@ function createFileInputUIv3(Papa, options = {}) {
     dataCountDiv.innerHTML = textLength + notice;
   }
 
+  // 삭제 버튼
+  deleteBtn.addEventListener("click", () => {
+    if (confirm("입력한 데이터와 분석 결과가 모두 삭제됩니다.\n계속하시겠습니까?")) {
+      container.clear();
+    }
+  });
+
   // 수정하기 버튼
   editBtn.addEventListener("click", () => {
-    // 미리보기 숨기고 입력 영역 다시 표시
-    previewSection.classList.remove("active");
-    document.body.classList.remove("data-attached");
-    document.body.classList.add("no-data");
-    inputArea.style.display = "";
-    if (guideContainer) guideContainer.style.display = "";
-    if (mainTitle) mainTitle.style.display = "";
-
     const sizeCandidates = findSizeKeyCandidates(rawCols, rawText);
     const dateCandidates = findDateKeyCandidates(moment, rawCols, rawText);
-    showPopup(sizeCandidates, dateCandidates);
+    showPopup(sizeCandidates, dateCandidates, true);
   });
 
   // value 프로퍼티 정의
@@ -1762,8 +1799,6 @@ function createFileInputUIv3(Papa, options = {}) {
     inputContent = fileData.content;
     updateFilePreview();
     updateInputState();
-    // 자동으로 팝업 열기
-    processDataAndShowPopup();
   };
 
   // 초기화
