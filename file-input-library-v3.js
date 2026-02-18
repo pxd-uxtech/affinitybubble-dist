@@ -1715,11 +1715,11 @@ function createFileInputUIv3(Papa, options = {}) {
     let noticeContent = '';
     if (user_subscript.match(/demo/i) && isOver) {
       noticeContent = `<span class="bodyTitle">처음 ${maxSize}개의 데이터를 분석합니다.</span><br>
-<span class="bodytext">Standard 사용자는 1,000개까지 분석할 수 있습니다.</span>`;
+<span class="bodytext">무료 회원가입하면 더 많은 데이터를 분석할 수 있습니다.</span>`;
     } else if (user_subscript.match(/free|basic/i) && isOver) {
       noticeContent = `<span class="bodyTitle">처음 ${maxSize}개의 데이터를 분석합니다.</span><br>
-<span class="bodytext">Standard 사용자는 1,000개까지 분석할 수 있습니다.</span>`;
-    } else if (!user_subscript.match(/free|basic|demo/i) && isOver) {
+<span class="bodytext">업그레이드하면 더 많은 데이터를 분석할 수 있습니다.</span>`;
+    } else if (isOver) {
       noticeContent = `${maxSize}개를 무작위 표본 추출합니다. 전체를 대표하는 내용이라고 볼 수 있습니다.`;
     }
 
