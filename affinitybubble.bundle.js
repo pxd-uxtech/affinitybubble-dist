@@ -8255,7 +8255,7 @@ var Level1Pipeline = class {
       rest,
       centroids,
       assignThreshold,
-      (p) => onProgress({ progress: 40 + p.progress * 0.6, embeds: p.allEmbeds })
+      (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds })
     );
     const mergedClusters = this._mergeClusters(
       sampleClusterResult.interimClusters,
