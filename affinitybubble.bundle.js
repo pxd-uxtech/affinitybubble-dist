@@ -8209,7 +8209,8 @@ var Level1Pipeline = class {
       embeddings.push(embedding);
       onProgress({
         progress: Math.round(embeddings.length / chunkData.length * 100),
-        embeds: embeddings
+        embeds: embeddings,
+        message: `\uC784\uBCA0\uB529 \uC911... (${Math.round(embeddings.length / chunkData.length * 100)}%)`
       });
     }
     const embeds = chunkData.map((d, i) => ({ ...d, embed: embeddings[i] }));
@@ -8233,7 +8234,8 @@ var Level1Pipeline = class {
       sampleEmbeds.push(e);
       onProgress({
         progress: Math.round(sampleEmbeds.length / sample.length * 30),
-        embeds: sampleEmbeds
+        embeds: sampleEmbeds,
+        message: `\uC784\uBCA0\uB529 \uC911... (${Math.round(sampleEmbeds.length / sample.length * 30)}%)`
       });
     }
     let sampleWithEmbeds = sample.map((d, i) => ({ ...d, embed: sampleEmbeds[i] }));
@@ -8249,13 +8251,13 @@ var Level1Pipeline = class {
       ...d,
       cluster: clusterMap.get(d.textid) ?? 999
     }));
-    onProgress({ progress: 40, embeds: sampleWithEmbeds });
+    onProgress({ progress: 40, embeds: sampleWithEmbeds, message: "\uC784\uBCA0\uB529 \uC911... (40%)" });
     const centroids = this._computeCentroids(sampleWithEmbeds);
     const restResult = await this._embedAndAssignRest(
       rest,
       centroids,
       assignThreshold,
-      (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds })
+      (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds, message: p.message })
     );
     const mergedClusters = this._mergeClusters(
       sampleClusterResult.interimClusters,
@@ -8293,7 +8295,8 @@ var Level1Pipeline = class {
       }
       onProgress({
         progress: (i + batch.length) / rest.length,
-        allEmbeds
+        allEmbeds,
+        message: `\uC784\uBCA0\uB529 \uC911... (${Math.round(40 + (i + batch.length) / rest.length * 60)}%)`
       });
     }
     return { allEmbeds };
