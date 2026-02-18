@@ -11755,7 +11755,7 @@ var AffinityBubblePipeline = class {
     const rawGetPromptResult = dependencies.getPromptResult || getPromptResult;
     this.deps.getPromptResult = (userInput, promptId, configId, tick) => rawGetPromptResult(this.api, userInput, promptId, configId, tick);
     const rawClassifyWithIdThreads = dependencies.classifyWithIdThreads || classifyWithId_threads;
-    this.deps.classifyWithIdThreads = (categories, sentences, chunkSize, maxConcurrent, progressFunc) => rawClassifyWithIdThreads(getClassified, categories, sentences, chunkSize, maxConcurrent, progressFunc, { api: this.api });
+    this.deps.classifyWithIdThreads = (categories, sentences, chunkSize, maxConcurrent, progressFunc) => rawClassifyWithIdThreads(getClassifiedWithId, categories, sentences, chunkSize, maxConcurrent, progressFunc, { api: this.api });
     const rawGetLabelsThreads = dependencies.getLabelsThreads || getLabels_threads;
     this.deps.getLabelsThreads = (getLabelsFn, clusters, language, chunkSize, maxConcurrent, progressFunc, context) => rawGetLabelsThreads(getLabelsFn, clusters, language, chunkSize, maxConcurrent, progressFunc, { api: this.api, ...context });
     this.level1 = new Level1Pipeline(api);
@@ -12110,8 +12110,8 @@ var AffinityBubblePipeline = class {
         const result = await this.deps.classifyWithIdThreads(
           allLabelTexts,
           outliers.map((d) => `${d.textid} : ${d.text}`),
-          10,
-          2,
+          25,
+          3,
           (p) => console.log(`Rearrange progress: ${(p * 100).toFixed(0)}%`)
         );
         if (result && result.length > 0) {
