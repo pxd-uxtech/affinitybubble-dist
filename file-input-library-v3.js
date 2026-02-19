@@ -29,52 +29,36 @@
 function detectFormat(Papa, input) {
   if (typeof input !== "string") return "text";
 
-  const lines = input.split(/\r?\n/).filter(line => line.trim());
-  if (lines.length < 2) return "text";
-
-  const sampleLines = lines.slice(0, 20);
-
-  if (isLikelyDelimited(Papa, sampleLines, "\t")) {
-    const tsv = Papa.parse(sampleLines.join("\n"), {
-      delimiter: "\t",
-      skipEmptyLines: true
-    });
-    if (tsv.errors.length === 0 && tsv.data[0]?.length > 1) {
+  // PapaParse로 전체 파싱하여 포맷 판별 (셀 내 줄바꿈 올바르게 처리)
+  // TSV 먼저 시도
+  const tsvResult = Papa.parse(input, {
+    delimiter: "\t",
+    skipEmptyLines: true,
+    preview: 20
+  });
+  if (tsvResult.data.length >= 2 && tsvResult.data[0]?.length > 1) {
+    const headerCount = tsvResult.data[0].length;
+    const matchingRows = tsvResult.data.filter(r => r.length === headerCount).length;
+    if (matchingRows / tsvResult.data.length >= 0.8) {
       return "tsv";
     }
   }
 
-  if (isLikelyDelimited(Papa, sampleLines, ",")) {
-    const csv = Papa.parse(sampleLines.join("\n"), {
-      delimiter: ",",
-      skipEmptyLines: true
-    });
-    if (csv.errors.length === 0 && csv.data[0]?.length > 1) {
+  // CSV 시도
+  const csvResult = Papa.parse(input, {
+    delimiter: ",",
+    skipEmptyLines: true,
+    preview: 20
+  });
+  if (csvResult.data.length >= 2 && csvResult.data[0]?.length > 1) {
+    const headerCount = csvResult.data[0].length;
+    const matchingRows = csvResult.data.filter(r => r.length === headerCount).length;
+    if (matchingRows / csvResult.data.length >= 0.8 && headerCount <= 30) {
       return "csv";
     }
   }
 
   return "text";
-}
-
-function isLikelyDelimited(Papa, lines, delimiter) {
-  if (lines.length < 2) return false;
-
-  const columnCounts = lines.map((line) => {
-    const parsed = Papa.parse(line, { delimiter });
-    return parsed.data[0]?.length || 0;
-  });
-
-  if (columnCounts[0] < 2) return false;
-
-  const headerCount = columnCounts[0];
-  const matchingRows = columnCounts.filter((c) => c === headerCount).length;
-  const consistencyRatio = matchingRows / columnCounts.length;
-
-  if (consistencyRatio < 0.8) return false;
-  if (delimiter === "," && headerCount > 30) return false;
-
-  return true;
 }
 
 function guessTextKey(rawCols, rawText) {
