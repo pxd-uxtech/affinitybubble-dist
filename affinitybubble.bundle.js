@@ -11862,20 +11862,6 @@ var AffinityBubblePipeline = class {
       this.state.setCellData(level1Result.embeds);
       this.state.setLevel1(level1Result.interimClusters, [], []);
       onProgress(this.state.progress, this.state.snapshot());
-      if (startStage === "embedding" || startStage === "clustering") {
-        this.state.setProgress("positioning_cells", 30, "\uAC1C\uBCC4 \uB370\uC774\uD130 \uC88C\uD45C \uACC4\uC0B0 \uC911...");
-        onProgress(this.state.progress, this.state.snapshot());
-        if (level1Result.embeds.length > 0 && level1Result.interimClusters) {
-          const flatCells = level1Result.interimClusters.flatMap((c) => c.cellDatas);
-          const cellPos = makeEmbedPos(flatCells.map((d) => ({
-            embed: d.embed,
-            text: d.text,
-            cluster: d.cluster
-          })));
-          this.state.setCellPos(cellPos);
-        }
-        onProgress(this.state.progress, this.state.snapshot());
-      }
       if (startStage === "embedding" || startStage === "clustering" || startStage === "labeling") {
         this.state.setProgress("labeling", 30, "\uB808\uC774\uBE14 \uC0DD\uC131...");
         onProgress(this.state.progress, this.state.snapshot());
@@ -11949,6 +11935,29 @@ var AffinityBubblePipeline = class {
         }
       }
       onProgress(this.state.progress, this.state.snapshot());
+      if (startStage === "embedding" || startStage === "clustering") {
+        this.state.setProgress("positioning_cells", 90, "\uAC1C\uBCC4 \uB370\uC774\uD130 \uC88C\uD45C \uACC4\uC0B0 \uC911...");
+        onProgress(this.state.progress, this.state.snapshot());
+        if (level1Result.embeds.length > 0 && level1Result.interimClusters) {
+          const flatCells = level1Result.interimClusters.flatMap((c) => c.cellDatas);
+          if (flatCells.length > 1e3 && level2Result.bigLabelClusters) {
+            const cellPos = await this._computeCellPosByGroup(
+              flatCells,
+              level2Result.bigLabelClusters,
+              onProgress
+            );
+            this.state.setCellPos(cellPos);
+          } else {
+            const cellPos = makeEmbedPos(flatCells.map((d) => ({
+              embed: d.embed,
+              text: d.text,
+              cluster: d.cluster
+            })));
+            this.state.setCellPos(cellPos);
+          }
+        }
+        onProgress(this.state.progress, this.state.snapshot());
+      }
       this.state.setProgress("combining", 95, "\uB370\uC774\uD130 \uACB0\uD569...");
       onProgress(this.state.progress, this.state.snapshot());
       const combined = combineAll(
@@ -12048,6 +12057,50 @@ var AffinityBubblePipeline = class {
       hash = (hash << 5) + hash + hashStr.charCodeAt(i);
     }
     return hash.toString(16);
+  }
+  /**
+   * bigLabel별로 나눠서 cellPos UMAP 실행 (UI freeze 방지)
+   * 3000개를 7그룹으로 나누면 각 ~430개 → 개별 UMAP ~7배 빠름
+   * 그룹 사이에 yield하여 UI 업데이트 기회 제공
+   */
+  async _computeCellPosByGroup(flatCells, bigLabelClusters, onProgress) {
+    const clusterToBigLabel = /* @__PURE__ */ new Map();
+    for (const bg of bigLabelClusters) {
+      const clusters = bg.clusters || bg.labels;
+      if (clusters) {
+        for (const item of clusters) {
+          if (item.cluster !== void 0) {
+            clusterToBigLabel.set(item.cluster, bg.bigLabel);
+          }
+        }
+      }
+    }
+    const groups = /* @__PURE__ */ new Map();
+    for (const cell of flatCells) {
+      const bigLabel = clusterToBigLabel.get(cell.cluster) || "\uAE30\uD0C0";
+      if (!groups.has(bigLabel)) groups.set(bigLabel, []);
+      groups.get(bigLabel).push(cell);
+    }
+    const allCellPos = [];
+    let processed = 0;
+    const total = groups.size;
+    for (const [bigLabel, cells] of groups) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const groupPos = makeEmbedPos(cells.map((d) => ({
+        embed: d.embed,
+        text: d.text,
+        cluster: d.cluster
+      })));
+      allCellPos.push(...groupPos);
+      processed++;
+      this.state.setProgress(
+        "positioning_cells",
+        90 + processed / total * 4,
+        `\uAC1C\uBCC4 \uB370\uC774\uD130 \uC88C\uD45C \uACC4\uC0B0 \uC911... (${processed}/${total})`
+      );
+      onProgress(this.state.progress, this.state.snapshot());
+    }
+    return allCellPos;
   }
   /**
    * 현재 상태 저장 (다음 실행 시 비교용)
