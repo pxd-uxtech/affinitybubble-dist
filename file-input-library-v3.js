@@ -520,7 +520,6 @@ function createFileInputUIv3(Papa, options = {}) {
       justify-content: center;
       width: 16px;
       height: 16px;
-      background: #ddd;
       border-radius: 50%;
       font-size: 11px;
       color: #666;
@@ -1147,8 +1146,8 @@ function createFileInputUIv3(Papa, options = {}) {
     </svg>`;
 
     // info 아이콘 SVG (icons/info.svg 기반)
-    const infoIcon = `<i class="fi fi-ss-info" style="font-size:16px;color:#666;"></i>`;
-    const infoIconSmall = `<i class="fi fi-ss-info" style="font-size:13px;color:#666;"></i>`;
+    const infoIcon = `<i class="fi fi-ss-info" style="font-size:14px;color:#666;"></i>`;
+    const infoIconSmall = `<i class="fi fi-ss-info" style="font-size:14px;color:#666;"></i>`;
 
     popup.innerHTML = `
       <div class="file-input-v3-popup-header">
@@ -1183,7 +1182,7 @@ function createFileInputUIv3(Papa, options = {}) {
           </div>
           ${hasSizeOptions ? `
           <div class="file-input-v3-popup-selector-row">
-            <span class="label">가중치 컬럼 <span class="info-wrapper"><span class="info-icon">${infoIconSmall}</span><div class="weight-tooltip">가중치에 따라 중요한 버블 크기를 크게 표시합니다.<br><br><strong>예시:</strong><br>• 클릭수: 50, 120, 35 → 120이 가장 큰 버블<br>• 좋아요: 10, 25, 5 → log 스케일로 변환하여 반영</div></span></span>
+            <span class="label">가중치 컬럼 <span class="info-wrapper"><span class="info-icon">${infoIconSmall}</span><div class="weight-tooltip">가중치에 따라 중요한 버블 크기를 크게 표시합니다. 없음으로 하면 동일한 가중치를 사용합니다. <br><br><strong>예시:</strong><br>• 클릭수: 50, 120, 35 → 120이 가장 큰 버블<br>• 좋아요: 등은 log나 제곱근 스케일로 변환하여 반영하는 것이 좋습니다.</div></span></span>
             <span class="file-input-v3-popup-tag size-tag" ${columnMapping.size === '없음' ? 'style="display:none;"' : ''}>
               ${columnMapping.size}
               <span class="remove">×</span>
