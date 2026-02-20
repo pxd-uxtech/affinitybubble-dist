@@ -8546,24 +8546,38 @@ var Level2Pipeline = class {
     if (!this.classifyWithIdThreads) {
       throw new Error("classifyWithIdThreads function not provided");
     }
+    const labelClusterMap = new Map(
+      labelClusters.map((n) => [String(n.cluster), n])
+    );
+    const bigLabelIndexMap = new Map(
+      bigLabels.map((label, idx) => [label, idx])
+    );
+    const bigLabelNormMap = new Map(
+      bigLabels.map((bl) => [bl.trim().replace(/[.]/g, ""), bl])
+    );
     const mapItem = (item) => {
       let id2 = item.id;
       if (id2 === void 0 && item.text) {
         const idMatch = item.text.match(/^(\d+)\s*:/);
         if (idMatch) id2 = idMatch[1];
       }
-      const labelCluster = labelClusters.find((n) => String(n.cluster) === String(id2));
+      const labelCluster = labelClusterMap.get(String(id2));
       if (!labelCluster) return null;
       let bigLabel = "\uAE30\uD0C0";
       if (item.category) {
         const trimmedCat = item.category.trim();
-        const found = bigLabels.find(
-          (bl) => bl === item.category || bl.trim() === trimmedCat || bl.trim().replace(/[.]/g, "") === trimmedCat.replace(/[.]/g, "")
-        );
-        if (found) bigLabel = found;
+        if (bigLabelIndexMap.has(item.category)) {
+          bigLabel = item.category;
+        } else if (bigLabelIndexMap.has(trimmedCat)) {
+          bigLabel = trimmedCat;
+        } else {
+          const normalized = trimmedCat.replace(/[.]/g, "");
+          const found = bigLabelNormMap.get(normalized);
+          if (found) bigLabel = found;
+        }
       }
-      const bigClusterIdx = bigLabels.indexOf(bigLabel);
-      const bigCluster = bigClusterIdx >= 0 ? bigClusterIdx + 1 : 999;
+      const bigClusterIdx = bigLabelIndexMap.get(bigLabel);
+      const bigCluster = bigClusterIdx !== void 0 ? bigClusterIdx + 1 : 999;
       return { ...labelCluster, bigLabel, bigCluster };
     };
     let accumulated = [];
@@ -8573,7 +8587,7 @@ var Level2Pipeline = class {
       10,
       3,
       (progress, chunk) => {
-        accumulated = [...accumulated, ...chunk];
+        accumulated.push(...chunk);
         const mappedPartial = accumulated.map(mapItem).filter(Boolean);
         onProgress({
           progress,
@@ -11670,9 +11684,10 @@ async function getLabels_threads(getLabelsFn, clusters, language = "Korean", chu
     feedbackFunc: progressFunc,
     context
   });
+  const clusterOrderMap = new Map(clusters.map((c, i) => [c.clusterId, i]));
   return results.sort((a, b) => {
-    const clusterA = clusters.findIndex((c) => c.clusterId === a.cluster);
-    const clusterB = clusters.findIndex((c) => c.clusterId === b.cluster);
+    const clusterA = clusterOrderMap.get(a.cluster) ?? 999;
+    const clusterB = clusterOrderMap.get(b.cluster) ?? 999;
     return clusterA - clusterB;
   });
 }
