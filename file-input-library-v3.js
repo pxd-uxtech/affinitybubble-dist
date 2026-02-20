@@ -263,7 +263,7 @@ function createFileInputUIv3(Papa, options = {}) {
       resize: none;
       border: none;
       padding: 0;
-      font-size: 15px;
+      font-size: 16px;
       line-height: 1.6;
       box-sizing: border-box;
       background: transparent;
@@ -745,6 +745,7 @@ function createFileInputUIv3(Papa, options = {}) {
 
     /* 미리보기 화면 */
     .file-input-v3 .preview-section {
+    width: 880px;
       display: none;
     }
     .file-input-v3 .preview-section.active {
@@ -813,7 +814,7 @@ function createFileInputUIv3(Papa, options = {}) {
     .file-input-v3 .preview-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 14px;
+      font-size: 16px;
     }
     .file-input-v3 .preview-table th {
       background: #fff;
