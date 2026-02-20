@@ -8349,7 +8349,7 @@ var Level1Pipeline = class {
     );
   }
   /**
-   * 중심점 계산
+   * 중심점 계산 (norm 사전 계산 포함)
    */
   _computeCentroids(embeds) {
     const byCluster = /* @__PURE__ */ new Map();
@@ -8366,8 +8366,12 @@ var Level1Pipeline = class {
       for (const v of vecs) {
         for (let i = 0; i < dim; i++) mean[i] += v[i];
       }
-      for (let i = 0; i < dim; i++) mean[i] /= vecs.length;
-      centroids.push({ cluster, mean, n: vecs.length });
+      let normSq = 0;
+      for (let i = 0; i < dim; i++) {
+        mean[i] /= vecs.length;
+        normSq += mean[i] * mean[i];
+      }
+      centroids.push({ cluster, mean, n: vecs.length, invNorm: normSq > 0 ? 1 / Math.sqrt(normSq) : 0 });
     }
     return centroids;
   }
@@ -8386,14 +8390,23 @@ var Level1Pipeline = class {
     return p / (ma ** 0.5 * mb ** 0.5);
   }
   /**
-   * 가장 가까운 센트로이드 찾기
+   * 가장 가까운 센트로이드 찾기 (사전 계산된 norm 활용)
    * @returns {{ cluster, similarity }}
    */
   _findNearestCentroid(embed, centroids) {
+    const len = embed.length;
+    let embedNormSq = 0;
+    for (let i = 0; i < len; i++) embedNormSq += embed[i] * embed[i];
+    if (embedNormSq === 0) return { cluster: 999, similarity: 0 };
+    const embedInvNorm = 1 / Math.sqrt(embedNormSq);
     let bestCluster = 999;
     let bestSim = -1;
     for (const c of centroids) {
-      const sim = this._cossim(embed, c.mean);
+      if (c.invNorm === 0) continue;
+      let dot = 0;
+      const mean = c.mean;
+      for (let i = 0; i < len; i++) dot += embed[i] * mean[i];
+      const sim = dot * embedInvNorm * c.invNorm;
       if (sim > bestSim) {
         bestSim = sim;
         bestCluster = c.cluster;
