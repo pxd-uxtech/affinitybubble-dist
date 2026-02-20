@@ -165,9 +165,23 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
   // 텍스트 필드 getter
   const getChunk = (item) => item[textFieldName] || item.chunk || item.text || "";
 
-  // bubbleData에서 색상 찾기 (label 또는 bigLabel로 매칭)
+  // bubbleData에서 색상 찾기 (Map 기반 O(1) 조회)
+  const bubbleLabelMap = new Map();
+  const bubbleBigLabelMap = new Map();
+  bubbleData.forEach(d => {
+    if (d.label && !bubbleLabelMap.has(d.label)) bubbleLabelMap.set(d.label, d);
+    if (d.bigLabel && !bubbleBigLabelMap.has(d.bigLabel)) bubbleBigLabelMap.set(d.bigLabel, d);
+  });
+  function rebuildBubbleMaps() {
+    bubbleLabelMap.clear();
+    bubbleBigLabelMap.clear();
+    bubbleData.forEach(d => {
+      if (d.label && !bubbleLabelMap.has(d.label)) bubbleLabelMap.set(d.label, d);
+      if (d.bigLabel && !bubbleBigLabelMap.has(d.bigLabel)) bubbleBigLabelMap.set(d.bigLabel, d);
+    });
+  }
   const findBubbleByLabel = (label) => {
-    return bubbleData.find((d) => d.label === label || d.bigLabel === label);
+    return bubbleLabelMap.get(label) || bubbleBigLabelMap.get(label);
   };
 
   // 상태 변수
@@ -294,6 +308,9 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
         }
       }
     });
+
+    // bubbleMap 갱신
+    rebuildBubbleMaps();
 
     // 콜백 호출
     if (onLabelUpdate) {
@@ -433,51 +450,51 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
     const displayHeaders = isReversed ? [...currentHeaders].reverse() : currentHeaders;
     rows.push([...displayHeaders, "cellPos"].join("\t"));
 
-    let processedData = isCompact
-      ? data.reduce((acc, curr) => {
-          const existingItem = acc.find(
-            (item) => item.bigLabel === curr.bigLabel && item.label === curr.label
-          );
-
-          if (!existingItem) {
-            const matchingItems = data.filter(
-              (d) => d.bigLabel === curr.bigLabel && d.label === curr.label
-            );
-            const chunks = matchingItems.map((d) =>
-              (getChunk(d) || "").replace(/\t/g, " ")
-            );
-            const userColumnData = {};
-            userColumns.forEach((col) => {
-              userColumnData[col] = curr[col]
-                ? curr[col].toString().replace(/\t/g, " ")
-                : "";
-            });
-            acc.push({
-              bigLabel: curr.bigLabel ? curr.bigLabel.toString().replace(/\t/g, " ") : "",
-              label: curr.label ? curr.label.toString().replace(/\t/g, " ") : "",
-              chunk: chunks.join(", "),
-              size: matchingItems.length,
-              ...userColumnData,
-              cellPos: cellPosMap.get(chunks[0])?.cellPos,
-              cluster: curr.cluster
-            });
-          }
-          return acc;
-        }, [])
-      : data.map((item) => ({
-          ...item,
-          bigLabel: item.bigLabel ? item.bigLabel.toString().replace(/\t/g, " ") : "",
-          label: item.label ? item.label.toString().replace(/\t/g, " ") : "",
-          chunk: getChunk(item) ? getChunk(item).toString().replace(/\t/g, " ") : "",
-          size: 1,
-          ...Object.fromEntries(
-            userColumns.map((col) => [
-              col,
-              item[col] ? item[col].toString().replace(/\t/g, " ") : ""
-            ])
-          ),
-          cellPos: cellPosMap.get(item.chunk)?.cellPos
-        }));
+    let processedData;
+    if (isCompact) {
+      const groupMap = new Map();
+      data.forEach(curr => {
+        const key = `${curr.bigLabel}\0${curr.label}`;
+        let group = groupMap.get(key);
+        if (!group) {
+          const userColumnData = {};
+          userColumns.forEach(col => {
+            userColumnData[col] = curr[col] ? curr[col].toString().replace(/\t/g, " ") : "";
+          });
+          group = {
+            bigLabel: curr.bigLabel ? curr.bigLabel.toString().replace(/\t/g, " ") : "",
+            label: curr.label ? curr.label.toString().replace(/\t/g, " ") : "",
+            chunks: [],
+            size: 0,
+            ...userColumnData,
+            cluster: curr.cluster
+          };
+          groupMap.set(key, group);
+        }
+        group.chunks.push((getChunk(curr) || "").replace(/\t/g, " "));
+        group.size++;
+      });
+      processedData = [...groupMap.values()].map(g => ({
+        ...g,
+        chunk: g.chunks.join(", "),
+        cellPos: cellPosMap.get(g.chunks[0])?.cellPos
+      }));
+    } else {
+      processedData = data.map((item) => ({
+        ...item,
+        bigLabel: item.bigLabel ? item.bigLabel.toString().replace(/\t/g, " ") : "",
+        label: item.label ? item.label.toString().replace(/\t/g, " ") : "",
+        chunk: getChunk(item) ? getChunk(item).toString().replace(/\t/g, " ") : "",
+        size: 1,
+        ...Object.fromEntries(
+          userColumns.map((col) => [
+            col,
+            item[col] ? item[col].toString().replace(/\t/g, " ") : ""
+          ])
+        ),
+        cellPos: cellPosMap.get(item.chunk)?.cellPos
+      }));
+    }
 
     processedData.forEach((item) => {
       const userColumnValues = userColumns.map((col) => item[col] || "");
@@ -705,32 +722,30 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
 
     let processedData;
     if (isCompact) {
-      processedData = data.reduce((acc, curr) => {
-        const existingItem = acc.find(
-          (item) => item.bigLabel === curr.bigLabel && item.label === curr.label
-        );
-
-        if (!existingItem) {
-          const matchingItems = data.filter(
-            (d) => d.bigLabel === curr.bigLabel && d.label === curr.label
-          );
-          const chunks = matchingItems.map((d) => getChunk(d));
+      const groupMap = new Map();
+      data.forEach(curr => {
+        const key = `${curr.bigLabel}\0${curr.label}`;
+        let group = groupMap.get(key);
+        if (!group) {
           const userColumnData = {};
-          userColumns.forEach((col) => {
-            userColumnData[col] = curr[col];
-          });
-
-          acc.push({
+          userColumns.forEach(col => { userColumnData[col] = curr[col]; });
+          group = {
             bigLabel: curr.bigLabel ?? " ",
             label: curr.label,
-            chunk: chunks.join(", ").replace(/\t/g, " "),
-            size: matchingItems.length,
+            chunks: [],
+            size: 0,
             cluster: curr.cluster,
             ...userColumnData
-          });
+          };
+          groupMap.set(key, group);
         }
-        return acc;
-      }, []);
+        group.chunks.push(getChunk(curr));
+        group.size++;
+      });
+      processedData = [...groupMap.values()].map(g => ({
+        ...g,
+        chunk: g.chunks.join(", ").replace(/\t/g, " ")
+      }));
     } else {
       processedData = data.map((item) => ({ ...item, chunk: getChunk(item), size: 1 }));
     }
