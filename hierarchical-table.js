@@ -423,13 +423,9 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
   // =========================================================
   // 리사이즈 핸들
   // =========================================================
-  let rightHandle, bottomHandle, cornerHandle;
+  let bottomHandle, cornerHandle;
   
   function addResizeHandles() {
-    rightHandle = document.createElement("div");
-    rightHandle.className = "resize-handle-right";
-    rightHandle.style.cssText = `position: absolute; right: 0; top: 0; width: 10px; height: 100%; cursor: e-resize; background: transparent;`;
-
     bottomHandle = document.createElement("div");
     bottomHandle.className = "resize-handle-bottom";
     bottomHandle.style.cssText = `position: absolute; bottom: 0; left: 0; width: 100%; height: 10px; cursor: s-resize; background: transparent;`;
@@ -452,7 +448,7 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
       document.addEventListener("mouseup", stopDrag);
 
       function doDrag(e) {
-        if (direction === "right" || direction === "corner") {
+        if (direction === "corner") {
           currentWidth = Math.max(1200, startOuterWidth + e.clientX - startX);
           outerContainer.style.width = `${currentWidth}px`;
           table.style.width = "100%";
@@ -476,20 +472,18 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
       }
     }
 
-    rightHandle.addEventListener("mousedown", (e) => initDrag(e, "right"));
     bottomHandle.addEventListener("mousedown", (e) => initDrag(e, "bottom"));
     cornerHandle.addEventListener("mousedown", (e) => initDrag(e, "corner"));
 
-    outerContainer.appendChild(rightHandle);
     outerContainer.appendChild(bottomHandle);
     outerContainer.appendChild(cornerHandle);
   }
 
   function removeResizeHandles() {
-    [rightHandle, bottomHandle, cornerHandle].forEach(handle => {
+    [bottomHandle, cornerHandle].forEach(handle => {
       if (handle?.parentNode) handle.parentNode.removeChild(handle);
     });
-    rightHandle = bottomHandle = cornerHandle = null;
+    bottomHandle = cornerHandle = null;
   }
 
   // =========================================================
@@ -588,9 +582,17 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
       return acc;
     }, {});
 
+    // bubbleData의 bigLabel 순서 유지
+    const bigLabelOrder = [...new Set(bubbleData.map(d => d.bigLabel))];
+    const sortedEntries = Object.entries(structuredData).sort(([a], [b]) => {
+      const ia = bigLabelOrder.indexOf(a);
+      const ib = bigLabelOrder.indexOf(b);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+
     const tbody = document.createElement("tbody");
-    
-    Object.entries(structuredData).forEach(([bigLabel, labels]) => {
+
+    sortedEntries.forEach(([bigLabel, labels]) => {
       let firstBigLabel = true;
       let bigLabelRowspan = Object.values(labels).reduce(
         (sum, chunks) => sum + chunks.length, 0
@@ -636,14 +638,14 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
           if (firstLabel) {
             const bubbleItem = findBubbleByLabel(label);
             const bubbleColor = bubbleItem?.color ?? "#fff";
-            const fontColor = colorVar2(bubbleColor, 0, -0.1, -0.3);
+            const fontColor = colorVar2(bubbleColor, 0, -0.15, -0.45);
             const borderColor = getHSLColor(bubbleColor, 0, -0.2, -0.2);
 
             const labelContext = { cluster: chunkData.cluster, originalLabel: label };
             tdLabel.appendChild(
               createEditableCell(label ?? "", "label", labelContext)
             );
-            
+
             tdLabel.rowSpan = chunks.length;
             tdLabel.className = "cluster-label";
             tdLabel.style.cssText = `border-right: 1px solid ${borderColor};border-bottom: 1px solid ${borderColor}; background:${bubbleColor};color:${fontColor}`;
