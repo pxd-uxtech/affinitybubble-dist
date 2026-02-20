@@ -258,6 +258,174 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
   }
 
   // =========================================================
+  // 하위 클러스터 이동 기능
+  // =========================================================
+
+  function closeMovePopup() {
+    const existing = outerContainer?.querySelector(".move-popup");
+    if (existing) existing.remove();
+    document.removeEventListener("mousedown", handleOutsideClick);
+  }
+
+  function handleOutsideClick(e) {
+    const popup = outerContainer?.querySelector(".move-popup");
+    if (popup && !popup.contains(e.target)) {
+      closeMovePopup();
+    }
+  }
+
+  function moveSubCluster(label, cluster, oldBigLabel, newBigLabel) {
+    if (oldBigLabel === newBigLabel) return;
+
+    // data[] 배열에서 해당 label의 bigLabel 변경
+    data.forEach(item => {
+      if (item.label === label) {
+        item.bigLabel = newBigLabel;
+      }
+    });
+
+    // bubbleData[]에서 해당 label의 bigLabel, bigColor 업데이트
+    const newBigBubble = bubbleData.find(d => d.bigLabel === newBigLabel);
+    bubbleData.forEach(item => {
+      if (item.label === label) {
+        item.bigLabel = newBigLabel;
+        if (newBigBubble) {
+          item.bigColor = newBigBubble.bigColor;
+        }
+      }
+    });
+
+    // 콜백 호출
+    if (onLabelUpdate) {
+      onLabelUpdate("moveCluster", newBigLabel, oldBigLabel, { cluster, label });
+    }
+
+    closeMovePopup();
+    redrawTable();
+  }
+
+  function showMovePopup(anchorEl, label, cluster, currentBigLabel) {
+    closeMovePopup();
+
+    const bigLabels = [...new Set(bubbleData.map(d => d.bigLabel))];
+
+    const popup = document.createElement("div");
+    popup.className = "move-popup";
+    popup.style.cssText = `
+      position: absolute;
+      z-index: 1000;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 160px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding: 4px 0;
+      font-size: 13px;
+    `;
+
+    bigLabels.forEach(bl => {
+      const bubbleItem = bubbleData.find(d => d.bigLabel === bl);
+      const bigColor = bubbleItem?.bigColor ?? "#ccc";
+      const isCurrent = bl === currentBigLabel;
+
+      const item = document.createElement("div");
+      item.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        cursor: ${isCurrent ? "default" : "pointer"};
+        opacity: ${isCurrent ? "0.6" : "1"};
+        background: ${isCurrent ? "#f5f5f5" : "transparent"};
+      `;
+
+      if (!isCurrent) {
+        item.addEventListener("mouseenter", () => { item.style.background = "#f0f0f0"; });
+        item.addEventListener("mouseleave", () => { item.style.background = "transparent"; });
+        item.addEventListener("click", (e) => {
+          e.stopPropagation();
+          moveSubCluster(label, cluster, currentBigLabel, bl);
+        });
+      }
+
+      // 컬러 칩
+      const chip = document.createElement("span");
+      chip.style.cssText = `
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: ${bigColor};
+        flex-shrink: 0;
+        border: 1px solid ${getHSLColor(bigColor, 0, -0.2, -0.2)};
+      `;
+
+      // 텍스트
+      const text = document.createElement("span");
+      text.style.cssText = `flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #333;`;
+      text.textContent = bl;
+
+      // 체크마크
+      const check = document.createElement("span");
+      check.style.cssText = `font-size: 11px; color: #888; flex-shrink: 0;`;
+      check.textContent = isCurrent ? "✓" : "";
+
+      item.appendChild(chip);
+      item.appendChild(text);
+      item.appendChild(check);
+      popup.appendChild(item);
+    });
+
+    // 위치 계산 - anchorEl 기준
+    const rect = anchorEl.getBoundingClientRect();
+    const containerRect = outerContainer.getBoundingClientRect();
+    popup.style.top = `${rect.bottom - containerRect.top + 2}px`;
+    popup.style.left = `${rect.left - containerRect.left}px`;
+
+    outerContainer.appendChild(popup);
+
+    // 외부 클릭 닫기
+    setTimeout(() => {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }, 0);
+  }
+
+  function createMoveButton(label, cluster, currentBigLabel) {
+    const btn = document.createElement("span");
+    btn.className = "move-cluster-btn";
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+    btn.title = "상위 클러스터 변경";
+    btn.style.cssText = `
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s;
+      background: rgba(255,255,255,0.8);
+      border-radius: 3px;
+      color: #666;
+      pointer-events: auto;
+    `;
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      showMovePopup(btn, label, cluster, currentBigLabel);
+    });
+
+    return btn;
+  }
+
+  // =========================================================
   // TSV/CSV 생성
   // =========================================================
   function generateTSV() {
@@ -646,9 +814,21 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
               createEditableCell(label ?? "", "label", labelContext)
             );
 
+            // 이동 버튼 추가
+            const moveBtn = createMoveButton(label, chunkData.cluster, bigLabel);
+            tdLabel.appendChild(moveBtn);
+
+            tdLabel.addEventListener("mouseenter", () => { moveBtn.style.opacity = "1"; });
+            tdLabel.addEventListener("mouseleave", () => {
+              // 팝업이 열려있으면 아이콘 유지
+              if (!outerContainer.querySelector(".move-popup")) {
+                moveBtn.style.opacity = "0";
+              }
+            });
+
             tdLabel.rowSpan = chunks.length;
             tdLabel.className = "cluster-label";
-            tdLabel.style.cssText = `border-right: 1px solid ${borderColor};border-bottom: 1px solid ${borderColor}; background:${bubbleColor};color:${fontColor}`;
+            tdLabel.style.cssText = `position: relative; border-right: 1px solid ${borderColor};border-bottom: 1px solid ${borderColor}; background:${bubbleColor};color:${fontColor}`;
             firstLabel = false;
           }
 
