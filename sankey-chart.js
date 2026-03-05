@@ -2871,6 +2871,63 @@ function transform(node) {
 }
 
 // src/sankey-chart.js
+function getHSLColor(color2, hShift = 0, sShift = 0, lShift = 0) {
+  if (!color2 || color2 === "#fff" || color2 === "#ffffff") return color2;
+  let r, g, b;
+  if (color2.startsWith("#")) {
+    const hex2 = color2.slice(1);
+    r = parseInt(hex2.substr(0, 2), 16) / 255;
+    g = parseInt(hex2.substr(2, 2), 16) / 255;
+    b = parseInt(hex2.substr(4, 2), 16) / 255;
+  } else if (color2.startsWith("rgb")) {
+    const match = color2.match(/\d+/g);
+    if (!match) return color2;
+    [r, g, b] = match.map((v) => parseInt(v) / 255);
+  } else {
+    return color2;
+  }
+  const max3 = Math.max(r, g, b), min3 = Math.min(r, g, b);
+  let h, s, l = (max3 + min3) / 2;
+  if (max3 === min3) {
+    h = s = 0;
+  } else {
+    const d = max3 - min3;
+    s = l > 0.5 ? d / (2 - max3 - min3) : d / (max3 + min3);
+    switch (max3) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
+    }
+  }
+  h = (h + hShift + 1) % 1;
+  s = Math.max(0, Math.min(1, s + sShift));
+  l = Math.max(0, Math.min(1, l + lShift));
+  let r2, g2, b2;
+  if (s === 0) {
+    r2 = g2 = b2 = l;
+  } else {
+    const hue2rgb = (p2, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p2 + (q - p2) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p2 + (q - p2) * (2 / 3 - t) * 6;
+      return p2;
+    };
+    const q2 = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q2;
+    r2 = hue2rgb(p, q2, h + 1 / 3);
+    g2 = hue2rgb(p, q2, h);
+    b2 = hue2rgb(p, q2, h - 1 / 3);
+  }
+  return `rgb(${Math.round(r2 * 255)}, ${Math.round(g2 * 255)}, ${Math.round(b2 * 255)})`;
+}
 function buildSankeyData(data) {
   const linkMap = /* @__PURE__ */ new Map();
   const bigLabelSizes = /* @__PURE__ */ new Map();
@@ -2928,7 +2985,7 @@ function createSankeyChart(data, bubbleData = [], options = {}) {
     height = 500,
     title = "",
     nodeWidth = 20,
-    nodePadding = 12,
+    nodePadding = 4,
     margin = { top: 30, right: 180, bottom: 10, left: 180 }
   } = options;
   if (!data || data.length === 0) {
@@ -2978,7 +3035,21 @@ function createSankeyChart(data, bubbleData = [], options = {}) {
   });
   const node = g.append("g").selectAll("g").data(graph.nodes).join("g");
   node.append("rect").attr("x", (d) => d.x0).attr("y", (d) => d.y0).attr("height", (d) => Math.max(1, d.y1 - d.y0)).attr("width", (d) => d.x1 - d.x0).attr("fill", (d) => getNodeColor(d)).attr("rx", 3).attr("stroke", "#fff").attr("stroke-width", 1);
-  node.append("text").attr("x", (d) => d.isBig ? d.x0 - 8 : d.x1 + 8).attr("y", (d) => (d.y0 + d.y1) / 2).attr("dy", "0.35em").attr("text-anchor", (d) => d.isBig ? "end" : "start").attr("font-size", (d) => d.y1 - d.y0 < 12 ? "10px" : "12px").attr("fill", "#333").text((d) => d.isBig ? `${d.name} (${d.pct}%)` : d.name);
+  const bigNodeHeights = graph.nodes.filter((d) => d.isBig).map((d) => d.y1 - d.y0);
+  const maxBigHeight = Math.max(...bigNodeHeights, 1);
+  node.append("text").attr("x", (d) => d.isBig ? d.x0 - 8 : d.x1 + 8).attr("y", (d) => (d.y0 + d.y1) / 2).attr("dy", "0.35em").attr("text-anchor", (d) => d.isBig ? "end" : "start").attr("font-size", (d) => {
+    if (!d.isBig) return "11px";
+    const ratio = (d.y1 - d.y0) / maxBigHeight;
+    return Math.max(11, Math.round(11 + ratio * 7)) + "px";
+  }).attr("font-weight", (d) => d.isBig ? "600" : "normal").attr("fill", (d) => getHSLColor(getNodeColor(d), 0, 0.1, -0.25) || "#333").each(function(d) {
+    if (d.isBig) {
+      select_default2(this).text(null);
+      select_default2(this).append("tspan").text(d.name);
+      select_default2(this).append("tspan").attr("fill", "#aaa").attr("font-size", "0.85em").text(` ${d.pct}%`);
+    } else {
+      select_default2(this).text(d.name);
+    }
+  });
   const tooltip = select_default2(container).append("div").style("position", "absolute").style("display", "none").style("background", "rgba(0,0,0,0.8)").style("color", "#fff").style("padding", "6px 10px").style("border-radius", "4px").style("font-size", "12px").style("pointer-events", "none").style("white-space", "nowrap");
   return container;
 }
