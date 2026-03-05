@@ -2978,9 +2978,7 @@ function createSankeyChart(data, bubbleData = [], options = {}) {
   });
   const node = g.append("g").selectAll("g").data(graph.nodes).join("g");
   node.append("rect").attr("x", (d) => d.x0).attr("y", (d) => d.y0).attr("height", (d) => Math.max(1, d.y1 - d.y0)).attr("width", (d) => d.x1 - d.x0).attr("fill", (d) => getNodeColor(d)).attr("rx", 3).attr("stroke", "#fff").attr("stroke-width", 1);
-  node.append("text").attr("x", (d) => d.isBig ? d.x0 - 8 : d.x1 + 8).attr("y", (d) => (d.y0 + d.y1) / 2).attr("dy", "0.35em").attr("text-anchor", (d) => d.isBig ? "end" : "start").attr("font-size", "12px").attr("fill", "#333").text((d) => d.isBig ? `${d.name} (${d.pct}%)` : d.name).each(function(d) {
-    if (d.y1 - d.y0 < 8) select_default2(this).attr("display", "none");
-  });
+  node.append("text").attr("x", (d) => d.isBig ? d.x0 - 8 : d.x1 + 8).attr("y", (d) => (d.y0 + d.y1) / 2).attr("dy", "0.35em").attr("text-anchor", (d) => d.isBig ? "end" : "start").attr("font-size", (d) => d.y1 - d.y0 < 12 ? "10px" : "12px").attr("fill", "#333").text((d) => d.isBig ? `${d.name} (${d.pct}%)` : d.name);
   const tooltip = select_default2(container).append("div").style("position", "absolute").style("display", "none").style("background", "rgba(0,0,0,0.8)").style("color", "#fff").style("padding", "6px 10px").style("border-radius", "4px").style("font-size", "12px").style("pointer-events", "none").style("white-space", "nowrap");
   return container;
 }
