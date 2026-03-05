@@ -2965,7 +2965,7 @@ function buildSankeyData(data) {
     const isBig = n.startsWith("big:");
     const name = n.slice(4);
     const size = isBig ? bigLabelSizes.get(name) : labelSizes.get(name);
-    const pct = isBig ? (size / totalSize * 100).toFixed(1) : null;
+    const pct = isBig ? Math.round(size / totalSize * 100) : null;
     return { name, isBig, id: n, pct };
   });
   const links = [];
