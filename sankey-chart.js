@@ -2897,8 +2897,8 @@ function buildSankeyData(data) {
   for (const [key, value2] of linkMap) {
     const [big, lab] = key.split("|||");
     links.push({
-      source: nodeIndex.get(`big:${big}`),
-      target: nodeIndex.get(`lab:${lab}`),
+      source: `big:${big}`,
+      target: `lab:${lab}`,
       value: value2
     });
   }
