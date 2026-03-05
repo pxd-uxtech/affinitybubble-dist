@@ -2875,6 +2875,8 @@ function buildSankeyData(data) {
   const linkMap = /* @__PURE__ */ new Map();
   const bigLabelSizes = /* @__PURE__ */ new Map();
   const labelSizes = /* @__PURE__ */ new Map();
+  const labelToBigMap = /* @__PURE__ */ new Map();
+  let totalSize = 0;
   for (const d of data) {
     const big = d.bigLabel || "\uAE30\uD0C0";
     const lab = d.label || "\uBBF8\uBD84\uB958";
@@ -2883,15 +2885,31 @@ function buildSankeyData(data) {
     linkMap.set(key, (linkMap.get(key) || 0) + size);
     bigLabelSizes.set(big, (bigLabelSizes.get(big) || 0) + size);
     labelSizes.set(lab, (labelSizes.get(lab) || 0) + size);
+    totalSize += size;
+    if (!labelToBigMap.has(lab)) labelToBigMap.set(lab, /* @__PURE__ */ new Map());
+    const bigMap = labelToBigMap.get(lab);
+    bigMap.set(big, (bigMap.get(big) || 0) + size);
   }
   const sortedBigLabels = [...bigLabelSizes.entries()].sort((a, b) => b[1] - a[1]).map((d) => d[0]);
-  const sortedLabels = [...labelSizes.entries()].sort((a, b) => b[1] - a[1]).map((d) => d[0]);
+  const bigLabelOrder = new Map(sortedBigLabels.map((name, i) => [name, i]));
+  const sortedLabels = [...labelSizes.entries()].map(([lab, size]) => {
+    const bigMap = labelToBigMap.get(lab);
+    let dominantBig = "", dominantSize = 0;
+    for (const [big, s] of bigMap) {
+      if (s > dominantSize) {
+        dominantBig = big;
+        dominantSize = s;
+      }
+    }
+    return { lab, size, dominantBigOrder: bigLabelOrder.get(dominantBig) ?? 999 };
+  }).sort((a, b) => a.dominantBigOrder - b.dominantBigOrder || b.size - a.size).map((d) => d.lab);
   const nodeNames = [...sortedBigLabels.map((n) => `big:${n}`), ...sortedLabels.map((n) => `lab:${n}`)];
-  const nodeIndex = new Map(nodeNames.map((n, i) => [n, i]));
   const nodes = nodeNames.map((n) => {
     const isBig = n.startsWith("big:");
     const name = n.slice(4);
-    return { name, isBig, id: n };
+    const size = isBig ? bigLabelSizes.get(name) : labelSizes.get(name);
+    const pct = isBig ? (size / totalSize * 100).toFixed(1) : null;
+    return { name, isBig, id: n, pct };
   });
   const links = [];
   for (const [key, value2] of linkMap) {
@@ -2936,7 +2954,7 @@ function createSankeyChart(data, bubbleData = [], options = {}) {
   const { nodes, links } = buildSankeyData(data);
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
-  const sankeyLayout = Sankey().nodeId((d) => d.id).nodeAlign(left).nodeWidth(nodeWidth).nodePadding(nodePadding).extent([[0, 0], [innerWidth, innerHeight]]);
+  const sankeyLayout = Sankey().nodeId((d) => d.id).nodeAlign(left).nodeSort(null).nodeWidth(nodeWidth).nodePadding(nodePadding).extent([[0, 0], [innerWidth, innerHeight]]);
   const graph = sankeyLayout({
     nodes: nodes.map((d) => ({ ...d })),
     links: links.map((d) => ({ ...d }))
@@ -2960,11 +2978,8 @@ function createSankeyChart(data, bubbleData = [], options = {}) {
   });
   const node = g.append("g").selectAll("g").data(graph.nodes).join("g");
   node.append("rect").attr("x", (d) => d.x0).attr("y", (d) => d.y0).attr("height", (d) => Math.max(1, d.y1 - d.y0)).attr("width", (d) => d.x1 - d.x0).attr("fill", (d) => getNodeColor(d)).attr("rx", 3).attr("stroke", "#fff").attr("stroke-width", 1);
-  node.append("text").attr("x", (d) => d.isBig ? d.x0 - 8 : d.x1 + 8).attr("y", (d) => (d.y0 + d.y1) / 2).attr("dy", "0.35em").attr("text-anchor", (d) => d.isBig ? "end" : "start").attr("font-size", "12px").attr("fill", "#333").text((d) => d.name).each(function(d) {
+  node.append("text").attr("x", (d) => d.isBig ? d.x0 - 8 : d.x1 + 8).attr("y", (d) => (d.y0 + d.y1) / 2).attr("dy", "0.35em").attr("text-anchor", (d) => d.isBig ? "end" : "start").attr("font-size", "12px").attr("fill", "#333").text((d) => d.isBig ? `${d.name} (${d.pct}%)` : d.name).each(function(d) {
     if (d.y1 - d.y0 < 8) select_default2(this).attr("display", "none");
-  });
-  node.append("text").attr("x", (d) => d.isBig ? d.x0 - 8 : d.x1 + 8).attr("y", (d) => (d.y0 + d.y1) / 2 + 14).attr("text-anchor", (d) => d.isBig ? "end" : "start").attr("font-size", "10px").attr("fill", "#999").text((d) => d.value).each(function(d) {
-    if (d.y1 - d.y0 < 24) select_default2(this).attr("display", "none");
   });
   const tooltip = select_default2(container).append("div").style("position", "absolute").style("display", "none").style("background", "rgba(0,0,0,0.8)").style("color", "#fff").style("padding", "6px 10px").style("border-radius", "4px").style("font-size", "12px").style("pointer-events", "none").style("white-space", "nowrap");
   return container;
