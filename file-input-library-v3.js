@@ -1088,15 +1088,21 @@ function createFileInputUIv3(Papa, options = {}) {
 
     const format = detectFormat(Papa, inputContent);
 
+    const parseOptions = {
+      header: true,
+      skipEmptyLines: true,
+      delimiter: format === "tsv" ? "\t" : ",",
+      transformHeader: (h) => h.trim().replace(/^["']|["']$/g, '')
+    };
+    // TSV는 quoting 비활성화 (셀 내 쌍따옴표가 quoted field로 오인되는 것 방지)
+    if (format === "csv") {
+      parseOptions.quoteChar = '"';
+    } else if (format === "tsv") {
+      parseOptions.quoteChar = "\x00";
+    }
     const parsed = Papa.parse(
       format === "text" ? "text\n" + inputContent : inputContent,
-      {
-        header: true,
-        skipEmptyLines: true,
-        delimiter: format === "tsv" ? "\t" : ",",
-        quoteChar: '"',
-        transformHeader: (h) => h.trim().replace(/^["']|["']$/g, '')
-      }
+      parseOptions
     );
 
     rawText = parsed.data.filter(d => Object.values(d).some(v => v && String(v).trim()));
