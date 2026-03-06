@@ -8203,7 +8203,7 @@ var Level1Pipeline = class {
   async _embedAll(chunkData, onProgress) {
     const embeddings = [];
     const stream = this.api.streamEmbeddings(
-      chunkData.map((d) => this._stripEmoji(d.text))
+      chunkData.map((d) => this._sanitizeText(d.text))
     );
     for await (const embedding of stream) {
       embeddings.push(embedding);
@@ -8229,7 +8229,7 @@ var Level1Pipeline = class {
     const sample = sampleIdxs.map((i) => chunkData[i]);
     const rest = chunkData.filter((_, i) => !sampleSet.has(i));
     const sampleEmbeds = [];
-    const sampleStream = this.api.streamEmbeddings(sample.map((d) => d.text));
+    const sampleStream = this.api.streamEmbeddings(sample.map((d) => this._sanitizeText(d.text)));
     for await (const e of sampleStream) {
       sampleEmbeds.push(e);
       onProgress({
@@ -8280,7 +8280,7 @@ var Level1Pipeline = class {
     const allEmbeds = [];
     for (let i = 0; i < rest.length; i += batchSize) {
       const batch = rest.slice(i, Math.min(i + batchSize, rest.length));
-      const stream = this.api.streamEmbeddings(batch.map((d) => d.text));
+      const stream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)));
       const batchEmbeds = [];
       for await (const e of stream) batchEmbeds.push(e);
       for (let j = 0; j < batch.length; j++) {
@@ -8448,8 +8448,14 @@ var Level1Pipeline = class {
   /**
    * 이모지 제거
    */
-  _stripEmoji(text) {
-    return text;
+  /**
+   * 임베딩 API에 보낼 텍스트 정제
+   * null, 빈 문자열, 이모지만 있는 경우 " "로 대체
+   */
+  _sanitizeText(text) {
+    if (!text) return " ";
+    const stripped = text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F]/gu, "").trim();
+    return stripped.length === 0 ? " " : text;
   }
   /**
    * 외부 의존성 주입
