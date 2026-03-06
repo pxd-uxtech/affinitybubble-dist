@@ -38,7 +38,7 @@ function detectFormat(Papa, input) {
   });
   if (tsvResult.data.length >= 2 && tsvResult.data[0]?.length > 1) {
     const headerCount = tsvResult.data[0].length;
-    const matchingRows = tsvResult.data.filter(r => r.length === headerCount).length;
+    const matchingRows = tsvResult.data.filter(r => r.length >= headerCount - 1 && r.length <= headerCount + 1).length;
     if (matchingRows / tsvResult.data.length >= 0.8) {
       return "tsv";
     }
@@ -52,7 +52,7 @@ function detectFormat(Papa, input) {
   });
   if (csvResult.data.length >= 2 && csvResult.data[0]?.length > 1) {
     const headerCount = csvResult.data[0].length;
-    const matchingRows = csvResult.data.filter(r => r.length === headerCount).length;
+    const matchingRows = csvResult.data.filter(r => r.length >= headerCount - 1 && r.length <= headerCount + 1).length;
     if (matchingRows / csvResult.data.length >= 0.8 && headerCount <= 30) {
       return "csv";
     }
@@ -179,8 +179,7 @@ function createFileInputUIv3(Papa, options = {}) {
     showPreview = true,
     moment = null,
     guideContainerId = null,  // 외부 가이드 컨테이너 DOM ID (사용자가 직접 구현)
-    user_subscript = "free",  // 사용자 구독 유형
-    isEduUser = false         // EDU 사용자 여부
+    user_subscript = "free"   // 사용자 구독 유형
   } = options;
 
   // 외부 가이드 컨테이너 참조
@@ -1681,13 +1680,11 @@ function createFileInputUIv3(Papa, options = {}) {
 
     let noticeContent = '';
     if (user_subscript.match(/demo/i) && isOver) {
-      noticeContent = `<span class="bodyTitle">데모용으로 한 번에 ${maxSize}개까지만 분석합니다.</span><br>
-<span class="bodytext">회원 가입 시 100개까지 분석 및 모든 기능 사용가능하며,<br> 유료 구독 시 1,000개~3,000개까지 가능합니다.</span>`;
-    } else if (user_subscript.match(/free|basic/i) && isOver && isEduUser) {
-      noticeContent = `EDU 사용자는 처음 ${maxSize}개까지 분석할 수 있습니다.`;
+      noticeContent = `<span class="bodyTitle">처음 ${maxSize}개의 데이터를 분석합니다.</span><br>
+<span class="bodytext">무료 회원가입하면 더 많은 데이터를 분석할 수 있습니다.</span>`;
     } else if (user_subscript.match(/free|basic/i) && isOver) {
-      noticeContent = `처음 ${maxSize}개까지 분석합니다.<br>
-<span class="bodytext">유료 구독시 사용 시 1,000개까지 가능합니다.</span>`;
+      noticeContent = `<span class="bodyTitle">처음 ${maxSize}개의 데이터를 분석합니다.</span><br>
+<span class="bodytext">업그레이드하면 더 많은 데이터를 분석할 수 있습니다.</span>`;
     } else if (isOver) {
       noticeContent = `${maxSize}개를 무작위 표본 추출합니다. 전체를 대표하는 내용이라고 볼 수 있습니다.`;
     }
@@ -1699,7 +1696,7 @@ function createFileInputUIv3(Papa, options = {}) {
     let actionButton = '';
     if (user_subscript.match(/demo/i) && isOver) {
       actionButton = `<a href="/welcome" target="_blank">무료 회원 가입 ↗</a>`;
-    } else if (user_subscript.match(/free|basic/i) && isOver && !isEduUser) {
+    } else if (user_subscript.match(/free|basic/i) && isOver) {
       actionButton = `<a href="/plan" target="_blank">업그레이드하기 ↗</a>`;
     }
 
