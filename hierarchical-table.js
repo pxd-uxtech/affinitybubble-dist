@@ -1,56 +1,6 @@
-/**
- * HierarchicalTable - 클러스터 데이터를 계층적 테이블로 시각화
- * 
- * @description
- * AffinityBubble의 클러스터 데이터를 상위/하위 클러스터 계층 구조로 표시하는 테이블 컴포넌트.
- * Observable mutable 의존성을 제거하고 콜백 패턴을 사용하여 범용 라이브러리로 사용 가능.
- * 
- * @example Observable 환경
- * ```javascript
- * import { createHierarchicalTable } from "./hierarchical-table.js";
- * 
- * viewof table = createHierarchicalTable(clusterWithLabel, bubbleData, {
- *   width: 1000,
- *   height: 400,
- *   title: "분석 결과",
- *   onLabelUpdate: (type, newValue, oldValue, context) => {
- *     if (type === "bigLabel") {
- *       mutable bigLabelClusters = mutable bigLabelClusters.map(d => ({
- *         ...d,
- *         bigLabel: d.bigLabel === oldValue ? newValue : d.bigLabel
- *       }));
- *     } else if (type === "label") {
- *       mutable tempLabels = mutable tempLabels.map(d => ({
- *         ...d,
- *         label: d.cluster === context.cluster ? newValue : d.label
- *       }));
- *     }
- *   }
- * });
- * ```
- * 
- * @example 일반 HTML 환경
- * ```javascript
- * const table = createHierarchicalTable(data, bubbleData, {
- *   width: 800,
- *   headers: ["Category", "Subcategory", "Text", "Count"],
- *   enableInlineEdit: false
- * });
- * document.getElementById("container").appendChild(table);
- * ```
- */
-
-// ============================================================
-// 색상 유틸리티 함수
-// ============================================================
-
-/**
- * HSL 색상 조정
- */
+// src/hierarchical-table.js
 function getHSLColor(color, hShift = 0, sShift = 0, lShift = 0) {
   if (!color || color === "#fff" || color === "#ffffff") return color;
-  
-  // hex to rgb
   let r, g, b;
   if (color.startsWith("#")) {
     const hex = color.slice(1);
@@ -60,122 +10,94 @@ function getHSLColor(color, hShift = 0, sShift = 0, lShift = 0) {
   } else if (color.startsWith("rgb")) {
     const match = color.match(/\d+/g);
     if (!match) return color;
-    [r, g, b] = match.map(v => parseInt(v) / 255);
+    [r, g, b] = match.map((v) => parseInt(v) / 255);
   } else {
     return color;
   }
-
-  // rgb to hsl
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   let h, s, l = (max + min) / 2;
-
   if (max === min) {
     h = s = 0;
   } else {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
     }
   }
-
-  // apply shifts
   h = (h + hShift + 1) % 1;
   s = Math.max(0, Math.min(1, s + sShift));
   l = Math.max(0, Math.min(1, l + lShift));
-
-  // hsl to rgb
   let r2, g2, b2;
   if (s === 0) {
     r2 = g2 = b2 = l;
   } else {
-    const hue2rgb = (p, q, t) => {
+    const hue2rgb = (p2, q2, t) => {
       if (t < 0) t += 1;
       if (t > 1) t -= 1;
-      if (t < 1/6) return p + (q - p) * 6 * t;
-      if (t < 1/2) return q;
-      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-      return p;
+      if (t < 1 / 6) return p2 + (q2 - p2) * 6 * t;
+      if (t < 1 / 2) return q2;
+      if (t < 2 / 3) return p2 + (q2 - p2) * (2 / 3 - t) * 6;
+      return p2;
     };
     const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
     const p = 2 * l - q;
-    r2 = hue2rgb(p, q, h + 1/3);
+    r2 = hue2rgb(p, q, h + 1 / 3);
     g2 = hue2rgb(p, q, h);
-    b2 = hue2rgb(p, q, h - 1/3);
+    b2 = hue2rgb(p, q, h - 1 / 3);
   }
-
   return `rgb(${Math.round(r2 * 255)}, ${Math.round(g2 * 255)}, ${Math.round(b2 * 255)})`;
 }
-
-/**
- * 색상 변형 (colorVar2 대체)
- */
 function colorVar2(color, hShift = 0, sShift = 0, lShift = 0) {
   return getHSLColor(color, hShift, sShift, lShift);
 }
-
-// ============================================================
-// 메인 함수
-// ============================================================
-
-/**
- * 계층적 테이블 생성
- *
- * @param {Array} data - 클러스터 데이터 배열 (bigLabel, label, chunk/text, cluster 필드 포함)
- * @param {Array} bubbleData - 버블 색상 데이터 (label/bigLabel로 매칭, color, bigColor 필드 포함)
- * @param {Object} options - 설정 옵션
- * @returns {HTMLElement} 테이블 컨테이너 엘리먼트
- */
-export function createHierarchicalTable(data, bubbleData = [], options = {}) {
+function createHierarchicalTable(data, bubbleData = [], options = {}) {
   const {
     // 레이아웃
     width = 980,
     height = 300,
     initialCompact = false,
     userColumns = [],
-
     // 헤더 커스터마이징
     headers = null,
-    headerMode = "normal", // "normal" | "userGoal"
-
+    headerMode = "normal",
+    // "normal" | "userGoal"
     // 필드 매핑 (기본값: chunk, 대체: text)
-    chunkField = null, // 자동 감지: chunk > text
-
+    chunkField = null,
+    // 자동 감지: chunk > text
     // 콜백
     onLabelUpdate = null,
-
     // 메타데이터 (버튼 기능용)
     title = "untitled",
     dataSource = "",
-    cellPosMap = new Map(),
-
+    cellPosMap = /* @__PURE__ */ new Map(),
     // 기능 토글
     enableCompare = false,
     enableInlineEdit = true,
     enableCopy = true,
     enableCSV = true
   } = options;
-
-  // 텍스트 필드 자동 감지 (chunk 또는 text)
-  const textFieldName = chunkField || (data[0]?.chunk !== undefined ? 'chunk' : 'text');
-
-  // 텍스트 필드 getter
+  const textFieldName = chunkField || (data[0]?.chunk !== void 0 ? "chunk" : "text");
   const getChunk = (item) => item[textFieldName] || item.chunk || item.text || "";
-
-  // bubbleData에서 색상 찾기 (Map 기반 O(1) 조회)
-  const bubbleLabelMap = new Map();
-  const bubbleBigLabelMap = new Map();
-  bubbleData.forEach(d => {
+  const bubbleLabelMap = /* @__PURE__ */ new Map();
+  const bubbleBigLabelMap = /* @__PURE__ */ new Map();
+  bubbleData.forEach((d) => {
     if (d.label && !bubbleLabelMap.has(d.label)) bubbleLabelMap.set(d.label, d);
     if (d.bigLabel && !bubbleBigLabelMap.has(d.bigLabel)) bubbleBigLabelMap.set(d.bigLabel, d);
   });
   function rebuildBubbleMaps() {
     bubbleLabelMap.clear();
     bubbleBigLabelMap.clear();
-    bubbleData.forEach(d => {
+    bubbleData.forEach((d) => {
       if (d.label && !bubbleLabelMap.has(d.label)) bubbleLabelMap.set(d.label, d);
       if (d.bigLabel && !bubbleBigLabelMap.has(d.bigLabel)) bubbleBigLabelMap.set(d.bigLabel, d);
     });
@@ -183,43 +105,30 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
   const findBubbleByLabel = (label) => {
     return bubbleLabelMap.get(label) || bubbleBigLabelMap.get(label);
   };
-
-  // 상태 변수
   let isCompact = initialCompact;
   let isReversed = false;
   let currentWidth = width;
   let currentHeight = height;
   let resizeDebounceTimer;
   let isManualResizing = false;
-
-  // 헤더 텍스트 설정
   const headerTexts = {
-    normal: ["상위 클러스터", "하위 클러스터", "텍스트", "Size", ...userColumns],
+    normal: ["\uC0C1\uC704 \uD074\uB7EC\uC2A4\uD130", "\uD558\uC704 \uD074\uB7EC\uC2A4\uD130", "\uD14D\uC2A4\uD2B8", "Size", ...userColumns],
     userGoal: ["User Goal", "User Needs", "User Voice", "Size", ...userColumns]
   };
-  
   const currentHeaders = headers || headerTexts[headerMode] || headerTexts.normal;
-
-  // =========================================================
-  // 인라인 에디팅 헬퍼
-  // =========================================================
   function createEditableCell(text, type, contextData) {
     const span = document.createElement("span");
     span.className = "editable-text";
     span.textContent = text;
-    
     if (!enableInlineEdit || !onLabelUpdate) {
       return span;
     }
-    
-    span.title = "클릭하여 수정";
+    span.title = "\uD074\uB9AD\uD558\uC5EC \uC218\uC815";
     span.style.cursor = "pointer";
     span.style.textDecoration = "underline dotted #aaa";
     span.style.textUnderlineOffset = "3px";
-
-    span.onclick = function (e) {
+    span.onclick = function(e) {
       e.stopPropagation();
-
       const input = document.createElement("input");
       input.type = "text";
       input.value = text;
@@ -234,73 +143,55 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
         color: #000;
         background: #fff;
       `;
-
       function commit(isEnter = false) {
         if (isEnter) input.onblur = null;
         const newValue = input.value.trim();
-        
         if (newValue && newValue !== text) {
           onLabelUpdate(type, newValue, text, contextData);
           text = newValue;
         }
-        
         span.textContent = text;
         input.replaceWith(span);
       }
-
       function restore() {
         input.replaceWith(span);
       }
-
       input.onblur = () => commit(false);
-      input.onkeydown = (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
+      input.onkeydown = (e2) => {
+        if (e2.key === "Enter") {
+          e2.preventDefault();
           commit(true);
-        } else if (e.key === "Escape") {
-          e.preventDefault();
+        } else if (e2.key === "Escape") {
+          e2.preventDefault();
           restore();
         }
       };
-
       span.replaceWith(input);
       input.focus();
       input.select();
     };
-
     return span;
   }
-
-  // =========================================================
-  // 하위 클러스터 이동 기능
-  // =========================================================
-
   function closeMovePopup() {
     const existing = outerContainer?.querySelector(".move-popup");
     if (existing) existing.remove();
     document.removeEventListener("mousedown", handleOutsideClick);
   }
-
   function handleOutsideClick(e) {
     const popup = outerContainer?.querySelector(".move-popup");
     if (popup && !popup.contains(e.target)) {
       closeMovePopup();
     }
   }
-
   function moveSubCluster(label, cluster, oldBigLabel, newBigLabel) {
     if (oldBigLabel === newBigLabel) return;
-
-    // data[] 배열에서 해당 label의 bigLabel 변경
-    data.forEach(item => {
+    data.forEach((item) => {
       if (item.label === label) {
         item.bigLabel = newBigLabel;
       }
     });
-
-    // bubbleData[]에서 해당 label의 bigLabel, bigColor 업데이트
-    const newBigBubble = bubbleData.find(d => d.bigLabel === newBigLabel);
-    bubbleData.forEach(item => {
+    const newBigBubble = bubbleData.find((d) => d.bigLabel === newBigLabel);
+    bubbleData.forEach((item) => {
       if (item.label === label) {
         item.bigLabel = newBigLabel;
         if (newBigBubble) {
@@ -308,24 +199,16 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
         }
       }
     });
-
-    // bubbleMap 갱신
     rebuildBubbleMaps();
-
-    // 콜백 호출
     if (onLabelUpdate) {
       onLabelUpdate("moveCluster", newBigLabel, oldBigLabel, { cluster, label });
     }
-
     closeMovePopup();
     redrawTable();
   }
-
   function showMovePopup(anchorEl, label, cluster, currentBigLabel) {
     closeMovePopup();
-
-    const bigLabels = [...new Set(bubbleData.map(d => d.bigLabel))];
-
+    const bigLabels = [...new Set(bubbleData.map((d) => d.bigLabel))];
     const popup = document.createElement("div");
     popup.className = "move-popup";
     popup.style.cssText = `
@@ -341,12 +224,10 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
       padding: 4px 0;
       font-size: 13px;
     `;
-
-    bigLabels.forEach(bl => {
-      const bubbleItem = bubbleData.find(d => d.bigLabel === bl);
+    bigLabels.forEach((bl) => {
+      const bubbleItem = bubbleData.find((d) => d.bigLabel === bl);
       const bigColor = bubbleItem?.bigColor ?? "#ccc";
       const isCurrent = bl === currentBigLabel;
-
       const item = document.createElement("div");
       item.style.cssText = `
         display: flex;
@@ -357,17 +238,18 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
         opacity: ${isCurrent ? "0.6" : "1"};
         background: ${isCurrent ? "#f5f5f5" : "transparent"};
       `;
-
       if (!isCurrent) {
-        item.addEventListener("mouseenter", () => { item.style.background = "#f0f0f0"; });
-        item.addEventListener("mouseleave", () => { item.style.background = "transparent"; });
+        item.addEventListener("mouseenter", () => {
+          item.style.background = "#f0f0f0";
+        });
+        item.addEventListener("mouseleave", () => {
+          item.style.background = "transparent";
+        });
         item.addEventListener("click", (e) => {
           e.stopPropagation();
           moveSubCluster(label, cluster, currentBigLabel, bl);
         });
       }
-
-      // 컬러 칩
       const chip = document.createElement("span");
       chip.style.cssText = `
         display: inline-block;
@@ -378,44 +260,33 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
         flex-shrink: 0;
         border: 1px solid ${getHSLColor(bigColor, 0, -0.2, -0.2)};
       `;
-
-      // 텍스트
       const text = document.createElement("span");
       text.style.cssText = `flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #333;`;
       text.textContent = bl;
-
-      // 체크마크
       const check = document.createElement("span");
       check.style.cssText = `font-size: 11px; color: #888; flex-shrink: 0;`;
-      check.textContent = isCurrent ? "✓" : "";
-
+      check.textContent = isCurrent ? "\u2713" : "";
       item.appendChild(chip);
       item.appendChild(text);
       item.appendChild(check);
       popup.appendChild(item);
     });
-
-    // 위치 계산 - anchorEl 기준
     const rect = anchorEl.getBoundingClientRect();
     const containerRect = outerContainer.getBoundingClientRect();
     popup.style.top = `${rect.bottom - containerRect.top + 2}px`;
     popup.style.left = `${rect.left - containerRect.left}px`;
-
     outerContainer.appendChild(popup);
-
-    // 외부 클릭 닫기
     setTimeout(() => {
       document.addEventListener("mousedown", handleOutsideClick);
     }, 0);
   }
-
   function createMoveButton(label, cluster, currentBigLabel) {
     const btn = document.createElement("span");
     btn.className = "move-cluster-btn";
     btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
-    btn.title = "상위 클러스터 변경";
+    btn.title = "\uC0C1\uC704 \uD074\uB7EC\uC2A4\uD130 \uBCC0\uACBD";
     btn.style.cssText = `
       position: absolute;
       top: 2px;
@@ -433,32 +304,25 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
       color: #666;
       pointer-events: auto;
     `;
-
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       showMovePopup(btn, label, cluster, currentBigLabel);
     });
-
     return btn;
   }
-
-  // =========================================================
-  // TSV/CSV 생성
-  // =========================================================
   function generateTSV() {
     const rows = [];
     const displayHeaders = isReversed ? [...currentHeaders].reverse() : currentHeaders;
-    rows.push([...displayHeaders, "cellPos"].join("\t"));
-
+    rows.push([...displayHeaders, "cellPos"].join("	"));
     let processedData;
     if (isCompact) {
-      const groupMap = new Map();
-      data.forEach(curr => {
+      const groupMap = /* @__PURE__ */ new Map();
+      data.forEach((curr) => {
         const key = `${curr.bigLabel}\0${curr.label}`;
         let group = groupMap.get(key);
         if (!group) {
           const userColumnData = {};
-          userColumns.forEach(col => {
+          userColumns.forEach((col) => {
             userColumnData[col] = curr[col] ? curr[col].toString().replace(/\t/g, " ") : "";
           });
           group = {
@@ -472,9 +336,9 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
           groupMap.set(key, group);
         }
         group.chunks.push((getChunk(curr) || "").replace(/\t/g, " "));
-        group.size++;
+        group.size += curr.size || 1;
       });
-      processedData = [...groupMap.values()].map(g => ({
+      processedData = [...groupMap.values()].map((g) => ({
         ...g,
         chunk: g.chunks.join(", "),
         cellPos: cellPosMap.get(g.chunks[0])?.cellPos
@@ -485,7 +349,7 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
         bigLabel: item.bigLabel ? item.bigLabel.toString().replace(/\t/g, " ") : "",
         label: item.label ? item.label.toString().replace(/\t/g, " ") : "",
         chunk: getChunk(item) ? getChunk(item).toString().replace(/\t/g, " ") : "",
-        size: 1,
+        size: item.size || 1,
         ...Object.fromEntries(
           userColumns.map((col) => [
             col,
@@ -495,29 +359,23 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
         cellPos: cellPosMap.get(item.chunk)?.cellPos
       }));
     }
-
     processedData.forEach((item) => {
       const userColumnValues = userColumns.map((col) => item[col] || "");
-      const row = isReversed
-        ? [item.chunk.replace(/\n/g, " "), item.label, item.bigLabel, item.size, ...userColumnValues, item?.cellPos]
-        : [item.bigLabel, item.label, item.chunk.replace(/\n/g, " "), item.size, ...userColumnValues, item?.cellPos];
-      rows.push(row.join("\t"));
+      const row = isReversed ? [item.chunk.replace(/\n/g, " "), item.label, item.bigLabel, item.size, ...userColumnValues, item?.cellPos] : [item.bigLabel, item.label, item.chunk.replace(/\n/g, " "), item.size, ...userColumnValues, item?.cellPos];
+      rows.push(row.join("	"));
     });
-
     return rows.join("\n");
   }
-
   async function copyToClipboard() {
     const tsvContent = generateTSV();
     try {
       await navigator.clipboard.writeText(tsvContent);
-      alert("테이블이 클립보드에 복사되었습니다.");
+      alert("\uD14C\uC774\uBE14\uC774 \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.");
     } catch (err) {
-      console.error("클립보드 복사 실패:", err);
-      alert("클립보드 복사에 실패했습니다.");
+      console.error("\uD074\uB9BD\uBCF4\uB4DC \uBCF5\uC0AC \uC2E4\uD328:", err);
+      alert("\uD074\uB9BD\uBCF4\uB4DC \uBCF5\uC0AC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.");
     }
   }
-
   async function compareChart() {
     const tsvContent = generateTSV();
     try {
@@ -526,23 +384,21 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
       localStorage.setItem("bubbleTitle", title);
       window.open("/bubble-compare", "_blank");
     } catch (err) {
-      console.error("로컬 저장 실패:", err);
+      console.error("\uB85C\uCEEC \uC800\uC7A5 \uC2E4\uD328:", err);
     }
   }
-
   function saveAsCSV() {
     const tsvContent = generateTSV();
     const lines = tsvContent.split("\n");
-    const csvLines = lines.map(line => {
-      const fields = line.split("\t");
-      return fields.map(field => {
+    const csvLines = lines.map((line) => {
+      const fields = line.split("	");
+      return fields.map((field) => {
         if (field.includes(",") || field.includes('"') || field.includes("\n")) {
           return '"' + field.replace(/"/g, '""') + '"';
         }
         return field;
       }).join(",");
     });
-
     const csvContent = csvLines.join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -553,12 +409,8 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    alert("CSV 파일이 다운로드되었습니다.");
+    alert("CSV \uD30C\uC77C\uC774 \uB2E4\uC6B4\uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.");
   }
-
-  // =========================================================
-  // DOM 구조 생성
-  // =========================================================
   const outerContainer = document.createElement("div");
   outerContainer.className = "hierarchical-table-container";
   outerContainer.style.cssText = `
@@ -568,7 +420,6 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
     resize: both;
     overflow: hidden;
   `;
-
   const container = document.createElement("div");
   container.className = "hierarchical-table-inner";
   container.style.cssText = `
@@ -578,14 +429,11 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
     padding: 0;
     position: relative;
   `;
-
-  // 리사이즈 옵저버
   const resizeObserver = new ResizeObserver(() => {
     clearTimeout(resizeDebounceTimer);
     resizeDebounceTimer = setTimeout(() => {
       const newWidth = outerContainer.clientWidth;
       const newHeight = outerContainer.clientHeight - buttonContainer.offsetHeight;
-
       if (newWidth !== currentWidth || newHeight !== currentHeight) {
         currentWidth = Math.max(1200, newWidth);
         currentHeight = Math.max(300, newHeight);
@@ -595,8 +443,6 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
     }, 100);
   });
   resizeObserver.observe(outerContainer);
-
-  // 테이블 생성
   const table = document.createElement("table");
   table.setAttribute("id", "dataTable");
   table.style.cssText = `
@@ -604,76 +450,60 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
     border-collapse: collapse; 
     width: 100%;
   `;
-
-  // =========================================================
-  // 리사이즈 핸들
-  // =========================================================
   let bottomHandle, cornerHandle;
-  
   function addResizeHandles() {
     bottomHandle = document.createElement("div");
     bottomHandle.className = "resize-handle-bottom";
     bottomHandle.style.cssText = `position: absolute; bottom: 0; left: 0; width: 100%; height: 10px; cursor: s-resize; background: transparent;`;
-
     cornerHandle = document.createElement("div");
     cornerHandle.className = "resize-handle-corner";
     cornerHandle.style.cssText = `position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; cursor: se-resize; background: transparent;`;
-
     let startX, startY, startWidth, startHeight, startOuterWidth;
-
     function initDrag(e, direction) {
       startX = e.clientX;
       startY = e.clientY;
       startWidth = parseInt(document.defaultView.getComputedStyle(container).width, 10);
       startHeight = parseInt(document.defaultView.getComputedStyle(container).height, 10);
       startOuterWidth = parseInt(document.defaultView.getComputedStyle(outerContainer).width, 10);
-
       isManualResizing = true;
       document.addEventListener("mousemove", doDrag);
       document.addEventListener("mouseup", stopDrag);
-
-      function doDrag(e) {
+      function doDrag(e2) {
         if (direction === "corner") {
-          currentWidth = Math.max(1200, startOuterWidth + e.clientX - startX);
+          currentWidth = Math.max(1200, startOuterWidth + e2.clientX - startX);
           outerContainer.style.width = `${currentWidth}px`;
           table.style.width = "100%";
         }
         if (direction === "bottom" || direction === "corner") {
-          currentHeight = Math.max(300, startHeight + e.clientY - startY);
+          currentHeight = Math.max(300, startHeight + e2.clientY - startY);
           container.style.height = `${currentHeight}px`;
         }
-        e.preventDefault();
-        e.stopPropagation();
+        e2.preventDefault();
+        e2.stopPropagation();
       }
-
-      function stopDrag(e) {
+      function stopDrag(e2) {
         document.removeEventListener("mousemove", doDrag);
         document.removeEventListener("mouseup", stopDrag);
         outerContainer.style.width = `${currentWidth}px`;
         container.style.height = `${currentHeight}px`;
-        setTimeout(() => { isManualResizing = false; }, 200);
-        e.preventDefault();
-        e.stopPropagation();
+        setTimeout(() => {
+          isManualResizing = false;
+        }, 200);
+        e2.preventDefault();
+        e2.stopPropagation();
       }
     }
-
     bottomHandle.addEventListener("mousedown", (e) => initDrag(e, "bottom"));
     cornerHandle.addEventListener("mousedown", (e) => initDrag(e, "corner"));
-
     outerContainer.appendChild(bottomHandle);
     outerContainer.appendChild(cornerHandle);
   }
-
   function removeResizeHandles() {
-    [bottomHandle, cornerHandle].forEach(handle => {
+    [bottomHandle, cornerHandle].forEach((handle) => {
       if (handle?.parentNode) handle.parentNode.removeChild(handle);
     });
     bottomHandle = cornerHandle = null;
   }
-
-  // =========================================================
-  // 테이블 렌더링
-  // =========================================================
   function redrawTable() {
     const oldTbody = table.querySelector("tbody");
     if (oldTbody) {
@@ -681,9 +511,7 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
     }
     renderTableBody();
   }
-
   function renderTableBody() {
-    // 빈 데이터 처리
     if (!data || data.length === 0 || !bubbleData || bubbleData.length === 0) {
       const emptyState = document.createElement("div");
       emptyState.style.cssText = `
@@ -697,38 +525,30 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
         font-size: 14px;
         border-radius: 8px;
       `;
-      emptyState.textContent = "데이터가 없습니다";
-
-      // 기존 내용 제거
+      emptyState.textContent = "\uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4";
       const oldTbody = table.querySelector("tbody");
       if (oldTbody) table.removeChild(oldTbody);
-
-      // 테이블 숨기고 빈 상태 표시
       table.style.display = "none";
-
-      // 기존 빈 상태 제거
-      const existingEmpty = container.querySelector(".empty-state");
-      if (existingEmpty) existingEmpty.remove();
-
+      const existingEmpty2 = container.querySelector(".empty-state");
+      if (existingEmpty2) existingEmpty2.remove();
       emptyState.className = "empty-state";
       container.appendChild(emptyState);
       return;
     }
-
-    // 데이터가 있으면 빈 상태 제거하고 테이블 표시
     const existingEmpty = container.querySelector(".empty-state");
     if (existingEmpty) existingEmpty.remove();
     table.style.display = "";
-
     let processedData;
     if (isCompact) {
-      const groupMap = new Map();
-      data.forEach(curr => {
+      const groupMap = /* @__PURE__ */ new Map();
+      data.forEach((curr) => {
         const key = `${curr.bigLabel}\0${curr.label}`;
         let group = groupMap.get(key);
         if (!group) {
           const userColumnData = {};
-          userColumns.forEach(col => { userColumnData[col] = curr[col]; });
+          userColumns.forEach((col) => {
+            userColumnData[col] = curr[col];
+          });
           group = {
             bigLabel: curr.bigLabel ?? " ",
             label: curr.label,
@@ -740,16 +560,15 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
           groupMap.set(key, group);
         }
         group.chunks.push(getChunk(curr));
-        group.size++;
+        group.size += curr.size || 1;
       });
-      processedData = [...groupMap.values()].map(g => ({
+      processedData = [...groupMap.values()].map((g) => ({
         ...g,
         chunk: g.chunks.join(", ").replace(/\t/g, " ")
       }));
     } else {
-      processedData = data.map((item) => ({ ...item, chunk: getChunk(item), size: 1 }));
+      processedData = data.map((item) => ({ ...item, chunk: getChunk(item), size: item.size || 1 }));
     }
-
     const structuredData = processedData.reduce((acc, curr) => {
       if (!acc[curr.bigLabel]) acc[curr.bigLabel] = {};
       if (!acc[curr.bigLabel][curr.label]) acc[curr.bigLabel][curr.label] = [];
@@ -764,103 +583,82 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
       });
       return acc;
     }, {});
-
-    // bubbleData의 bigLabel 순서 유지
-    const bigLabelOrder = [...new Set(bubbleData.map(d => d.bigLabel))];
+    const bigLabelOrder = [...new Set(bubbleData.map((d) => d.bigLabel))];
     const sortedEntries = Object.entries(structuredData).sort(([a], [b]) => {
       const ia = bigLabelOrder.indexOf(a);
       const ib = bigLabelOrder.indexOf(b);
       return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
     });
-
     const tbody = document.createElement("tbody");
-
     sortedEntries.forEach(([bigLabel, labels]) => {
       let firstBigLabel = true;
       let bigLabelRowspan = Object.values(labels).reduce(
-        (sum, chunks) => sum + chunks.length, 0
+        (sum, chunks) => sum + chunks.length,
+        0
       );
-
       Object.entries(labels).forEach(([label, chunks]) => {
         let firstLabel = true;
         chunks.forEach((chunkData) => {
           const tr = document.createElement("tr");
-
           const tdBigLabel = document.createElement("td");
           const tdLabel = document.createElement("td");
           const tdChunk = document.createElement("td");
           const tdSize = document.createElement("td");
           tdSize.style.cssText = "border: 1px solid #eee; padding: 8px; text-align: center;";
           tdSize.textContent = chunkData.size;
-
           const userColumnCells = userColumns.map((col) => {
             const td = document.createElement("td");
             td.setAttribute("class", "userColumn");
             td.textContent = chunkData.userColumns[col] || "";
             return td;
           });
-
-          // 상위 클러스터 (BigLabel)
           if (firstBigLabel) {
             const bubbleItem = findBubbleByLabel(label);
             const bubbleColor = bubbleItem?.bigColor ?? "#fff";
             const bubbleColorbg = bubbleColor === "#fff" ? "#fff" : getHSLColor(bubbleColor, 0, 0, -0.1);
             const borderColor = bubbleColor === "#fff" ? "#eee" : getHSLColor(bubbleColor, 0, -0.2, -0.2);
-            
             tdBigLabel.appendChild(
               createEditableCell(bigLabel ?? "", "bigLabel", bigLabel)
             );
-            
             tdBigLabel.rowSpan = bigLabelRowspan;
             tdBigLabel.className = "bigcluster-label";
             tdBigLabel.style.cssText = `border-right: 1px solid ${borderColor};border-bottom: 1px solid ${borderColor}; background:${bubbleColorbg};color:#fff;text-shadow:0 1px ${borderColor},0 -1px ${borderColor},1px 0 ${borderColor},-1px 0 ${borderColor};`;
             firstBigLabel = false;
           }
-
-          // 하위 클러스터 (Label)
           if (firstLabel) {
             const bubbleItem = findBubbleByLabel(label);
             const bubbleColor = bubbleItem?.color ?? "#fff";
             const fontColor = colorVar2(bubbleColor, 0, -0.15, -0.45);
             const borderColor = getHSLColor(bubbleColor, 0, -0.2, -0.2);
-
             const labelContext = { cluster: chunkData.cluster, originalLabel: label };
             tdLabel.appendChild(
               createEditableCell(label ?? "", "label", labelContext)
             );
-
-            // 이동 버튼 추가
             const moveBtn = createMoveButton(label, chunkData.cluster, bigLabel);
             tdLabel.appendChild(moveBtn);
-
-            tdLabel.addEventListener("mouseenter", () => { moveBtn.style.opacity = "1"; });
+            tdLabel.addEventListener("mouseenter", () => {
+              moveBtn.style.opacity = "1";
+            });
             tdLabel.addEventListener("mouseleave", () => {
-              // 팝업이 열려있으면 아이콘 유지
               if (!outerContainer.querySelector(".move-popup")) {
                 moveBtn.style.opacity = "0";
               }
             });
-
             tdLabel.rowSpan = chunks.length;
             tdLabel.className = "cluster-label";
             tdLabel.style.cssText = `position: relative; border-right: 1px solid ${borderColor};border-bottom: 1px solid ${borderColor}; background:${bubbleColor};color:${fontColor}`;
             firstLabel = false;
           }
-
-          // 텍스트 셀
           tdChunk.className = "chunk-text";
           tdChunk.dataset.fullText = chunkData.chunk;
           tdChunk.textContent = chunkData.chunk;
           tdChunk.dataset.expanded = "false";
-
-          tdChunk.addEventListener("click", function () {
+          tdChunk.addEventListener("click", function() {
             const isExpanded = this.dataset.expanded === "true";
             this.style.whiteSpace = isExpanded ? "nowrap" : "normal";
             this.style.textOverflow = isExpanded ? "ellipsis" : "clip";
             this.dataset.expanded = (!isExpanded).toString();
           });
-
-          // 셀 추가
           if (isReversed) {
             if (tdChunk.textContent) tr.appendChild(tdChunk);
             if (tdLabel.hasChildNodes()) tr.appendChild(tdLabel);
@@ -874,18 +672,12 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
             tr.appendChild(tdSize);
             userColumnCells.forEach((cell) => tr.appendChild(cell));
           }
-
           tbody.appendChild(tr);
         });
       });
     });
-
     table.appendChild(tbody);
   }
-
-  // =========================================================
-  // 버튼 생성
-  // =========================================================
   function createButton(text, onClick, id = "") {
     const button = document.createElement("button");
     button.innerHTML = text;
@@ -894,74 +686,56 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
     button.addEventListener("click", onClick);
     return button;
   }
-
   const buttonContainer = document.createElement("div");
   buttonContainer.className = "table-buttons";
   buttonContainer.style.cssText = `display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 8px;`;
-
   const compactButton = createButton(
-    isCompact
-      ? '<i class="fi fi-br-arrow-up-right-and-arrow-down-left-from-center"></i> 펼침'
-      : '<i class="fi fi-br-down-left-and-up-right-to-center"></i> 병합',
+    isCompact ? '<i class="fi fi-br-arrow-up-right-and-arrow-down-left-from-center"></i> \uD3BC\uCE68' : '<i class="fi fi-br-down-left-and-up-right-to-center"></i> \uBCD1\uD569',
     () => {
       isCompact = !isCompact;
-      compactButton.innerHTML = isCompact
-        ? '<i class="fi fi-br-arrow-up-right-and-arrow-down-left-from-center"></i> 펼침'
-        : '<i class="fi fi-br-down-left-and-up-right-to-center"></i> 병합';
+      compactButton.innerHTML = isCompact ? '<i class="fi fi-br-arrow-up-right-and-arrow-down-left-from-center"></i> \uD3BC\uCE68' : '<i class="fi fi-br-down-left-and-up-right-to-center"></i> \uBCD1\uD569';
       redrawTable();
     }
   );
-
   const orderButton = createButton(
-    '<i class="fi fi-ss-exchange"></i> 정렬',
+    '<i class="fi fi-ss-exchange"></i> \uC815\uB82C',
     () => {
       isReversed = !isReversed;
       updateHeaderRow();
       redrawTable();
     }
   );
-
   buttonContainer.appendChild(compactButton);
   buttonContainer.appendChild(orderButton);
-
   if (enableCopy) {
-    const copyButton = createButton('<i class="fi fi-rr-copy-alt"></i> 테이블 복사', copyToClipboard);
+    const copyButton = createButton('<i class="fi fi-rr-copy-alt"></i> \uD14C\uC774\uBE14 \uBCF5\uC0AC', copyToClipboard);
     buttonContainer.appendChild(copyButton);
   }
-
   if (enableCSV) {
-    const csvButton = createButton('<i class="fi fi-rr-download"></i> CSV 저장', saveAsCSV);
+    const csvButton = createButton('<i class="fi fi-rr-download"></i> CSV \uC800\uC7A5', saveAsCSV);
     buttonContainer.appendChild(csvButton);
   }
-
   if (enableCompare) {
     const compareButton = createButton(
-      '메타데이터별 비교 <i class="fi fi-br-arrow-up-right-from-square"></i>',
+      '\uBA54\uD0C0\uB370\uC774\uD130\uBCC4 \uBE44\uAD50 <i class="fi fi-br-arrow-up-right-from-square"></i>',
       compareChart,
       "compareButton"
     );
     buttonContainer.appendChild(compareButton);
   }
-
-  // =========================================================
-  // 헤더 생성
-  // =========================================================
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
-
-  function createHeaderCell(text, width) {
+  function createHeaderCell(text, width2) {
     const th = document.createElement("th");
-    th.style.cssText = `width: ${width}px;`;
+    th.style.cssText = `width: ${width2}px;`;
     th.textContent = text;
     return th;
   }
-
   const firstHeader = createHeaderCell(currentHeaders[0], 300);
   const secondHeader = createHeaderCell(currentHeaders[1], 300);
   const thirdHeader = createHeaderCell(currentHeaders[2], 400);
   const sizeHeader = createHeaderCell(currentHeaders[3], 80);
   const additionalHeaders = userColumns.map((column) => createHeaderCell(column, 80));
-
   function updateHeaderRow() {
     headerRow.innerHTML = "";
     if (isReversed) {
@@ -978,43 +752,33 @@ export function createHierarchicalTable(data, bubbleData = [], options = {}) {
       additionalHeaders.forEach((header) => headerRow.appendChild(header));
     }
   }
-
   updateHeaderRow();
   thead.appendChild(headerRow);
   table.appendChild(thead);
-
-  // =========================================================
-  // 조립 및 반환
-  // =========================================================
   renderTableBody();
-
   const formContainer = document.createElement("form");
   formContainer.className = "form-table";
   formContainer.style.cssText = `margin: 0; padding: 0; width: 100%; height: 100%;`;
   formContainer.appendChild(table);
   container.appendChild(formContainer);
-  
   outerContainer.appendChild(buttonContainer);
   outerContainer.appendChild(container);
-
   removeResizeHandles();
   addResizeHandles();
-
-  window.addEventListener("resize", function () {
+  window.addEventListener("resize", function() {
     if (!isManualResizing) {
       outerContainer.style.width = `${currentWidth}px`;
       container.style.height = `${currentHeight}px`;
     }
   });
-
-  // 정리 메서드
-  outerContainer.cleanup = function () {
+  outerContainer.cleanup = function() {
     resizeObserver.disconnect();
     removeResizeHandles();
   };
-
   return outerContainer;
 }
-
-// 기본 export
-export default { createHierarchicalTable };
+var hierarchical_table_default = { createHierarchicalTable };
+export {
+  createHierarchicalTable,
+  hierarchical_table_default as default
+};
