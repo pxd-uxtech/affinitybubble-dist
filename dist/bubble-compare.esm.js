@@ -166,6 +166,29 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
   );
   const colWidth = 120;
   const fontScale = d3.scaleLinear().domain(d3.extent(data, (d) => d.percent)).range([9, 25]);
+  const maxGroup = d3.max(data, (d) => d.groupOrder);
+  const startData = data.filter((d) => d.pos === "start");
+  const orderMap = /* @__PURE__ */ new Map();
+  startData.forEach((d) => orderMap.set(`${d.artist}|${d.groupOrder}`, d.order));
+  const labelVisible = /* @__PURE__ */ new Set();
+  const artists = [...new Set(startData.map((d) => d.artist))];
+  for (const artist of artists) {
+    const groups = [];
+    for (let g = 0; g <= maxGroup; g++) {
+      groups.push({ g, order: orderMap.get(`${artist}|${g}`) });
+    }
+    let runStart = 0;
+    while (runStart <= maxGroup) {
+      const currentOrder = groups[runStart].order;
+      let runEnd = runStart;
+      while (runEnd < maxGroup && groups[runEnd + 1].order === currentOrder) runEnd++;
+      if (currentOrder !== void 0) {
+        const mid = Math.floor((runStart + runEnd) / 2);
+        labelVisible.add(`${artist}|${mid}`);
+      }
+      runStart = runEnd + 1;
+    }
+  }
   const bumpPlot = Plot.plot({
     title,
     width,
@@ -188,7 +211,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
         curve: "monotone-x"
       }),
       Plot.text(data, {
-        filter: (d) => d.pos === "start",
+        filter: (d) => d.pos === "start" && labelVisible.has(`${d.artist}|${d.groupOrder}`),
         x: (d) => d.groupOrder * colWidth * 1.3 + colWidth / 2,
         dy: -2,
         y: (d) => d.stack + d.percent / 2,
@@ -203,7 +226,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
 ${d.percent.toFixed(1)}%`
       }),
       Plot.text(data, {
-        filter: (d) => showPercent && d.pos === "start" && d.percent >= 5,
+        filter: (d) => showPercent && d.pos === "start" && d.percent >= 5 && labelVisible.has(`${d.artist}|${d.groupOrder}`),
         x: (d) => d.groupOrder * colWidth * 1.3 + colWidth / 2,
         dy: 2,
         y: (d) => d.stack + d.percent * 2 / 3,
