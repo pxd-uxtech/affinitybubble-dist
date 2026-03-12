@@ -174,7 +174,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     marginBottom: 5,
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
-    y: { reverse: false, ticks: 5, label: "" },
+    y: { domain: [100, 0], ticks: 5, label: "" },
     x: { ticks: [] },
     marks: [
       Plot.areaY(data, {
@@ -215,12 +215,13 @@ ${d.percent.toFixed(1)}%`
     ]
   });
   if (!ratioData || !ratioData.length) return bumpPlot;
+  const bumpMarginLeft = bumpPlot.scale ? bumpPlot.scale("x")?.range?.[0] || 40 : 40;
   const ratioPlot = Plot.plot({
     width,
-    height: 140,
-    marginTop: 15,
-    marginBottom: 40,
-    marginLeft: 40,
+    height: 120,
+    marginTop: 10,
+    marginBottom: 5,
+    marginLeft: bumpMarginLeft,
     insetLeft: 5,
     y: { percent: true, nice: true, label: "", ticks: 3 },
     x: { ticks: [], label: null },
@@ -253,18 +254,17 @@ ${d.percent.toFixed(1)}%`
       Plot.ruleY([0], { stroke: "#4444" })
     ]
   });
-  const ratioSvg = ratioPlot.querySelector ? ratioPlot : ratioPlot;
-  let ratioMarginLeft = 40;
+  let actualMarginLeft = bumpMarginLeft;
   try {
     const xScale = ratioPlot.scale("x");
-    if (xScale && xScale.range) ratioMarginLeft = xScale.range[0] || 40;
+    if (xScale && xScale.range) actualMarginLeft = xScale.range[0] || bumpMarginLeft;
   } catch (e) {
   }
   const labelDiv = document.createElement("div");
-  labelDiv.style.cssText = `position:relative; width:${width}px; height:25px; margin-top:-5px;`;
+  labelDiv.style.cssText = `position:relative; width:${width}px; height:22px; margin-top:2px;`;
   ratioData.forEach((d, i) => {
     const lbl = document.createElement("div");
-    const xPos = i * colWidth * 1.3 + colWidth / 2 + ratioMarginLeft;
+    const xPos = i * colWidth * 1.3 + colWidth / 2 + actualMarginLeft;
     lbl.style.cssText = `position:absolute; left:${xPos}px; font-size:12px; color:#444; text-align:center; transform:translateX(-50%); white-space:nowrap;`;
     lbl.textContent = d.category;
     labelDiv.appendChild(lbl);
@@ -449,7 +449,9 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   for (const dc of dateColumns) {
     dateColumnInfo[dc] = computeDateGroupInfo(clusterWithLabel, dc);
   }
-  const filteredCategoryKeys = dateColumns.length > 0 ? categoryKeys.filter((k) => k.toLowerCase() !== "date") : categoryKeys;
+  const dateColNameSet = new Set(dateColumns.map((dc) => dc.toLowerCase()));
+  dateColNameSet.add("date");
+  const filteredCategoryKeys = dateColumns.length > 0 ? categoryKeys.filter((k) => !dateColNameSet.has(k.toLowerCase())) : categoryKeys;
   let activeData = clusterWithLabel;
   container.innerHTML = "";
   const root = document.createElement("div");
