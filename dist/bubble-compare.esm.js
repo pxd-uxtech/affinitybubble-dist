@@ -254,18 +254,14 @@ ${d.percent.toFixed(1)}%`
       Plot.ruleY([0], { stroke: "#4444" })
     ]
   });
-  let actualMarginLeft = bumpMarginLeft;
-  try {
-    const xScale = ratioPlot.scale("x");
-    if (xScale && xScale.range) actualMarginLeft = xScale.range[0] || bumpMarginLeft;
-  } catch (e) {
-  }
+  const ratioXScale = ratioPlot.scale("x");
   const labelDiv = document.createElement("div");
   labelDiv.style.cssText = `position:relative; width:${width}px; height:22px; margin-top:2px;`;
   ratioData.forEach((d, i) => {
     const lbl = document.createElement("div");
-    const xPos = i * colWidth * 1.3 + colWidth / 2 + actualMarginLeft;
-    lbl.style.cssText = `position:absolute; left:${xPos}px; font-size:12px; color:#444; text-align:center; transform:translateX(-50%); white-space:nowrap;`;
+    const dataX = i * colWidth * 1.3 + colWidth / 2;
+    const pixelX = ratioXScale?.apply ? ratioXScale.apply(dataX) : dataX + bumpMarginLeft;
+    lbl.style.cssText = `position:absolute; left:${pixelX}px; font-size:13px; color:#222; font-weight:bold; text-align:center; transform:translateX(-50%); white-space:nowrap;`;
     lbl.textContent = d.category;
     labelDiv.appendChild(lbl);
   });
