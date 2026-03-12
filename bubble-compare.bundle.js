@@ -86,7 +86,9 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     title = "",
     showPercent = true,
     colorRange = CLUSTER_COLORS,
-    domain = []
+    domain = [],
+    ratioData = null
+    // [{category, count, ratio}]
   } = options;
   const max = d3.max(chartData, (d) => d.percent);
   const padding = max >= 20 ? 1 : 0.5;
@@ -109,14 +111,15 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
   );
   const colWidth = 120;
   const fontScale = d3.scaleLinear().domain(d3.extent(data, (d) => d.percent)).range([9, 25]);
-  return Plot.plot({
+  const bumpPlot = Plot.plot({
     title,
     width,
     height,
     marginTop: 30,
+    marginBottom: 5,
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
-    y: { reverse: true, ticks: 5, label: "" },
+    y: { reverse: false, ticks: 5, label: "" },
     x: { ticks: [] },
     marks: [
       Plot.text(groupLabel, {
@@ -164,6 +167,49 @@ ${d.percent.toFixed(1)}%`
       })
     ]
   });
+  if (!ratioData || !ratioData.length) return bumpPlot;
+  const ratioPlot = Plot.plot({
+    width,
+    height: 120,
+    marginTop: 15,
+    marginBottom: 30,
+    marginLeft: bumpPlot.querySelector("svg")?.getAttribute("marginLeft") || 40,
+    insetLeft: 5,
+    y: { percent: true, nice: true, label: "", ticks: 3 },
+    x: { ticks: [], label: null },
+    marks: [
+      Plot.barY(ratioData, {
+        x: (d) => {
+          const idx = ratioData.indexOf(d);
+          return idx * colWidth * 1.3 + colWidth / 2;
+        },
+        y: "ratio",
+        fill: "#8882",
+        stroke: "#888a"
+      }),
+      Plot.text(ratioData, {
+        x: (d, i) => i * colWidth * 1.3 + colWidth / 2,
+        y: "ratio",
+        dy: -10,
+        text: (d) => d3.format(".0%")(d.ratio),
+        fontSize: 14,
+        fill: "#444"
+      }),
+      Plot.text(ratioData, {
+        x: (d, i) => i * colWidth * 1.3 + colWidth / 2,
+        y: "ratio",
+        dy: -25,
+        text: (d) => `${d.count}`,
+        fontSize: 11,
+        fill: "#4448"
+      }),
+      Plot.ruleY([0], { stroke: "#4444" })
+    ]
+  });
+  const container = document.createElement("div");
+  container.appendChild(bumpPlot);
+  container.appendChild(ratioPlot);
+  return container;
 }
 function drawRatioChart(d3, Plot, clusterWithLabel, selCategoryKey) {
   const total = clusterWithLabel.length;
@@ -367,18 +413,6 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     }
     const bigLabels = [...new Set(clusterWithLabel.map((d) => d.bigLabel))];
     const cardColors = colors || CLUSTER_COLORS;
-    const ratioSection = document.createElement("div");
-    ratioSection.className = "bubble-compare-section";
-    const ratioTitle = document.createElement("h3");
-    ratioTitle.textContent = `${selKey} \uBD84\uD3EC`;
-    ratioSection.appendChild(ratioTitle);
-    try {
-      const ratioChart = drawRatioChart(d3Lib, PlotLib, clusterWithLabel, selKey);
-      ratioSection.appendChild(ratioChart);
-    } catch (e) {
-      ratioSection.innerHTML += `<div style="color:#e53e3e">Ratio chart error: ${e.message}</div>`;
-    }
-    chartArea.appendChild(ratioSection);
     const bumpSection = document.createElement("div");
     bumpSection.className = "bubble-compare-section";
     const bumpTitle = document.createElement("h3");
@@ -394,13 +428,21 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
           itemCompare[0].map((d) => d.bigLabel),
           "item"
         );
+        const total = clusterWithLabel.length;
+        const categories = itemCompare.map((d) => d[0].item);
+        const ratioData = categories.map((category) => ({
+          category: String(category),
+          count: clusterWithLabel.filter((d) => String(d[selKey]) === String(category)).length,
+          ratio: clusterWithLabel.filter((d) => String(d[selKey]) === String(category)).length / total
+        }));
         const bumpChart = drawBumpChart(d3Lib, PlotLib, compareData, {
           width: bumpChartWidth,
           height: bumpChartHeight,
           showPercent: true,
           colorRange: cardColors.map((c) => colorvariation(d3Lib, c, 0, 0, -0.2)),
           domain: bigLabels,
-          title: ""
+          title: "",
+          ratioData
         });
         bumpSection.appendChild(bumpChart);
       }
