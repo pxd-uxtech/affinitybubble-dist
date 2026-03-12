@@ -228,7 +228,7 @@ ${d.percent.toFixed(1)}%`
     height: 140,
     marginTop: 15,
     marginBottom: 40,
-    marginLeft: bumpPlot.querySelector("svg")?.getAttribute("marginLeft") || 40,
+    marginLeft: 40,
     insetLeft: 5,
     y: { percent: true, nice: true, label: "", ticks: 3 },
     x: { ticks: [], label: null },
@@ -258,21 +258,24 @@ ${d.percent.toFixed(1)}%`
         fontSize: 11,
         fill: "#4448"
       }),
-      Plot.ruleY([0], { stroke: "#4444" }),
-      Plot.text(ratioData, {
-        x: (d, i) => i * colWidth * 1.3 + colWidth / 2,
-        y: 0,
-        dy: 18,
-        text: "category",
-        fontSize: 11,
-        fill: "#444",
-        lineAnchor: "top"
-      })
+      Plot.ruleY([0], { stroke: "#4444" })
     ]
   });
+  const labelDiv = document.createElement("div");
+  labelDiv.style.cssText = `display:flex; width:${width}px; padding-left:${ratioPlot.scale("x") ? 0 : 40}px;`;
+  ratioData.forEach((d, i) => {
+    const lbl = document.createElement("div");
+    const xPos = i * colWidth * 1.3 + colWidth / 2;
+    lbl.style.cssText = `position:absolute; left:${xPos + 40}px; font-size:11px; color:#444; text-align:center; transform:translateX(-50%);`;
+    lbl.textContent = d.category;
+    labelDiv.appendChild(lbl);
+  });
+  labelDiv.style.position = "relative";
+  labelDiv.style.height = "20px";
   const container = document.createElement("div");
   container.appendChild(bumpPlot);
   container.appendChild(ratioPlot);
+  container.appendChild(labelDiv);
   return container;
 }
 function drawRatioChart(d3, Plot, clusterWithLabel, selCategoryKey) {
