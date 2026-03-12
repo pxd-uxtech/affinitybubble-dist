@@ -226,7 +226,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
 ${d.percent.toFixed(1)}%`
       }),
       Plot.text(data, {
-        filter: (d) => showPercent && d.pos === "start" && d.percent >= 5 && labelVisible.has(`${d.artist}|${d.groupOrder}`),
+        filter: (d) => showPercent && d.pos === "start" && d.percent >= 5,
         x: (d) => d.groupOrder * colWidth * 1.3 + colWidth / 2,
         dy: 2,
         y: (d) => d.stack + d.percent * 2 / 3,
