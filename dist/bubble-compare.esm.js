@@ -174,17 +174,9 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     marginBottom: 5,
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
-    y: { reverse: true, ticks: 5, label: "" },
+    y: { reverse: false, ticks: 5, label: "" },
     x: { ticks: [] },
     marks: [
-      Plot.text(groupLabel, {
-        x: (d) => d.groupOrder * colWidth * 1.3 + colWidth / 2,
-        y: 0,
-        dy: -15,
-        fontSize: 15,
-        fill: "#444",
-        text: "ageGroup"
-      }),
       Plot.areaY(data, {
         x: (d) => d.groupOrder * colWidth * 1.3 + (d.pos === "end" ? colWidth : 0),
         y: "stack",
@@ -457,28 +449,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   for (const dc of dateColumns) {
     dateColumnInfo[dc] = computeDateGroupInfo(clusterWithLabel, dc);
   }
-  const dateGroupedValueSets = /* @__PURE__ */ new Map();
-  for (const dc of dateColumns) {
-    const info = dateColumnInfo[dc];
-    if (info) {
-      const monthValues = clusterWithLabel.map((d) => {
-        const parsed = parseDateValue(d[dc]);
-        return parsed ? getMonthLabel(parsed) : null;
-      }).filter(Boolean).sort().join("|");
-      dateGroupedValueSets.set(dc, monthValues);
-    }
-  }
-  const duplicateCategoryKeys = /* @__PURE__ */ new Set();
-  for (const key of categoryKeys) {
-    const colValues = clusterWithLabel.map((d) => d[key]).filter(Boolean).map(String).sort().join("|");
-    for (const [dc, dateValues] of dateGroupedValueSets) {
-      if (colValues === dateValues) {
-        duplicateCategoryKeys.add(key);
-        break;
-      }
-    }
-  }
-  const filteredCategoryKeys = categoryKeys.filter((k) => !duplicateCategoryKeys.has(k));
+  const filteredCategoryKeys = dateColumns.length > 0 ? categoryKeys.filter((k) => k.toLowerCase() !== "date") : categoryKeys;
   let activeData = clusterWithLabel;
   container.innerHTML = "";
   const root = document.createElement("div");
