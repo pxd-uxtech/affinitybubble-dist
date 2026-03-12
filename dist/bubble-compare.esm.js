@@ -261,17 +261,22 @@ ${d.percent.toFixed(1)}%`
       Plot.ruleY([0], { stroke: "#4444" })
     ]
   });
+  const ratioSvg = ratioPlot.querySelector ? ratioPlot : ratioPlot;
+  let ratioMarginLeft = 40;
+  try {
+    const xScale = ratioPlot.scale("x");
+    if (xScale && xScale.range) ratioMarginLeft = xScale.range[0] || 40;
+  } catch (e) {
+  }
   const labelDiv = document.createElement("div");
-  labelDiv.style.cssText = `display:flex; width:${width}px; padding-left:${ratioPlot.scale("x") ? 0 : 40}px;`;
+  labelDiv.style.cssText = `position:relative; width:${width}px; height:25px; margin-top:-5px;`;
   ratioData.forEach((d, i) => {
     const lbl = document.createElement("div");
-    const xPos = i * colWidth * 1.3 + colWidth / 2;
-    lbl.style.cssText = `position:absolute; left:${xPos + 40}px; font-size:11px; color:#444; text-align:center; transform:translateX(-50%);`;
+    const xPos = i * colWidth * 1.3 + colWidth / 2 + ratioMarginLeft;
+    lbl.style.cssText = `position:absolute; left:${xPos}px; font-size:12px; color:#444; text-align:center; transform:translateX(-50%); white-space:nowrap;`;
     lbl.textContent = d.category;
     labelDiv.appendChild(lbl);
   });
-  labelDiv.style.position = "relative";
-  labelDiv.style.height = "20px";
   const container = document.createElement("div");
   container.appendChild(bumpPlot);
   container.appendChild(ratioPlot);
