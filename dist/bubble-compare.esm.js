@@ -254,13 +254,18 @@ ${d.percent.toFixed(1)}%`
       Plot.ruleY([0], { stroke: "#4444" })
     ]
   });
-  const ratioXScale = ratioPlot.scale("x");
+  const barRects = ratioPlot.querySelectorAll("rect");
+  const barCenters = [];
+  barRects.forEach((r) => {
+    const rx = parseFloat(r.getAttribute("x"));
+    const rw = parseFloat(r.getAttribute("width"));
+    if (!isNaN(rx) && !isNaN(rw) && rw > 0) barCenters.push(rx + rw / 2);
+  });
   const labelDiv = document.createElement("div");
   labelDiv.style.cssText = `position:relative; width:${width}px; height:22px; margin-top:2px;`;
   ratioData.forEach((d, i) => {
     const lbl = document.createElement("div");
-    const dataX = i * colWidth * 1.3 + colWidth / 2;
-    const pixelX = ratioXScale?.apply ? ratioXScale.apply(dataX) : dataX + bumpMarginLeft;
+    const pixelX = barCenters[i] ?? i * colWidth * 1.3 + colWidth / 2 + bumpMarginLeft;
     lbl.style.cssText = `position:absolute; left:${pixelX}px; font-size:13px; color:#222; font-weight:bold; text-align:center; transform:translateX(-50%); white-space:nowrap;`;
     lbl.textContent = d.category;
     labelDiv.appendChild(lbl);
