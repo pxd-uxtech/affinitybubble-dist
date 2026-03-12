@@ -174,7 +174,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     marginBottom: 5,
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
-    y: { reverse: false, ticks: 5, label: "" },
+    y: { reverse: true, ticks: 5, label: "" },
     x: { ticks: [] },
     marks: [
       Plot.text(groupLabel, {
@@ -457,6 +457,28 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   for (const dc of dateColumns) {
     dateColumnInfo[dc] = computeDateGroupInfo(clusterWithLabel, dc);
   }
+  const dateGroupedValueSets = /* @__PURE__ */ new Map();
+  for (const dc of dateColumns) {
+    const info = dateColumnInfo[dc];
+    if (info) {
+      const monthValues = clusterWithLabel.map((d) => {
+        const parsed = parseDateValue(d[dc]);
+        return parsed ? getMonthLabel(parsed) : null;
+      }).filter(Boolean).sort().join("|");
+      dateGroupedValueSets.set(dc, monthValues);
+    }
+  }
+  const duplicateCategoryKeys = /* @__PURE__ */ new Set();
+  for (const key of categoryKeys) {
+    const colValues = clusterWithLabel.map((d) => d[key]).filter(Boolean).map(String).sort().join("|");
+    for (const [dc, dateValues] of dateGroupedValueSets) {
+      if (colValues === dateValues) {
+        duplicateCategoryKeys.add(key);
+        break;
+      }
+    }
+  }
+  const filteredCategoryKeys = categoryKeys.filter((k) => !duplicateCategoryKeys.has(k));
   let activeData = clusterWithLabel;
   container.innerHTML = "";
   const root = document.createElement("div");
@@ -470,7 +492,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   defaultOption.value = "";
   defaultOption.textContent = "\uC120\uD0DD\uD558\uC138\uC694";
   select.appendChild(defaultOption);
-  for (const key of categoryKeys) {
+  for (const key of filteredCategoryKeys) {
     const uniqueCount = new Set(clusterWithLabel.map((d) => d[key]).filter(Boolean)).size;
     const opt = document.createElement("option");
     opt.value = key;
