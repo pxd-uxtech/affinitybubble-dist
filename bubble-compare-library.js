@@ -53,6 +53,72 @@ function guessCategoryKeys(cols, data, d3) {
 }
 
 // ============================================================
+// 날짜 컬럼 감지 및 월별/주별 그룹핑
+// ============================================================
+function detectDateColumns(cols, data) {
+  const datePatterns = [
+    /^\d{4}-\d{2}-\d{2}/,          // 2025-03-12
+    /^\d{4}\/\d{2}\/\d{2}/,        // 2025/03/12
+    /^\d{4}\.\d{2}\.\d{2}/,        // 2025.03.12
+    /^\d{4}-\d{2}-\d{2}T/,         // ISO format
+  ];
+
+  return cols.filter(key => {
+    const samples = data.slice(0, 50).map(d => d[key]).filter(Boolean);
+    if (samples.length < 5) return false;
+    const matchCount = samples.filter(v =>
+      datePatterns.some(p => p.test(String(v)))
+    ).length;
+    return matchCount / samples.length >= 0.7;
+  });
+}
+
+function parseDateValue(val) {
+  if (!val) return null;
+  const str = String(val);
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function getWeekLabel(date) {
+  // ISO week number 기반
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
+function getMonthLabel(date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function computeDateGroupInfo(data, dateCol) {
+  const dates = data.map(d => parseDateValue(d[dateCol])).filter(Boolean);
+  if (dates.length === 0) return { months: 0, weeks: 0 };
+
+  const minDate = new Date(Math.min(...dates));
+  const maxDate = new Date(Math.max(...dates));
+  const diffDays = (maxDate - minDate) / (1000 * 60 * 60 * 24);
+  const weeks = Math.ceil(diffDays / 7);
+  const months = new Set(dates.map(d => getMonthLabel(d))).size;
+
+  return { months, weeks };
+}
+
+function addDateGroupColumn(data, dateCol, mode) {
+  return data.map(d => {
+    const date = parseDateValue(d[dateCol]);
+    const groupValue = date
+      ? (mode === "weekly" ? getWeekLabel(date) : getMonthLabel(date))
+      : null;
+    return { ...d, [`${dateCol}_${mode === "weekly" ? "주별" : "월별"}`]: groupValue };
+  });
+}
+
+// ============================================================
 // makeStackedData: wide format -> bump chart format
 // ============================================================
 function makeStackedData(d3, wideData, keys, categoryKey) {
@@ -496,6 +562,16 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
   const allCols = Object.keys(clusterWithLabel[0] || {});
   const categoryKeys = guessCategoryKeys(allCols, clusterWithLabel, d3Lib);
 
+  // 날짜 컬럼 감지
+  const dateColumns = detectDateColumns(allCols, clusterWithLabel);
+  const dateColumnInfo = {};
+  for (const dc of dateColumns) {
+    dateColumnInfo[dc] = computeDateGroupInfo(clusterWithLabel, dc);
+  }
+
+  // 현재 사용 중인 데이터 (날짜 그룹 컬럼 추가 시 변경)
+  let activeData = clusterWithLabel;
+
   // 컨테이너 구성
   container.innerHTML = "";
   const root = document.createElement("div");
@@ -522,14 +598,69 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
     select.appendChild(opt);
   }
 
+  // 날짜 컬럼을 셀렉트에 추가
+  for (const dc of dateColumns) {
+    const opt = document.createElement("option");
+    opt.value = `__date__${dc}`;
+    opt.textContent = `${dc} (날짜)`;
+    select.appendChild(opt);
+  }
+
   selectorDiv.appendChild(selectorLabel);
   selectorDiv.appendChild(select);
+
+  // 날짜 라디오 버튼 컨테이너
+  const dateRadioDiv = document.createElement("div");
+  dateRadioDiv.className = "bubble-compare-date-radio";
+  dateRadioDiv.style.cssText = "display:none;align-items:center;gap:8px;margin-left:8px;";
+  selectorDiv.appendChild(dateRadioDiv);
+
   root.appendChild(selectorDiv);
 
   // 차트 영역
   const chartArea = document.createElement("div");
   root.appendChild(chartArea);
   container.appendChild(root);
+
+  // 날짜 라디오 구성 함수
+  function setupDateRadio(dateCol) {
+    dateRadioDiv.innerHTML = "";
+    const info = dateColumnInfo[dateCol];
+    if (!info) return;
+
+    const modes = [];
+    modes.push({ value: "monthly", label: `월별 (${info.months})` });
+    if (info.weeks <= 20) {
+      modes.push({ value: "weekly", label: `주별 (${info.weeks})` });
+    }
+
+    for (const mode of modes) {
+      const label = document.createElement("label");
+      label.style.cssText = "display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:#444;";
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "bubble-compare-date-mode";
+      radio.value = mode.value;
+      if (mode.value === "monthly") radio.checked = true;
+      radio.addEventListener("change", () => {
+        const groupKey = applyDateGroup(dateCol, mode.value);
+        renderCharts(groupKey);
+        if (onChange) onChange(groupKey);
+      });
+      label.appendChild(radio);
+      label.appendChild(document.createTextNode(mode.label));
+      dateRadioDiv.appendChild(label);
+    }
+
+    dateRadioDiv.style.display = "flex";
+  }
+
+  // 날짜 그룹 적용
+  function applyDateGroup(dateCol, mode) {
+    activeData = addDateGroupColumn(clusterWithLabel, dateCol, mode);
+    const groupKey = `${dateCol}_${mode === "weekly" ? "주별" : "월별"}`;
+    return groupKey;
+  }
 
   // 렌더링 함수
   function renderCharts(selKey) {
@@ -540,7 +671,9 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
       return;
     }
 
-    const bigLabels = [...new Set(clusterWithLabel.map(d => d.bigLabel))];
+    // activeData 사용 (날짜 그룹 컬럼이 추가된 데이터)
+    const dataToUse = activeData;
+    const bigLabels = [...new Set(dataToUse.map(d => d.bigLabel))];
     const cardColors = colors || CLUSTER_COLORS;
 
     // 1. Bump Chart + Ratio Chart (통합)
@@ -551,7 +684,7 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
     bumpSection.appendChild(bumpTitle);
 
     try {
-      const itemCompare = computeItemCompare(d3Lib, clusterWithLabel, selKey);
+      const itemCompare = computeItemCompare(d3Lib, dataToUse, selKey);
       if (itemCompare.length > 0) {
         const itemWide = computeItemWide(itemCompare);
         const compareData = makeStackedData(
@@ -562,12 +695,12 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
         );
 
         // Ratio 데이터 계산
-        const total = clusterWithLabel.length;
+        const total = dataToUse.length;
         const categories = itemCompare.map(d => d[0].item);
         const ratioData = categories.map(category => ({
           category: String(category),
-          count: clusterWithLabel.filter(d => String(d[selKey]) === String(category)).length,
-          ratio: clusterWithLabel.filter(d => String(d[selKey]) === String(category)).length / total
+          count: dataToUse.filter(d => String(d[selKey]) === String(category)).length,
+          ratio: dataToUse.filter(d => String(d[selKey]) === String(category)).length / total
         }));
 
         const bumpChart = drawBumpChart(d3Lib, PlotLib, compareData, {
@@ -596,7 +729,7 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
 
       try {
         const smChart = renderSmallMultiples(
-          d3Lib, VTClass, clusterWithLabel, selKey,
+          d3Lib, VTClass, dataToUse, selKey,
           {
             width: smallMultipleWidth,
             height: smallMultipleHeight,
@@ -614,13 +747,33 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
 
   // 이벤트
   select.addEventListener("change", () => {
-    const selKey = select.value;
-    renderCharts(selKey);
-    if (onChange) onChange(selKey);
+    const val = select.value;
+
+    if (val.startsWith("__date__")) {
+      // 날짜 컬럼 선택
+      const dateCol = val.replace("__date__", "");
+      setupDateRadio(dateCol);
+      // 기본 월별로 렌더링
+      const groupKey = applyDateGroup(dateCol, "monthly");
+      renderCharts(groupKey);
+      if (onChange) onChange(groupKey);
+    } else {
+      // 일반 컬럼 선택
+      dateRadioDiv.style.display = "none";
+      dateRadioDiv.innerHTML = "";
+      activeData = clusterWithLabel;
+      renderCharts(val);
+      if (onChange) onChange(val);
+    }
   });
 
-  // 첫 번째 후보가 있으면 자동 선택
-  if (categoryKeys.length > 0) {
+  // 첫 번째 후보가 있으면 자동 선택 (날짜 컬럼 우선)
+  if (dateColumns.length > 0) {
+    select.value = `__date__${dateColumns[0]}`;
+    setupDateRadio(dateColumns[0]);
+    const groupKey = applyDateGroup(dateColumns[0], "monthly");
+    renderCharts(groupKey);
+  } else if (categoryKeys.length > 0) {
     select.value = categoryKeys[0];
     renderCharts(categoryKeys[0]);
   }

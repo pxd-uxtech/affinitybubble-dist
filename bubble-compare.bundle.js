@@ -38,6 +38,61 @@ function guessCategoryKeys(cols, data, d3) {
     uniqueCount: new Set(data.filter((d) => d[key] != null && String(d[key]).trim()).map((d) => d[key])).size
   })).filter((d) => d.uniqueCount >= 2 && d.uniqueCount <= 20).sort((a, b) => a.uniqueCount - b.uniqueCount).map((d) => d.key);
 }
+function detectDateColumns(cols, data) {
+  const datePatterns = [
+    /^\d{4}-\d{2}-\d{2}/,
+    // 2025-03-12
+    /^\d{4}\/\d{2}\/\d{2}/,
+    // 2025/03/12
+    /^\d{4}\.\d{2}\.\d{2}/,
+    // 2025.03.12
+    /^\d{4}-\d{2}-\d{2}T/
+    // ISO format
+  ];
+  return cols.filter((key) => {
+    const samples = data.slice(0, 50).map((d) => d[key]).filter(Boolean);
+    if (samples.length < 5) return false;
+    const matchCount = samples.filter(
+      (v) => datePatterns.some((p) => p.test(String(v)))
+    ).length;
+    return matchCount / samples.length >= 0.7;
+  });
+}
+function parseDateValue(val) {
+  if (!val) return null;
+  const str = String(val);
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+function getWeekLabel(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNo = Math.ceil(((d - yearStart) / 864e5 + 1) / 7);
+  return `${d.getFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+function getMonthLabel(date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+function computeDateGroupInfo(data, dateCol) {
+  const dates = data.map((d) => parseDateValue(d[dateCol])).filter(Boolean);
+  if (dates.length === 0) return { months: 0, weeks: 0 };
+  const minDate = new Date(Math.min(...dates));
+  const maxDate = new Date(Math.max(...dates));
+  const diffDays = (maxDate - minDate) / (1e3 * 60 * 60 * 24);
+  const weeks = Math.ceil(diffDays / 7);
+  const months = new Set(dates.map((d) => getMonthLabel(d))).size;
+  return { months, weeks };
+}
+function addDateGroupColumn(data, dateCol, mode) {
+  return data.map((d) => {
+    const date = parseDateValue(d[dateCol]);
+    const groupValue = date ? mode === "weekly" ? getWeekLabel(date) : getMonthLabel(date) : null;
+    return { ...d, [`${dateCol}_${mode === "weekly" ? "\uC8FC\uBCC4" : "\uC6D4\uBCC4"}`]: groupValue };
+  });
+}
 function makeStackedData(d3, wideData, keys, categoryKey) {
   const _sortFunc = sortFunc(d3);
   const grouped = wideData.map(
@@ -380,6 +435,12 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   }
   const allCols = Object.keys(clusterWithLabel[0] || {});
   const categoryKeys = guessCategoryKeys(allCols, clusterWithLabel, d3Lib);
+  const dateColumns = detectDateColumns(allCols, clusterWithLabel);
+  const dateColumnInfo = {};
+  for (const dc of dateColumns) {
+    dateColumnInfo[dc] = computeDateGroupInfo(clusterWithLabel, dc);
+  }
+  let activeData = clusterWithLabel;
   container.innerHTML = "";
   const root = document.createElement("div");
   root.className = "bubble-compare-container";
@@ -399,19 +460,63 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     opt.textContent = `${key} (${uniqueCount})`;
     select.appendChild(opt);
   }
+  for (const dc of dateColumns) {
+    const opt = document.createElement("option");
+    opt.value = `__date__${dc}`;
+    opt.textContent = `${dc} (\uB0A0\uC9DC)`;
+    select.appendChild(opt);
+  }
   selectorDiv.appendChild(selectorLabel);
   selectorDiv.appendChild(select);
+  const dateRadioDiv = document.createElement("div");
+  dateRadioDiv.className = "bubble-compare-date-radio";
+  dateRadioDiv.style.cssText = "display:none;align-items:center;gap:8px;margin-left:8px;";
+  selectorDiv.appendChild(dateRadioDiv);
   root.appendChild(selectorDiv);
   const chartArea = document.createElement("div");
   root.appendChild(chartArea);
   container.appendChild(root);
+  function setupDateRadio(dateCol) {
+    dateRadioDiv.innerHTML = "";
+    const info = dateColumnInfo[dateCol];
+    if (!info) return;
+    const modes = [];
+    modes.push({ value: "monthly", label: `\uC6D4\uBCC4 (${info.months})` });
+    if (info.weeks <= 20) {
+      modes.push({ value: "weekly", label: `\uC8FC\uBCC4 (${info.weeks})` });
+    }
+    for (const mode of modes) {
+      const label = document.createElement("label");
+      label.style.cssText = "display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:#444;";
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "bubble-compare-date-mode";
+      radio.value = mode.value;
+      if (mode.value === "monthly") radio.checked = true;
+      radio.addEventListener("change", () => {
+        const groupKey = applyDateGroup(dateCol, mode.value);
+        renderCharts(groupKey);
+        if (onChange) onChange(groupKey);
+      });
+      label.appendChild(radio);
+      label.appendChild(document.createTextNode(mode.label));
+      dateRadioDiv.appendChild(label);
+    }
+    dateRadioDiv.style.display = "flex";
+  }
+  function applyDateGroup(dateCol, mode) {
+    activeData = addDateGroupColumn(clusterWithLabel, dateCol, mode);
+    const groupKey = `${dateCol}_${mode === "weekly" ? "\uC8FC\uBCC4" : "\uC6D4\uBCC4"}`;
+    return groupKey;
+  }
   function renderCharts(selKey) {
     chartArea.innerHTML = "";
     if (!selKey) {
       chartArea.innerHTML = `<div class="bubble-compare-empty">\uBE44\uAD50\uD560 \uCEEC\uB7FC\uC744 \uC120\uD0DD\uD558\uC138\uC694</div>`;
       return;
     }
-    const bigLabels = [...new Set(clusterWithLabel.map((d) => d.bigLabel))];
+    const dataToUse = activeData;
+    const bigLabels = [...new Set(dataToUse.map((d) => d.bigLabel))];
     const cardColors = colors || CLUSTER_COLORS;
     const bumpSection = document.createElement("div");
     bumpSection.className = "bubble-compare-section";
@@ -419,7 +524,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     bumpTitle.textContent = `${title ? title + " - " : ""}${selKey} \uBE44\uAD50`;
     bumpSection.appendChild(bumpTitle);
     try {
-      const itemCompare = computeItemCompare(d3Lib, clusterWithLabel, selKey);
+      const itemCompare = computeItemCompare(d3Lib, dataToUse, selKey);
       if (itemCompare.length > 0) {
         const itemWide = computeItemWide(itemCompare);
         const compareData = makeStackedData(
@@ -428,12 +533,12 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
           itemCompare[0].map((d) => d.bigLabel),
           "item"
         );
-        const total = clusterWithLabel.length;
+        const total = dataToUse.length;
         const categories = itemCompare.map((d) => d[0].item);
         const ratioData = categories.map((category) => ({
           category: String(category),
-          count: clusterWithLabel.filter((d) => String(d[selKey]) === String(category)).length,
-          ratio: clusterWithLabel.filter((d) => String(d[selKey]) === String(category)).length / total
+          count: dataToUse.filter((d) => String(d[selKey]) === String(category)).length,
+          ratio: dataToUse.filter((d) => String(d[selKey]) === String(category)).length / total
         }));
         const bumpChart = drawBumpChart(d3Lib, PlotLib, compareData, {
           width: bumpChartWidth,
@@ -460,7 +565,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
         const smChart = renderSmallMultiples(
           d3Lib,
           VTClass,
-          clusterWithLabel,
+          dataToUse,
           selKey,
           {
             width: smallMultipleWidth,
@@ -477,11 +582,27 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     }
   }
   select.addEventListener("change", () => {
-    const selKey = select.value;
-    renderCharts(selKey);
-    if (onChange) onChange(selKey);
+    const val = select.value;
+    if (val.startsWith("__date__")) {
+      const dateCol = val.replace("__date__", "");
+      setupDateRadio(dateCol);
+      const groupKey = applyDateGroup(dateCol, "monthly");
+      renderCharts(groupKey);
+      if (onChange) onChange(groupKey);
+    } else {
+      dateRadioDiv.style.display = "none";
+      dateRadioDiv.innerHTML = "";
+      activeData = clusterWithLabel;
+      renderCharts(val);
+      if (onChange) onChange(val);
+    }
   });
-  if (categoryKeys.length > 0) {
+  if (dateColumns.length > 0) {
+    select.value = `__date__${dateColumns[0]}`;
+    setupDateRadio(dateColumns[0]);
+    const groupKey = applyDateGroup(dateColumns[0], "monthly");
+    renderCharts(groupKey);
+  } else if (categoryKeys.length > 0) {
     select.value = categoryKeys[0];
     renderCharts(categoryKeys[0]);
   }
