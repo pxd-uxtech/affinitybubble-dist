@@ -189,12 +189,14 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
       runStart = runEnd + 1;
     }
   }
+  const bumpMargin = 45;
   const bumpPlot = Plot.plot({
     title,
     width,
     height,
     marginTop: 30,
     marginBottom: 5,
+    marginLeft: bumpMargin,
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
     y: { domain: [100, 0], ticks: 5, label: "" },
@@ -238,13 +240,12 @@ ${d.percent.toFixed(1)}%`
     ]
   });
   if (!ratioData || !ratioData.length) return bumpPlot;
-  const bumpMarginLeft = bumpPlot.scale ? bumpPlot.scale("x")?.range?.[0] || 40 : 40;
   const ratioPlot = Plot.plot({
     width,
     height: 120,
     marginTop: 10,
     marginBottom: 5,
-    marginLeft: bumpMarginLeft,
+    marginLeft: bumpMargin,
     insetLeft: 5,
     y: { percent: true, nice: true, label: "", ticks: 3 },
     x: { ticks: [], label: null },
@@ -288,7 +289,7 @@ ${d.percent.toFixed(1)}%`
   labelDiv.style.cssText = `position:relative; width:${width}px; height:22px; margin-top:2px;`;
   ratioData.forEach((d, i) => {
     const lbl = document.createElement("div");
-    const pixelX = barCenters[i] ?? i * colWidth * 1.3 + colWidth / 2 + bumpMarginLeft;
+    const pixelX = barCenters[i] ?? i * colWidth * 1.3 + colWidth / 2 + bumpMargin;
     lbl.style.cssText = `position:absolute; left:${pixelX}px; font-size:13px; color:#222; font-weight:bold; text-align:center; transform:translateX(-50%); white-space:nowrap;`;
     lbl.textContent = d.category;
     labelDiv.appendChild(lbl);
@@ -576,12 +577,20 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
           count: dataToUse.filter((d) => String(d[selKey]) === String(category)).length,
           ratio: dataToUse.filter((d) => String(d[selKey]) === String(category)).length / total
         }));
+        let bumpColorRange = cardColors.map((c) => colorvariation(d3Lib, c, 0, 0, -0.2));
+        let bumpDomain = bigLabels;
+        if (regionColors && regionColors.length) {
+          const rcMap = new Map(regionColors.map((rc) => [rc.key, rc.color]));
+          bumpColorRange = bigLabels.map(
+            (bl, i) => rcMap.get(bl) || cardColors[i] || CLUSTER_COLORS[i]
+          );
+        }
         const bumpChart = drawBumpChart(d3Lib, PlotLib, compareData, {
           width: bumpChartWidth,
           height: bumpChartHeight,
           showPercent: true,
-          colorRange: cardColors.map((c) => colorvariation(d3Lib, c, 0, 0, -0.2)),
-          domain: bigLabels,
+          colorRange: bumpColorRange,
+          domain: bumpDomain,
           title: "",
           ratioData
         });
