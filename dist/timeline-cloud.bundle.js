@@ -161,12 +161,25 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const titleAreaH = title || caption ? 60 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 30 : 0) - titleAreaH;
   const xExtent = d3Lib.extent(data, (d) => d._px);
-  const yExtent = d3Lib.extent(data, (d) => d._py);
-  const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + 10, width - margin.right - 10]);
-  const yScale = d3Lib.scaleLinear().domain(yExtent).range([margin.top + 10, cloudHeight - 10]);
+  const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + 40, width - margin.right - 40]);
+  const fontSize = 7;
   data.forEach((d) => {
-    d._sx = xScale(d._px);
-    d._sy = yScale(d._py);
+    d._targetX = xScale(d._px);
+    d._radius = Math.max(8, d._text.length * fontSize * 0.35);
+  });
+  const floorY = cloudHeight - 10;
+  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(0.8)).force("y", d3Lib.forceY(floorY).strength(0.05)).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("floor", () => {
+    for (const d of data) {
+      if (d.y > floorY) d.y = floorY;
+      if (d.y < margin.top + 10) d.y = margin.top + 10;
+      if (d.x < margin.left + 10) d.x = margin.left + 10;
+      if (d.x > width - margin.right - 10) d.x = width - margin.right - 10;
+    }
+  }).stop();
+  for (let i = 0; i < 300; i++) simulation.tick();
+  data.forEach((d) => {
+    d._sx = d.x;
+    d._sy = d.y;
   });
   if (typeof container === "string") container = document.querySelector(container);
   container.innerHTML = "";
@@ -201,8 +214,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
     const center = findDenseCenter(items, "_sx", "_sy");
-    const fontSize = Math.max(9, Math.min(24, Math.sqrt(items.length) * 3));
-    labelGroup.append("text").attr("x", center.x).attr("y", center.y).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", fontSize).attr("font-weight", "bold").attr("fill", colorvariation(d3Lib, baseColor, 0, 0.2, -0.4)).attr("stroke", "#ffffffcc").attr("stroke-width", Math.max(2, fontSize / 5)).attr("paint-order", "stroke").attr("pointer-events", "none").text(label);
+    const fontSize2 = Math.max(9, Math.min(24, Math.sqrt(items.length) * 3));
+    labelGroup.append("text").attr("x", center.x).attr("y", center.y).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", fontSize2).attr("font-weight", "bold").attr("fill", colorvariation(d3Lib, baseColor, 0, 0.2, -0.4)).attr("stroke", "#ffffffcc").attr("stroke-width", Math.max(2, fontSize2 / 5)).attr("paint-order", "stroke").attr("pointer-events", "none").text(label);
   }
   if (hasDate && validDateData.length > 0) {
     const tlTop = cloudHeight + 15;
