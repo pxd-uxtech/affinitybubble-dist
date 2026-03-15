@@ -160,7 +160,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const titleAreaH = title || caption ? 60 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 30 : 0) - titleAreaH;
   const xExtent = d3Lib.extent(data, (d) => d._px);
-  const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + 80, width - margin.right - 80]);
+  const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + 120, width - margin.right - 120]);
   const fontSize = 7;
   const floorY = cloudHeight - 10;
   const ceilingY = margin.top + 20;
@@ -194,8 +194,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     for (const d of data) {
       if (d.y > floorY) d.y = floorY;
       if (d.y < ceilingY) d.y = ceilingY;
-      if (d.x < margin.left + 10) d.x = margin.left + 10;
-      if (d.x > width - margin.right - 10) d.x = width - margin.right - 10;
+      if (d.x < margin.left + 60) d.x = margin.left + 60;
+      if (d.x > width - margin.right - 60) d.x = width - margin.right - 60;
     }
   }).stop();
   for (let i = 0; i < 300; i++) simulation.tick();
