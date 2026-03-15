@@ -73,6 +73,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     width = 1400,
     height = 1e3,
     colors,
+    cellColors,
+    // [{key, color}] - label별 색상
     regionColors,
     title = "",
     caption = "",
@@ -153,6 +155,11 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     if (d.color && d.label) labelColorMap.set(d.label, d.color);
     if (d.bigColor && d.bigLabel) bigLabelColorMap.set(d.bigLabel, d.bigColor);
   });
+  if (cellColors && cellColors.length) {
+    cellColors.forEach((cc) => {
+      if (cc.key && cc.color) labelColorMap.set(cc.key, cc.color);
+    });
+  }
   const defaultColors = CLUSTER_COLORS;
   let getColorByLabel;
   if (regionColors && regionColors.length) {
@@ -164,7 +171,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const titleAreaH = title || caption ? 60 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 30 : 0) - titleAreaH;
   const xExtent = d3Lib.extent(data, (d) => d._px);
-  const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + 120, width - margin.right - 120]);
+  const cloudPadding = 60;
+  const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + cloudPadding, width - margin.right - cloudPadding]);
   const fontSize = 7;
   const floorY = cloudHeight - 10;
   const ceilingY = margin.top + 20;
@@ -232,42 +240,91 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   }
   const dotGroup = svg.append("g").attr("class", "cloud-dots");
   dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", 2.5).attr("fill", (d) => colorvariation(d3Lib, getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", onClick ? "all" : "none").attr("cursor", onClick ? "pointer" : "default").on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
-  const labelPositions = [];
-  const labelGroup = svg.append("g").attr("class", "cluster-labels");
+  const allLabels = [];
   for (const [label, items] of subClusters) {
     if (items.length < 2) continue;
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
     const center = findDenseCenter(items, "_sx", "_sy");
     const fs = Math.max(13, Math.min(32, Math.sqrt(items.length) * 4));
-    labelGroup.append("text").attr("x", center.x).attr("y", center.y).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", fs).attr("font-weight", "bold").attr("fill", colorvariation(d3Lib, baseColor, 0, 0.2, -0.4)).attr("stroke", "#ffffffcc").attr("stroke-width", Math.max(3, fs / 4)).attr("paint-order", "stroke").attr("pointer-events", "none").text(label);
-    labelPositions.push({ x: center.x, y: center.y, w: label.length * fs * 0.6, h: fs * 1.2 });
+    allLabels.push({
+      type: "label",
+      key: label,
+      x: center.x,
+      y: center.y,
+      w: label.length * fs * 0.6,
+      h: fs * 1.2,
+      color: colorvariation(d3Lib, baseColor, 0, 0.2, -0.4),
+      fs,
+      bigLabel
+    });
   }
-  const bigLabelGroup = svg.append("g").attr("class", "big-labels");
   const bigClusters = d3Lib.groups(data, (d) => d.bigLabel);
+  const pillFs = 14;
   for (const [bigLabel, items] of bigClusters) {
     if (items.length < 3) continue;
     const baseColor = getColorByLabel(null, bigLabel);
     const denseCenter = findDenseCenter(items, "_sx", "_sy");
-    const px0 = denseCenter.x;
-    const nearRadius = 100;
-    const nearItems = items.filter((d) => Math.abs(d._sx - px0) < nearRadius);
-    const minY = d3Lib.min(nearItems.length ? nearItems : items, (d) => d._sy);
-    let ty = minY - 18;
-    const pillFs = 14;
     const pillW = bigLabel.length * pillFs * 0.55 + pillFs * 3;
     const pillH = pillFs + 14;
-    for (const lp of labelPositions) {
-      if (Math.abs(px0 - lp.x) < (pillW + lp.w) / 2 && Math.abs(ty - lp.y) < (pillH + lp.h) / 2) {
-        ty = lp.y - lp.h / 2 - pillH / 2 - 4;
+    allLabels.push({
+      type: "bigLabel",
+      key: bigLabel,
+      x: denseCenter.x,
+      y: denseCenter.y,
+      w: pillW,
+      h: pillH,
+      color: colorvariation(d3Lib, baseColor, 0, 0.1, -0.15),
+      fs: pillFs,
+      bigLabel
+    });
+  }
+  for (let iter = 0; iter < 50; iter++) {
+    let moved = false;
+    for (let i = 0; i < allLabels.length; i++) {
+      for (let j = i + 1; j < allLabels.length; j++) {
+        const a = allLabels[i], b = allLabels[j];
+        const overlapX = (a.w + b.w) / 2 - Math.abs(a.x - b.x);
+        const overlapY = (a.h + b.h) / 2 - Math.abs(a.y - b.y);
+        if (overlapX > 0 && overlapY > 0) {
+          const pushY = overlapY / 2 + 2;
+          if (a.y < b.y) {
+            a.y -= pushY;
+            b.y += pushY;
+          } else {
+            a.y += pushY;
+            b.y -= pushY;
+          }
+          if (overlapX < overlapY) {
+            const pushX = overlapX / 2 + 1;
+            if (a.x < b.x) {
+              a.x -= pushX;
+              b.x += pushX;
+            } else {
+              a.x += pushX;
+              b.x -= pushX;
+            }
+          }
+          moved = true;
+        }
       }
     }
-    if (ty - pillH / 2 < ceilingY) ty = ceilingY + pillH / 2;
-    let px = px0;
-    if (px - pillW / 2 < margin.left) px = margin.left + pillW / 2;
-    if (px + pillW / 2 > width - margin.right) px = width - margin.right - pillW / 2;
-    bigLabelGroup.append("rect").attr("x", px - pillW / 2).attr("y", ty - pillH / 2).attr("width", pillW).attr("height", pillH).attr("rx", pillH / 2).attr("ry", pillH / 2).attr("fill", colorvariation(d3Lib, baseColor, 0, 0.1, -0.15)).attr("opacity", 0.85);
-    bigLabelGroup.append("text").attr("x", px).attr("y", ty).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", pillFs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(bigLabel);
+    if (!moved) break;
+  }
+  for (const lb of allLabels) {
+    if (lb.y - lb.h / 2 < ceilingY) lb.y = ceilingY + lb.h / 2;
+    if (lb.y + lb.h / 2 > floorY) lb.y = floorY - lb.h / 2;
+    if (lb.x - lb.w / 2 < margin.left) lb.x = margin.left + lb.w / 2;
+    if (lb.x + lb.w / 2 > width - margin.right) lb.x = width - margin.right - lb.w / 2;
+  }
+  const labelGroup = svg.append("g").attr("class", "cluster-labels");
+  for (const lb of allLabels.filter((l) => l.type === "label")) {
+    labelGroup.append("text").attr("x", lb.x).attr("y", lb.y).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", lb.fs).attr("font-weight", "bold").attr("fill", lb.color).attr("stroke", "#ffffffcc").attr("stroke-width", Math.max(3, lb.fs / 4)).attr("paint-order", "stroke").attr("pointer-events", "none").text(lb.key);
+  }
+  const bigLabelGroup = svg.append("g").attr("class", "big-labels");
+  for (const lb of allLabels.filter((l) => l.type === "bigLabel")) {
+    bigLabelGroup.append("rect").attr("x", lb.x - lb.w / 2).attr("y", lb.y - lb.h / 2).attr("width", lb.w).attr("height", lb.h).attr("rx", lb.h / 2).attr("ry", lb.h / 2).attr("fill", lb.color).attr("opacity", 0.85);
+    bigLabelGroup.append("text").attr("x", lb.x).attr("y", lb.y).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", lb.fs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(lb.key);
   }
   if (hasDate && validDateData.length > 0) {
     const tlTop = cloudHeight + 15;
