@@ -9,11 +9,18 @@ function colorvariation(d3, color, h, s, l) {
 }
 function detectDateKey(data) {
   const datePatterns = [/^\d{4}-\d{2}-\d{2}/, /^\d{4}\/\d{2}\/\d{2}/, /^\d{4}\.\d{2}\.\d{2}/];
+  const dateKeyNames = ["date", "\uB0A0\uC9DC", "\uC791\uC131\uC77C", "\uB4F1\uB85D\uC77C", "timestamp", "created", "created_at", "createdAt", "time", "datetime"];
   const keys = Object.keys(data[0] || {});
   for (const key of keys) {
+    if (dateKeyNames.includes(key.toLowerCase())) {
+      const samples = data.slice(0, 20).map((d) => d[key]).filter(Boolean);
+      if (samples.length > 0 && !isNaN(new Date(String(samples[0])).getTime())) return key;
+    }
+  }
+  for (const key of keys) {
     const samples = data.slice(0, 50).map((d) => d[key]).filter(Boolean);
-    if (samples.length < 5) continue;
-    if (samples.filter((v) => datePatterns.some((p) => p.test(String(v)))).length / samples.length >= 0.7)
+    if (samples.length < 3) continue;
+    if (samples.filter((v) => datePatterns.some((p) => p.test(String(v)))).length / samples.length >= 0.5)
       return key;
   }
   return null;
