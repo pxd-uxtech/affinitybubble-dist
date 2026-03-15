@@ -245,26 +245,21 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     if (items.length < 3) continue;
     const baseColor = getColorByLabel(null, bigLabel);
     const denseCenter = findDenseCenter(items, "_sx", "_sy");
-    const sortedX = items.map((d) => d._sx).sort((a, b) => a - b);
-    const cx = sortedX[Math.floor(sortedX.length / 2)];
-    const blendX = denseCenter.x * 0.6 + cx * 0.4;
+    const px0 = denseCenter.x;
     const nearRadius = 100;
-    const nearItems = items.filter((d) => {
-      const dx = d._sx - blendX;
-      return Math.abs(dx) < nearRadius;
-    });
+    const nearItems = items.filter((d) => Math.abs(d._sx - px0) < nearRadius);
     const minY = d3Lib.min(nearItems.length ? nearItems : items, (d) => d._sy);
     let ty = minY - 18;
     const pillFs = 14;
-    const pillW = bigLabel.length * pillFs * 0.55 + 40;
+    const pillW = bigLabel.length * pillFs * 0.55 + pillFs * 2;
     const pillH = pillFs + 14;
     for (const lp of labelPositions) {
-      if (Math.abs(blendX - lp.x) < (pillW + lp.w) / 2 && Math.abs(ty - lp.y) < (pillH + lp.h) / 2) {
+      if (Math.abs(px0 - lp.x) < (pillW + lp.w) / 2 && Math.abs(ty - lp.y) < (pillH + lp.h) / 2) {
         ty = lp.y - lp.h / 2 - pillH / 2 - 4;
       }
     }
     if (ty - pillH / 2 < ceilingY) ty = ceilingY + pillH / 2;
-    let px = blendX;
+    let px = px0;
     if (px - pillW / 2 < margin.left) px = margin.left + pillW / 2;
     if (px + pillW / 2 > width - margin.right) px = width - margin.right - pillW / 2;
     bigLabelGroup.append("rect").attr("x", px - pillW / 2).attr("y", ty - pillH / 2).attr("width", pillW).attr("height", pillH).attr("rx", pillH / 2).attr("ry", pillH / 2).attr("fill", colorvariation(d3Lib, baseColor, 0, 0.1, -0.15)).attr("opacity", 0.85);
