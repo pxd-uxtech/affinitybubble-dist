@@ -165,21 +165,14 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const floorY = cloudHeight - 10;
   const ceilingY = margin.top + 20;
   const availableH = floorY - ceilingY;
-  const totalItems = data.length;
-  const layerTargetY = /* @__PURE__ */ new Map();
-  let cumRatio = 0;
-  for (const { key, count } of bigGroups) {
-    const ratio = count / totalItems;
-    const centerY = floorY - cumRatio * availableH - ratio * availableH / 2;
-    layerTargetY.set(key, centerY);
-    cumRatio += ratio;
-  }
+  const yExtent = d3Lib.extent(data, (d) => d._py);
+  const yScale = d3Lib.scaleLinear().domain(yExtent).range([ceilingY + 20, floorY - 20]);
   data.forEach((d) => {
     d._targetX = xScale(d._px);
-    d._targetY = layerTargetY.get(d.bigLabel) || floorY;
-    d._radius = Math.max(8, d._text.length * fontSize * 0.35);
+    d._targetY = yScale(d._py);
+    d._radius = Math.max(5, d._text.length * fontSize * 0.28);
   });
-  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.12)).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
+  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.3)).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
     for (const d of data) {
       if (d.y > floorY) d.y = floorY;
       if (d.y < ceilingY) d.y = ceilingY;
