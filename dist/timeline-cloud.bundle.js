@@ -59,8 +59,12 @@ function findDenseCenter(items, xKey, yKey) {
 function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const {
     d3: d3Lib,
+    regionPos,
+    // [{depth:1, key, x, y, size, ...}] - bigLabel 좌표
+    labelPos,
+    // [{depth:2, key, x, y, ...}] - label 좌표
     cellPos,
-    // [{text, cluster, pos: {x, y}}, ...] - UMAP 좌표
+    // [{depth:3, key, x, y, ...}] or [{text, pos:{x,y}}] - 개별 좌표 (있으면 사용, 없어도 됨)
     dateKey: userDateKey,
     width = 1400,
     height = 1e3,
@@ -77,15 +81,54 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   } = options;
   if (!d3Lib) throw new Error("d3 is required");
   const dateKey = userDateKey || (clusterWithLabel[0]?.date != null ? "date" : detectDateKey(clusterWithLabel));
-  const posMap = /* @__PURE__ */ new Map();
+  const cellPosMap = /* @__PURE__ */ new Map();
   if (cellPos && cellPos.length) {
     cellPos.forEach((cp) => {
-      if (cp.pos && cp.text) posMap.set(cp.text, cp.pos);
+      const key = cp.text || cp.key;
+      const pos = cp.pos || (cp.x != null ? { x: cp.x, y: cp.y } : null);
+      if (key && pos) cellPosMap.set(key, pos);
     });
   }
+  const labelPosMap = /* @__PURE__ */ new Map();
+  if (labelPos && labelPos.length) {
+    labelPos.forEach((lp) => {
+      const key = lp.label || lp.key;
+      const pos = lp.pos || (lp.x != null ? { x: lp.x, y: lp.y } : null);
+      if (key && pos) labelPosMap.set(key, pos);
+    });
+  }
+  const regionPosMap = /* @__PURE__ */ new Map();
+  if (regionPos && regionPos.length) {
+    regionPos.forEach((rp) => {
+      const key = rp.key || rp.bigLabel;
+      const pos = rp.pos || (rp.x != null ? { x: rp.x, y: rp.y } : null);
+      if (key && pos) regionPosMap.set(key, pos);
+    });
+  }
+  const rng = (function(seed) {
+    let s = seed | 0;
+    return () => {
+      s = s * 16807 % 2147483647;
+      return (s - 1) / 2147483646;
+    };
+  })(42);
   const data = clusterWithLabel.map((d, i) => {
     const textVal = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
-    const pos = posMap.get(textVal) || (d.x != null && d.y != null ? { x: +d.x, y: +d.y } : null);
+    const label = d.label;
+    const bigLabel = d.bigLabel;
+    let pos = cellPosMap.get(textVal) || (d.x != null && d.y != null ? { x: +d.x, y: +d.y } : null);
+    if (!pos) {
+      const labelCenter = labelPosMap.get(label);
+      const regionCenter = regionPosMap.get(bigLabel);
+      const center = labelCenter || regionCenter;
+      if (center) {
+        const spread = labelCenter ? 0.8 : 1.5;
+        pos = {
+          x: center.x + (rng() - 0.5) * spread,
+          y: center.y + (rng() - 0.5) * spread
+        };
+      }
+    }
     if (!pos) return null;
     return {
       ...d,
@@ -96,7 +139,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       _idx: i
     };
   }).filter(Boolean);
-  if (data.length === 0) throw new Error("\uC88C\uD45C \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. cellPos\uB97C \uC804\uB2EC\uD558\uAC70\uB098 \uB370\uC774\uD130\uC5D0 x,y \uD544\uB4DC\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4");
+  if (data.length === 0) throw new Error("\uC88C\uD45C \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. regionPos \uB610\uB294 labelPos\uB97C \uC804\uB2EC\uD574\uC8FC\uC138\uC694");
   const hasDate = dateKey && data.some((d) => d._date && !isNaN(d._date.getTime()));
   const validDateData = hasDate ? data.filter((d) => d._date && !isNaN(d._date.getTime())) : [];
   const bigGroups = d3Lib.groups(data, (d) => d.bigLabel).map(([key, items]) => ({ key, count: items.length })).sort((a, b) => b.count - a.count);
