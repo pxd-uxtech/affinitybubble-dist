@@ -226,8 +226,14 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   for (const [bigLabel, items] of bigClusters) {
     if (items.length < 3) continue;
     const baseColor = getColorByLabel(null, bigLabel);
-    const cx = d3Lib.mean(items, (d) => d._sx);
-    const minY = d3Lib.min(items, (d) => d._sy);
+    const denseCenter = findDenseCenter(items, "_sx", "_sy");
+    const cx = denseCenter.x;
+    const nearRadius = 80;
+    const nearItems = items.filter((d) => {
+      const dx = d._sx - cx, dy = d._sy - denseCenter.y;
+      return dx * dx + dy * dy < nearRadius * nearRadius;
+    });
+    const minY = d3Lib.min(nearItems.length ? nearItems : items, (d) => d._sy);
     let ty = minY - 14;
     const bw = bigLabel.length * 16 * 0.6;
     const bh = 18;
