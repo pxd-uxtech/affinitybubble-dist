@@ -215,7 +215,6 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
         const cx = d3Lib.mean(items, (d) => d.x);
         const cy = d3Lib.mean(items, (d) => d.y);
         for (const d of items) {
-          d.vx += (cx - d.x) * strength;
           d.vy += (cy - d.y) * strength;
         }
       }
