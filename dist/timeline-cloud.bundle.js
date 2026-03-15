@@ -215,18 +215,36 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const path = d3Lib.line().curve(d3Lib.curveCatmullRomClosed.alpha(0.5))(expanded);
     hullGroup.append("path").attr("d", path).attr("fill", fillColor).attr("stroke", strokeColor).attr("stroke-width", 0.5).attr("opacity", 0.5);
   }
-  if (showText) {
-    const textGroup = svg.append("g").attr("class", "cloud-items");
-    textGroup.selectAll("text").data(data).join("text").attr("x", (d) => d._sx).attr("y", (d) => d._sy).attr("font-size", 7).attr("fill", (d) => colorvariation(d3Lib, getColorByLabel(d.label, d.bigLabel), 0, 0.1, -0.35)).attr("text-anchor", "start").attr("dominant-baseline", "middle").attr("pointer-events", onClick ? "all" : "none").attr("cursor", onClick ? "pointer" : "default").text((d) => d._text).on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
-  }
+  const dotGroup = svg.append("g").attr("class", "cloud-dots");
+  dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", 2.5).attr("fill", (d) => colorvariation(d3Lib, getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", onClick ? "all" : "none").attr("cursor", onClick ? "pointer" : "default").on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
+  const labelPositions = [];
   const labelGroup = svg.append("g").attr("class", "cluster-labels");
   for (const [label, items] of subClusters) {
     if (items.length < 2) continue;
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
     const center = findDenseCenter(items, "_sx", "_sy");
-    const fontSize2 = Math.max(9, Math.min(24, Math.sqrt(items.length) * 3));
-    labelGroup.append("text").attr("x", center.x).attr("y", center.y).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", fontSize2).attr("font-weight", "bold").attr("fill", colorvariation(d3Lib, baseColor, 0, 0.2, -0.4)).attr("stroke", "#ffffffcc").attr("stroke-width", Math.max(2, fontSize2 / 5)).attr("paint-order", "stroke").attr("pointer-events", "none").text(label);
+    const fs = Math.max(11, Math.min(28, Math.sqrt(items.length) * 3.5));
+    labelGroup.append("text").attr("x", center.x).attr("y", center.y).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", fs).attr("font-weight", "bold").attr("fill", colorvariation(d3Lib, baseColor, 0, 0.2, -0.4)).attr("stroke", "#ffffffcc").attr("stroke-width", Math.max(3, fs / 4)).attr("paint-order", "stroke").attr("pointer-events", "none").text(label);
+    labelPositions.push({ x: center.x, y: center.y, w: label.length * fs * 0.6, h: fs * 1.2 });
+  }
+  const bigLabelGroup = svg.append("g").attr("class", "big-labels");
+  const bigClusters = d3Lib.groups(data, (d) => d.bigLabel);
+  for (const [bigLabel, items] of bigClusters) {
+    if (items.length < 3) continue;
+    const baseColor = getColorByLabel(null, bigLabel);
+    const cx = d3Lib.mean(items, (d) => d._sx);
+    const minY = d3Lib.min(items, (d) => d._sy);
+    let ty = minY - 14;
+    const bw = bigLabel.length * 16 * 0.6;
+    const bh = 18;
+    for (const lp of labelPositions) {
+      if (Math.abs(cx - lp.x) < (bw + lp.w) / 2 && Math.abs(ty - lp.y) < (bh + lp.h) / 2) {
+        ty = lp.y - lp.h / 2 - bh / 2 - 4;
+      }
+    }
+    if (ty < ceilingY) ty = ceilingY;
+    bigLabelGroup.append("text").attr("x", cx).attr("y", ty).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", 16).attr("font-weight", "900").attr("fill", colorvariation(d3Lib, baseColor, 0, 0.15, -0.3)).attr("stroke", "#ffffffdd").attr("stroke-width", 4).attr("paint-order", "stroke").attr("pointer-events", "none").text(bigLabel);
   }
   if (hasDate && validDateData.length > 0) {
     const tlTop = cloudHeight + 15;
