@@ -245,7 +245,10 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     if (items.length < 2) continue;
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
-    const center = findDenseCenter(items, "_sx", "_sy");
+    const center = {
+      x: d3Lib.mean(items, (d) => d._sx),
+      y: d3Lib.mean(items, (d) => d._sy)
+    };
     const fs = Math.max(13, Math.min(32, Math.sqrt(items.length) * 4));
     allLabels.push({
       type: "label",
