@@ -59,6 +59,8 @@ function findDenseCenter(items, xKey, yKey) {
 function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const {
     d3: d3Lib,
+    cellPos,
+    // [{text, cluster, pos: {x, y}}, ...] - UMAP 좌표
     dateKey: userDateKey,
     width = 1400,
     height = 1e3,
@@ -74,16 +76,27 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     onClick
   } = options;
   if (!d3Lib) throw new Error("d3 is required");
-  const dateKey = userDateKey || detectDateKey(clusterWithLabel);
-  const data = clusterWithLabel.filter((d) => d.x != null && d.y != null && !isNaN(d.x) && !isNaN(d.y)).map((d, i) => ({
-    ...d,
-    _px: +d.x,
-    _py: +d.y,
-    _text: String(d.text || d["\uD14D\uC2A4\uD2B8"] || "").substring(0, maxTextLength),
-    _date: dateKey ? new Date(String(d[dateKey])) : null,
-    _idx: i
-  }));
-  if (data.length === 0) throw new Error("x, y \uC88C\uD45C\uAC00 \uC788\uB294 \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4");
+  const dateKey = userDateKey || (clusterWithLabel[0]?.date != null ? "date" : detectDateKey(clusterWithLabel));
+  const posMap = /* @__PURE__ */ new Map();
+  if (cellPos && cellPos.length) {
+    cellPos.forEach((cp) => {
+      if (cp.pos && cp.text) posMap.set(cp.text, cp.pos);
+    });
+  }
+  const data = clusterWithLabel.map((d, i) => {
+    const textVal = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
+    const pos = posMap.get(textVal) || (d.x != null && d.y != null ? { x: +d.x, y: +d.y } : null);
+    if (!pos) return null;
+    return {
+      ...d,
+      _px: pos.x,
+      _py: pos.y,
+      _text: String(textVal).substring(0, maxTextLength),
+      _date: dateKey && d[dateKey] ? new Date(String(d[dateKey])) : null,
+      _idx: i
+    };
+  }).filter(Boolean);
+  if (data.length === 0) throw new Error("\uC88C\uD45C \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. cellPos\uB97C \uC804\uB2EC\uD558\uAC70\uB098 \uB370\uC774\uD130\uC5D0 x,y \uD544\uB4DC\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4");
   const hasDate = dateKey && data.some((d) => d._date && !isNaN(d._date.getTime()));
   const validDateData = hasDate ? data.filter((d) => d._date && !isNaN(d._date.getTime())) : [];
   const bigGroups = d3Lib.groups(data, (d) => d.bigLabel).map(([key, items]) => ({ key, count: items.length })).sort((a, b) => b.count - a.count);
