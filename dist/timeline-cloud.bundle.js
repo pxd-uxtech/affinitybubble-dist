@@ -237,7 +237,11 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       }
     }
     if (ty < ceilingY) ty = ceilingY;
-    bigLabelGroup.append("text").attr("x", cx).attr("y", ty).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", 16).attr("font-weight", "900").attr("fill", colorvariation(d3Lib, baseColor, 0, 0.15, -0.3)).attr("stroke", "#ffffffdd").attr("stroke-width", 4).attr("paint-order", "stroke").attr("pointer-events", "none").text(bigLabel);
+    const pillFs = 13;
+    const pillW = bigLabel.length * pillFs * 0.55 + 20;
+    const pillH = pillFs + 12;
+    bigLabelGroup.append("rect").attr("x", cx - pillW / 2).attr("y", ty - pillH / 2).attr("width", pillW).attr("height", pillH).attr("rx", pillH / 2).attr("ry", pillH / 2).attr("fill", colorvariation(d3Lib, baseColor, 0, 0.1, -0.15)).attr("opacity", 0.85);
+    bigLabelGroup.append("text").attr("x", cx).attr("y", ty).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", pillFs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(bigLabel);
   }
   if (hasDate && validDateData.length > 0) {
     const tlTop = cloudHeight + 15;
