@@ -207,7 +207,21 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     d._targetX = xScale(d._px);
     d._radius = Math.max(5, d._text.length * fontSize * 0.28);
   });
-  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.3)).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
+  const labelGroups = d3Lib.groups(data, (d) => d.label);
+  function forceCluster(strength) {
+    return () => {
+      for (const [, items] of labelGroups) {
+        if (items.length < 2) continue;
+        const cx = d3Lib.mean(items, (d) => d.x);
+        const cy = d3Lib.mean(items, (d) => d.y);
+        for (const d of items) {
+          d.vx += (cx - d.x) * strength;
+          d.vy += (cy - d.y) * strength;
+        }
+      }
+    };
+  }
+  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.3)).force("cluster", forceCluster(0.15)).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
     for (const d of data) {
       if (d.y > floorY) d.y = floorY;
       if (d.y < ceilingY) d.y = ceilingY;
