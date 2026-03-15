@@ -160,7 +160,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const titleAreaH = title || caption ? 60 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 30 : 0) - titleAreaH;
   const xExtent = d3Lib.extent(data, (d) => d._px);
-  const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + 40, width - margin.right - 40]);
+  const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + 80, width - margin.right - 80]);
   const fontSize = 7;
   const floorY = cloudHeight - 10;
   const ceilingY = margin.top + 20;
@@ -235,7 +235,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
     const center = findDenseCenter(items, "_sx", "_sy");
-    const fs = Math.max(11, Math.min(28, Math.sqrt(items.length) * 3.5));
+    const fs = Math.max(13, Math.min(32, Math.sqrt(items.length) * 4));
     labelGroup.append("text").attr("x", center.x).attr("y", center.y).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", fs).attr("font-weight", "bold").attr("fill", colorvariation(d3Lib, baseColor, 0, 0.2, -0.4)).attr("stroke", "#ffffffcc").attr("stroke-width", Math.max(3, fs / 4)).attr("paint-order", "stroke").attr("pointer-events", "none").text(label);
     labelPositions.push({ x: center.x, y: center.y, w: label.length * fs * 0.6, h: fs * 1.2 });
   }
@@ -245,27 +245,30 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     if (items.length < 3) continue;
     const baseColor = getColorByLabel(null, bigLabel);
     const denseCenter = findDenseCenter(items, "_sx", "_sy");
-    const cx = denseCenter.x;
-    const nearRadius = 80;
+    const sortedX = items.map((d) => d._sx).sort((a, b) => a - b);
+    const cx = sortedX[Math.floor(sortedX.length / 2)];
+    const blendX = denseCenter.x * 0.6 + cx * 0.4;
+    const nearRadius = 100;
     const nearItems = items.filter((d) => {
-      const dx = d._sx - cx, dy = d._sy - denseCenter.y;
-      return dx * dx + dy * dy < nearRadius * nearRadius;
+      const dx = d._sx - blendX;
+      return Math.abs(dx) < nearRadius;
     });
     const minY = d3Lib.min(nearItems.length ? nearItems : items, (d) => d._sy);
-    let ty = minY - 14;
-    const bw = bigLabel.length * 16 * 0.6;
-    const bh = 18;
+    let ty = minY - 18;
+    const pillFs = 14;
+    const pillW = bigLabel.length * pillFs * 0.55 + 40;
+    const pillH = pillFs + 14;
     for (const lp of labelPositions) {
-      if (Math.abs(cx - lp.x) < (bw + lp.w) / 2 && Math.abs(ty - lp.y) < (bh + lp.h) / 2) {
-        ty = lp.y - lp.h / 2 - bh / 2 - 4;
+      if (Math.abs(blendX - lp.x) < (pillW + lp.w) / 2 && Math.abs(ty - lp.y) < (pillH + lp.h) / 2) {
+        ty = lp.y - lp.h / 2 - pillH / 2 - 4;
       }
     }
-    if (ty < ceilingY) ty = ceilingY;
-    const pillFs = 13;
-    const pillW = bigLabel.length * pillFs * 0.55 + 32;
-    const pillH = pillFs + 12;
-    bigLabelGroup.append("rect").attr("x", cx - pillW / 2).attr("y", ty - pillH / 2).attr("width", pillW).attr("height", pillH).attr("rx", pillH / 2).attr("ry", pillH / 2).attr("fill", colorvariation(d3Lib, baseColor, 0, 0.1, -0.15)).attr("opacity", 0.85);
-    bigLabelGroup.append("text").attr("x", cx).attr("y", ty).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", pillFs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(bigLabel);
+    if (ty - pillH / 2 < ceilingY) ty = ceilingY + pillH / 2;
+    let px = blendX;
+    if (px - pillW / 2 < margin.left) px = margin.left + pillW / 2;
+    if (px + pillW / 2 > width - margin.right) px = width - margin.right - pillW / 2;
+    bigLabelGroup.append("rect").attr("x", px - pillW / 2).attr("y", ty - pillH / 2).attr("width", pillW).attr("height", pillH).attr("rx", pillH / 2).attr("ry", pillH / 2).attr("fill", colorvariation(d3Lib, baseColor, 0, 0.1, -0.15)).attr("opacity", 0.85);
+    bigLabelGroup.append("text").attr("x", px).attr("y", ty).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", pillFs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(bigLabel);
   }
   if (hasDate && validDateData.length > 0) {
     const tlTop = cloudHeight + 15;
