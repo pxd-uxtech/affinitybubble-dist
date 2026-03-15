@@ -144,13 +144,19 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const validDateData = hasDate ? data.filter((d) => d._date && !isNaN(d._date.getTime())) : [];
   const bigGroups = d3Lib.groups(data, (d) => d.bigLabel).map(([key, items]) => ({ key, count: items.length })).sort((a, b) => b.count - a.count);
   const bigLabelRank = new Map(bigGroups.map((d, i) => [d.key, i]));
+  const labelColorMap = /* @__PURE__ */ new Map();
+  const bigLabelColorMap = /* @__PURE__ */ new Map();
+  data.forEach((d) => {
+    if (d.color && d.label) labelColorMap.set(d.label, d.color);
+    if (d.bigColor && d.bigLabel) bigLabelColorMap.set(d.bigLabel, d.bigColor);
+  });
   const defaultColors = CLUSTER_COLORS;
-  let getColor;
+  let getColorByLabel;
   if (regionColors && regionColors.length) {
     const rcMap = new Map(regionColors.map((rc) => [rc.key, rc.color]));
-    getColor = (key) => rcMap.get(key) || (colors || defaultColors)[bigLabelRank.get(key) || 0] || "#ccc";
+    getColorByLabel = (label, bigLabel) => labelColorMap.get(label) || rcMap.get(bigLabel) || bigLabelColorMap.get(bigLabel) || (colors || defaultColors)[bigLabelRank.get(bigLabel) || 0] || "#ccc";
   } else {
-    getColor = (key) => (colors || defaultColors)[bigLabelRank.get(key) || 0] || "#ccc";
+    getColorByLabel = (label, bigLabel) => labelColorMap.get(label) || bigLabelColorMap.get(bigLabel) || (colors || defaultColors)[bigLabelRank.get(bigLabel) || 0] || "#ccc";
   }
   const titleAreaH = title || caption ? 60 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 30 : 0) - titleAreaH;
@@ -169,7 +175,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const hullGroup = svg.append("g").attr("class", "hulls");
   for (const [label, items] of subClusters) {
     const bigLabel = items[0].bigLabel;
-    const baseColor = getColor(bigLabel);
+    const baseColor = getColorByLabel(label, bigLabel);
     const fillColor = colorvariation(d3Lib, baseColor, 0, -0.15, 0.2);
     const strokeColor = colorvariation(d3Lib, baseColor, 0, 0, -0.1);
     if (items.length < 3) {
@@ -187,13 +193,13 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   }
   if (showText) {
     const textGroup = svg.append("g").attr("class", "cloud-items");
-    textGroup.selectAll("text").data(data).join("text").attr("x", (d) => d._sx).attr("y", (d) => d._sy).attr("font-size", 7).attr("fill", (d) => colorvariation(d3Lib, getColor(d.bigLabel), 0, 0.1, -0.35)).attr("text-anchor", "start").attr("dominant-baseline", "middle").attr("pointer-events", onClick ? "all" : "none").attr("cursor", onClick ? "pointer" : "default").text((d) => d._text).on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
+    textGroup.selectAll("text").data(data).join("text").attr("x", (d) => d._sx).attr("y", (d) => d._sy).attr("font-size", 7).attr("fill", (d) => colorvariation(d3Lib, getColorByLabel(d.label, d.bigLabel), 0, 0.1, -0.35)).attr("text-anchor", "start").attr("dominant-baseline", "middle").attr("pointer-events", onClick ? "all" : "none").attr("cursor", onClick ? "pointer" : "default").text((d) => d._text).on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
   }
   const labelGroup = svg.append("g").attr("class", "cluster-labels");
   for (const [label, items] of subClusters) {
     if (items.length < 2) continue;
     const bigLabel = items[0].bigLabel;
-    const baseColor = getColor(bigLabel);
+    const baseColor = getColorByLabel(label, bigLabel);
     const center = findDenseCenter(items, "_sx", "_sy");
     const fontSize = Math.max(9, Math.min(24, Math.sqrt(items.length) * 3));
     labelGroup.append("text").attr("x", center.x).attr("y", center.y).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", fontSize).attr("font-weight", "bold").attr("fill", colorvariation(d3Lib, baseColor, 0, 0.2, -0.4)).attr("stroke", "#ffffffcc").attr("stroke-width", Math.max(2, fontSize / 5)).attr("paint-order", "stroke").attr("pointer-events", "none").text(label);
