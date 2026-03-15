@@ -129,7 +129,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
         };
       }
     }
-    if (!pos) return null;
+    if (!pos) pos = { x: rng() * 10, y: rng() * 10 };
     return {
       ...d,
       _px: pos.x,
@@ -138,8 +138,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       _date: dateKey && d[dateKey] ? new Date(String(d[dateKey])) : null,
       _idx: i
     };
-  }).filter(Boolean);
-  if (data.length === 0) throw new Error("\uC88C\uD45C \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. regionPos \uB610\uB294 labelPos\uB97C \uC804\uB2EC\uD574\uC8FC\uC138\uC694");
+  });
   const hasDate = dateKey && data.some((d) => d._date && !isNaN(d._date.getTime()));
   const validDateData = hasDate ? data.filter((d) => d._date && !isNaN(d._date.getTime())) : [];
   const bigGroups = d3Lib.groups(data, (d) => d.bigLabel).map(([key, items]) => ({ key, count: items.length })).sort((a, b) => b.count - a.count);
