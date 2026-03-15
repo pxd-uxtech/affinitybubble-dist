@@ -14,7 +14,7 @@ function detectDateKey(data) {
   for (const key of keys) {
     if (dateKeyNames.includes(key.toLowerCase())) {
       const samples = data.slice(0, 20).map((d) => d[key]).filter(Boolean);
-      if (samples.length > 0 && !isNaN(new Date(String(samples[0])).getTime())) return key;
+      if (samples.length > 0 && parseDate(samples[0])) return key;
     }
   }
   for (const key of keys) {
@@ -24,6 +24,34 @@ function detectDateKey(data) {
       return key;
   }
   return null;
+}
+function parseDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  const s = String(val).trim();
+  if (/^\d{10,13}$/.test(s)) {
+    const ts = s.length <= 10 ? +s * 1e3 : +s;
+    const d2 = new Date(ts);
+    return isNaN(d2.getTime()) ? null : d2;
+  }
+  if (/^\d{8}$/.test(s)) {
+    const d2 = new Date(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8));
+    return isNaN(d2.getTime()) ? null : d2;
+  }
+  const m = s.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+  if (m) {
+    const rest = s.slice(m[0].length).trim();
+    const tm = rest.match(/^[T ]?(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    const d2 = new Date(+m[1], +m[2] - 1, +m[3], tm ? +tm[1] : 0, tm ? +tm[2] : 0, tm && tm[3] ? +tm[3] : 0);
+    return isNaN(d2.getTime()) ? null : d2;
+  }
+  const m2 = s.match(/^(\d{1,2})[/](\d{1,2})[/](\d{4})/);
+  if (m2) {
+    const d2 = new Date(+m2[3], +m2[1] - 1, +m2[2]);
+    return isNaN(d2.getTime()) ? null : d2;
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
 }
 function expandHull(hull, padding) {
   const cx = hull.reduce((s, p) => s + p[0], 0) / hull.length;
@@ -152,7 +180,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       _px: pos.x,
       _py: pos.y,
       _text: String(textVal).substring(0, maxTextLength),
-      _date: dateKey && d[dateKey] ? new Date(String(d[dateKey])) : null,
+      _date: dateKey && d[dateKey] ? parseDate(d[dateKey]) : null,
       _idx: i
     };
   });
@@ -312,7 +340,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     if (items.length < 3) continue;
     const baseColor = getColorByLabel(null, bigLabel);
     const denseCenter = findDenseCenter(items, "_sx", "_sy");
-    const pillW = bigLabel.length * pillFs * 0.55 + pillFs * 4;
+    const textW = [...bigLabel].reduce((sum, ch) => sum + (ch.charCodeAt(0) > 255 ? 0.9 : 0.55), 0) * pillFs;
+    const pillW = textW + pillFs * 4;
     const pillH = pillFs + 16;
     allLabels.push({
       type: "bigLabel",
