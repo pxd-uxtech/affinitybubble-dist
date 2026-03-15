@@ -165,11 +165,29 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const floorY = cloudHeight - 10;
   const ceilingY = margin.top + 20;
   const availableH = floorY - ceilingY;
-  const yExtent = d3Lib.extent(data, (d) => d._py);
-  const yScale = d3Lib.scaleLinear().domain(yExtent).range([ceilingY + 20, floorY - 20]);
+  const totalItems = data.length;
+  const layerTargetY = /* @__PURE__ */ new Map();
+  let cumRatio = 0;
+  for (const { key, count } of bigGroups) {
+    const ratio = count / totalItems;
+    const centerY = floorY - cumRatio * availableH - ratio * availableH / 2;
+    layerTargetY.set(key, { center: centerY, halfH: ratio * availableH / 2 });
+    cumRatio += ratio;
+  }
+  const groupedByBig = d3Lib.groups(data, (d) => d.bigLabel);
+  for (const [, items] of groupedByBig) {
+    const layer = layerTargetY.get(items[0].bigLabel);
+    if (!layer) continue;
+    const yVals = items.map((d) => d._py);
+    const yMin = d3Lib.min(yVals), yMax = d3Lib.max(yVals);
+    const yRange = yMax - yMin || 1;
+    for (const d of items) {
+      const t = (d._py - yMin) / yRange;
+      d._targetY = layer.center - layer.halfH * 0.7 + t * layer.halfH * 1.4;
+    }
+  }
   data.forEach((d) => {
     d._targetX = xScale(d._px);
-    d._targetY = yScale(d._py);
     d._radius = Math.max(5, d._text.length * fontSize * 0.28);
   });
   const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.3)).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
@@ -244,7 +262,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     }
     if (ty < ceilingY) ty = ceilingY;
     const pillFs = 13;
-    const pillW = bigLabel.length * pillFs * 0.55 + 20;
+    const pillW = bigLabel.length * pillFs * 0.55 + 32;
     const pillH = pillFs + 12;
     bigLabelGroup.append("rect").attr("x", cx - pillW / 2).attr("y", ty - pillH / 2).attr("width", pillW).attr("height", pillH).attr("rx", pillH / 2).attr("ry", pillH / 2).attr("fill", colorvariation(d3Lib, baseColor, 0, 0.1, -0.15)).attr("opacity", 0.85);
     bigLabelGroup.append("text").attr("x", cx).attr("y", ty).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", pillFs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(bigLabel);
