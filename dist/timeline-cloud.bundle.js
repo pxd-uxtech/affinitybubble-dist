@@ -34,7 +34,11 @@ function findDenseCenter(items, xKey, yKey) {
       y: items.reduce((s, d) => s + d[yKey], 0) / items.length
     };
   }
-  const radius = 50;
+  const xs = items.map((d) => d[xKey]), ys = items.map((d) => d[yKey]);
+  const xRange = Math.max(...xs) - Math.min(...xs);
+  const yRange = Math.max(...ys) - Math.min(...ys);
+  const spread = Math.sqrt(xRange * xRange + yRange * yRange);
+  const radius = Math.max(spread * 0.25, 30);
   let best = items[0], bestCount = 0;
   for (const item of items) {
     let count = 0;
@@ -251,7 +255,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const minY = d3Lib.min(nearItems.length ? nearItems : items, (d) => d._sy);
     let ty = minY - 18;
     const pillFs = 14;
-    const pillW = bigLabel.length * pillFs * 0.55 + pillFs * 2;
+    const pillW = bigLabel.length * pillFs * 0.55 + pillFs * 3;
     const pillH = pillFs + 14;
     for (const lp of labelPositions) {
       if (Math.abs(px0 - lp.x) < (pillW + lp.w) / 2 && Math.abs(ty - lp.y) < (pillH + lp.h) / 2) {
