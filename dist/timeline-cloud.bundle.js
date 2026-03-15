@@ -223,8 +223,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   for (const [label, items] of subClusters) {
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
-    const fillColor = colorvariation(d3Lib, baseColor, 0, -0.15, 0.2);
-    const strokeColor = colorvariation(d3Lib, baseColor, 0, 0, -0.1);
+    const fillColor = baseColor;
+    const strokeColor = colorvariation(d3Lib, baseColor, 0, 0, -0.15);
     if (items.length < 3) {
       const cx = d3Lib.mean(items, (d) => d._sx);
       const cy = d3Lib.mean(items, (d) => d._sy);
@@ -238,8 +238,22 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const path = d3Lib.line().curve(d3Lib.curveCatmullRomClosed.alpha(0.5))(expanded);
     hullGroup.append("path").attr("d", path).attr("fill", fillColor).attr("stroke", strokeColor).attr("stroke-width", 0.5).attr("opacity", 0.5);
   }
+  const tooltip = d3Lib.select(container).append("div").style("position", "absolute").style("pointer-events", "none").style("background", "rgba(0,0,0,0.8)").style("color", "#fff").style("padding", "6px 10px").style("border-radius", "4px").style("font-size", "12px").style("max-width", "300px").style("line-height", "1.4").style("white-space", "pre-wrap").style("display", "none").style("z-index", "1000");
+  d3Lib.select(container).style("position", "relative");
   const dotGroup = svg.append("g").attr("class", "cloud-dots");
-  dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", 2.5).attr("fill", (d) => colorvariation(d3Lib, getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", onClick ? "all" : "none").attr("cursor", onClick ? "pointer" : "default").on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
+  dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", 2.5).attr("fill", (d) => colorvariation(d3Lib, getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", "all").attr("cursor", "pointer").on("mouseenter", (event, d) => {
+    d3Lib.select(event.target).attr("r", 5).attr("opacity", 1);
+    const text = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
+    const label = d.label || "";
+    const dateStr = d._date ? d._date.toLocaleDateString("ko-KR") : "";
+    tooltip.style("display", "block").html(`<strong>${label}</strong>${dateStr ? " \xB7 " + dateStr : ""}<br/>${text}`);
+  }).on("mousemove", (event) => {
+    const rect = container.getBoundingClientRect();
+    tooltip.style("left", event.clientX - rect.left + 12 + "px").style("top", event.clientY - rect.top - 10 + "px");
+  }).on("mouseleave", (event) => {
+    d3Lib.select(event.target).attr("r", 2.5).attr("opacity", 0.4);
+    tooltip.style("display", "none");
+  }).on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
   const allLabels = [];
   for (const [label, items] of subClusters) {
     if (items.length < 2) continue;
