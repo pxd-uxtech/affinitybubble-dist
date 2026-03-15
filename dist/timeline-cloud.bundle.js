@@ -223,7 +223,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   for (const [label, items] of subClusters) {
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
-    const fillColor = baseColor;
+    const fillColor = colorvariation(d3Lib, baseColor, 0, 0, 0.1);
     const strokeColor = colorvariation(d3Lib, baseColor, 0, 0, -0.15);
     if (items.length < 3) {
       const cx = d3Lib.mean(items, (d) => d._sx);
