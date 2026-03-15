@@ -260,13 +260,13 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     });
   }
   const bigClusters = d3Lib.groups(data, (d) => d.bigLabel);
-  const pillFs = 14;
+  const pillFs = 16;
   for (const [bigLabel, items] of bigClusters) {
     if (items.length < 3) continue;
     const baseColor = getColorByLabel(null, bigLabel);
     const denseCenter = findDenseCenter(items, "_sx", "_sy");
-    const pillW = bigLabel.length * pillFs * 0.55 + pillFs * 3;
-    const pillH = pillFs + 14;
+    const pillW = bigLabel.length * pillFs * 0.55 + pillFs * 4;
+    const pillH = pillFs + 16;
     allLabels.push({
       type: "bigLabel",
       key: bigLabel,
