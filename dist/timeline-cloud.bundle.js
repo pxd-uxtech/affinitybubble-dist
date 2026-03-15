@@ -83,6 +83,10 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     hullPadding = 18,
     densityHeight = 80,
     margin = { top: 20, right: 50, bottom: 20, left: 50 },
+    clusterStrength = 0.15,
+    // 클러스터 응집력 (0~1, 0이면 끔)
+    clusterXRatio = 0.3,
+    // x방향 클러스터 힘 비율 (0~1)
     onClick
   } = options;
   if (!d3Lib) throw new Error("d3 is required");
@@ -215,13 +219,13 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
         const cx = d3Lib.mean(items, (d) => d.x);
         const cy = d3Lib.mean(items, (d) => d.y);
         for (const d of items) {
-          d.vx += (cx - d.x) * strength * 0.3;
+          d.vx += (cx - d.x) * strength * clusterXRatio;
           d.vy += (cy - d.y) * strength;
         }
       }
     };
   }
-  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.3)).force("cluster", forceCluster(0.15)).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
+  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.3)).force("cluster", clusterStrength > 0 ? forceCluster(clusterStrength) : null).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
     for (const d of data) {
       if (d.y > floorY) d.y = floorY;
       if (d.y < ceilingY) d.y = ceilingY;
