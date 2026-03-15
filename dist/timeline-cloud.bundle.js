@@ -173,6 +173,11 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const xExtent = d3Lib.extent(data, (d) => d._px);
   const cloudPadding = 60;
   const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + cloudPadding, width - margin.right - cloudPadding]);
+  const n = data.length;
+  const scaleFactor = Math.sqrt(500 / Math.max(n, 1));
+  const dotRadius = Math.max(1.5, Math.min(4, 2.5 * scaleFactor));
+  const hullPad = Math.max(8, hullPadding * scaleFactor);
+  const labelScale = Math.max(0.6, Math.min(1.5, scaleFactor));
   const fontSize = 7;
   const floorY = cloudHeight - 10;
   const ceilingY = margin.top + 20;
@@ -228,21 +233,21 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     if (items.length < 3) {
       const cx = d3Lib.mean(items, (d) => d._sx);
       const cy = d3Lib.mean(items, (d) => d._sy);
-      hullGroup.append("circle").attr("cx", cx).attr("cy", cy).attr("r", 12 + items.length * 4).attr("fill", fillColor).attr("stroke", strokeColor).attr("stroke-width", 0.5).attr("opacity", 0.5);
+      hullGroup.append("circle").attr("cx", cx).attr("cy", cy).attr("r", (12 + items.length * 4) * scaleFactor).attr("fill", fillColor).attr("stroke", strokeColor).attr("stroke-width", 0.5).attr("opacity", 0.5);
       continue;
     }
     const points = items.map((d) => [d._sx, d._sy]);
     const hull = d3Lib.polygonHull(points);
     if (!hull) continue;
-    const expanded = expandHull(hull, hullPadding);
+    const expanded = expandHull(hull, hullPad);
     const path = d3Lib.line().curve(d3Lib.curveCatmullRomClosed.alpha(0.5))(expanded);
     hullGroup.append("path").attr("d", path).attr("fill", fillColor).attr("stroke", strokeColor).attr("stroke-width", 0.5).attr("opacity", 0.5);
   }
   const tooltip = d3Lib.select(container).append("div").style("position", "absolute").style("pointer-events", "none").style("background", "#fff").style("color", "#333").style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)").style("border", "1px solid #e0e0e0").style("padding", "6px 10px").style("border-radius", "4px").style("font-size", "12px").style("max-width", "300px").style("line-height", "1.4").style("white-space", "pre-wrap").style("display", "none").style("z-index", "1000");
   d3Lib.select(container).style("position", "relative");
   const dotGroup = svg.append("g").attr("class", "cloud-dots");
-  dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", 2.5).attr("fill", (d) => colorvariation(d3Lib, getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", "all").attr("cursor", "pointer").on("mouseenter", (event, d) => {
-    d3Lib.select(event.target).attr("r", 5).attr("opacity", 1);
+  dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", dotRadius).attr("fill", (d) => colorvariation(d3Lib, getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", "all").attr("cursor", "pointer").on("mouseenter", (event, d) => {
+    d3Lib.select(event.target).attr("r", dotRadius * 2).attr("opacity", 1);
     const text = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
     const label = d.label || "";
     const dateStr = d._date ? d._date.toLocaleDateString("ko-KR") : "";
@@ -251,7 +256,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const rect = container.getBoundingClientRect();
     tooltip.style("left", event.clientX - rect.left + 12 + "px").style("top", event.clientY - rect.top - 10 + "px");
   }).on("mouseleave", (event) => {
-    d3Lib.select(event.target).attr("r", 2.5).attr("opacity", 0.4);
+    d3Lib.select(event.target).attr("r", dotRadius).attr("opacity", 0.4);
     tooltip.style("display", "none");
   }).on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
   const allLabels = [];
@@ -263,7 +268,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       x: d3Lib.mean(items, (d) => d._sx),
       y: d3Lib.mean(items, (d) => d._sy)
     };
-    const fs = Math.max(13, Math.min(32, Math.sqrt(items.length) * 4));
+    const fs = Math.max(11, Math.min(32, Math.sqrt(items.length) * 4 * labelScale));
     allLabels.push({
       type: "label",
       key: label,
@@ -277,7 +282,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     });
   }
   const bigClusters = d3Lib.groups(data, (d) => d.bigLabel);
-  const pillFs = 16;
+  const pillFs = Math.max(12, 16 * labelScale);
   for (const [bigLabel, items] of bigClusters) {
     if (items.length < 3) continue;
     const baseColor = getColorByLabel(null, bigLabel);
