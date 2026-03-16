@@ -208,7 +208,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     getColorByLabel = (label, bigLabel) => labelColorMap.get(label) || bigLabelColorMap.get(bigLabel) || (colors || defaultColors)[bigLabelRank.get(bigLabel) || 0] || "#ccc";
   }
   const titleAreaH = title || caption ? 60 : 10;
-  const cloudHeight = height - (hasDate ? densityHeight + 30 : 0) - titleAreaH;
+  const cloudHeight = height - (hasDate ? densityHeight + 50 : 0) - titleAreaH;
   const xExtent = d3Lib.extent(data, (d) => d._px);
   const cloudPadding = 60;
   const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + cloudPadding, width - margin.right - cloudPadding]);
@@ -219,7 +219,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const labelScale = Math.max(0.6, Math.min(1.5, scaleFactor));
   const fontSize = 7;
   const floorY = cloudHeight - 10;
-  const ceilingY = margin.top + 20;
+  const ceilingY = margin.top + 40;
   const availableH = floorY - ceilingY;
   const totalItems = data.length;
   const layerTargetY = /* @__PURE__ */ new Map();
@@ -355,30 +355,34 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       bigLabel
     });
   }
-  for (let iter = 0; iter < 50; iter++) {
+  for (let iter = 0; iter < 100; iter++) {
     let moved = false;
     for (let i = 0; i < allLabels.length; i++) {
       for (let j = i + 1; j < allLabels.length; j++) {
         const a = allLabels[i], b = allLabels[j];
-        const overlapX = (a.w + b.w) / 2 - Math.abs(a.x - b.x);
-        const overlapY = (a.h + b.h) / 2 - Math.abs(a.y - b.y);
+        const overlapX = (a.w + b.w) / 2 + 4 - Math.abs(a.x - b.x);
+        const overlapY = (a.h + b.h) / 2 + 4 - Math.abs(a.y - b.y);
         if (overlapX > 0 && overlapY > 0) {
-          const pushY = overlapY / 2 + 2;
-          if (a.y < b.y) {
-            a.y -= pushY;
-            b.y += pushY;
-          } else {
-            a.y += pushY;
-            b.y -= pushY;
-          }
-          if (overlapX < overlapY) {
-            const pushX = overlapX / 2 + 1;
-            if (a.x < b.x) {
-              a.x -= pushX;
-              b.x += pushX;
+          const aWeight = a.type === "bigLabel" ? 0.2 : 0.5;
+          const bWeight = b.type === "bigLabel" ? 0.2 : 0.5;
+          const total = aWeight + bWeight;
+          if (overlapY <= overlapX) {
+            const push = overlapY + 2;
+            if (a.y <= b.y) {
+              a.y -= push * (bWeight / total);
+              b.y += push * (aWeight / total);
             } else {
-              a.x += pushX;
-              b.x -= pushX;
+              a.y += push * (bWeight / total);
+              b.y -= push * (aWeight / total);
+            }
+          } else {
+            const push = overlapX + 2;
+            if (a.x <= b.x) {
+              a.x -= push * (bWeight / total);
+              b.x += push * (aWeight / total);
+            } else {
+              a.x += push * (bWeight / total);
+              b.x -= push * (aWeight / total);
             }
           }
           moved = true;
@@ -403,7 +407,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     bigLabelGroup.append("text").attr("x", lb.x).attr("y", lb.y).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", lb.fs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(lb.key);
   }
   if (hasDate && validDateData.length > 0) {
-    const tlTop = cloudHeight + 15;
+    const tlTop = cloudHeight + 30;
     const tlBottom = cloudHeight + densityHeight - 5;
     const timeExtent = d3Lib.extent(validDateData, (d) => d._date);
     const timeScale = d3Lib.scaleTime().domain(timeExtent).range([margin.left, width - margin.right]);
@@ -413,7 +417,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const binned = bins(validDateData);
     const yTl = d3Lib.scaleLinear().domain([0, d3Lib.max(binned, (d) => d.length)]).range([tlBottom, tlTop]);
     const area = d3Lib.area().x((d) => timeScale(new Date((d.x0 + d.x1) / 2))).y0(tlBottom).y1((d) => yTl(d.length)).curve(d3Lib.curveBasis);
-    svg.append("path").attr("d", area(binned)).attr("fill", "#d0d0d0").attr("stroke", "#aaa").attr("stroke-width", 0.5);
+    svg.append("path").attr("d", area(binned)).attr("fill", "#d0d0d088").attr("stroke", "#aaa").attr("stroke-width", 0.5);
     svg.append("g").attr("transform", `translate(0, ${tlBottom})`).call(
       d3Lib.axisBottom(timeScale).ticks(d3Lib.timeMonth.every(daySpan > 365 ? 2 : 1)).tickFormat(d3Lib.timeFormat("%b\n%Y"))
     ).call((g) => g.select(".domain").attr("stroke", "#999")).call((g) => g.selectAll(".tick line").attr("stroke", "#ccc")).call((g) => g.selectAll(".tick text").attr("fill", "#666").attr("font-size", 11));
