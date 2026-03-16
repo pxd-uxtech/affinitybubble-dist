@@ -306,7 +306,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const tooltip = d3Lib.select(container).append("div").style("position", "absolute").style("pointer-events", "none").style("background", "#fff").style("color", "#333").style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)").style("border", "1px solid #e0e0e0").style("padding", "6px 10px").style("border-radius", "4px").style("font-size", "12px").style("max-width", "300px").style("line-height", "1.4").style("white-space", "pre-wrap").style("display", "none").style("z-index", "1000");
   d3Lib.select(container).style("position", "relative");
   const dotGroup = svg.append("g").attr("class", "cloud-dots");
-  dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", dotRadius).attr("fill", (d) => colorvariation(d3Lib, getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", "all").attr("cursor", "pointer").on("mouseenter", (event, d) => {
+  dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", dotRadius).attr("fill", (d) => colorvariation(d3Lib, d.color || getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", "all").attr("cursor", "pointer").on("mouseenter", (event, d) => {
     d3Lib.select(event.target).attr("r", dotRadius * 2).attr("opacity", 1);
     const text = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
     const label = d.label || "";
@@ -373,37 +373,40 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     lb._ox = lb.x;
     lb._oy = lb.y;
   });
-  function forceRectCollide() {
-    return () => {
-      for (let i = 0; i < allLabels.length; i++) {
-        for (let j = i + 1; j < allLabels.length; j++) {
-          const a = allLabels[i], b = allLabels[j];
-          const padX = 8, padY = 6;
-          const overlapX = (a.w + b.w) / 2 + padX - Math.abs(a.x - b.x);
-          const overlapY = (a.h + b.h) / 2 + padY - Math.abs(a.y - b.y);
-          if (overlapX > 0 && overlapY > 0) {
-            const aRatio = a.type === "bigLabel" ? 0.15 : 0.85;
-            const bRatio = b.type === "bigLabel" ? 0.15 : 0.85;
-            const total = aRatio + bRatio;
-            const strength = 0.8;
-            if (overlapY <= overlapX) {
-              const push = overlapY * strength;
-              const sign = a.y <= b.y ? 1 : -1;
-              a.vy -= sign * push * bRatio / total;
-              b.vy += sign * push * aRatio / total;
-            } else {
-              const push = overlapX * strength;
-              const sign = a.x <= b.x ? 1 : -1;
-              a.vx -= sign * push * bRatio / total;
-              b.vx += sign * push * aRatio / total;
-            }
+  for (let iter = 0; iter < 200; iter++) {
+    let anyOverlap = false;
+    for (let i = 0; i < allLabels.length; i++) {
+      for (let j = i + 1; j < allLabels.length; j++) {
+        const a = allLabels[i], b = allLabels[j];
+        const padX = 8, padY = 6;
+        const ox = (a.w + b.w) / 2 + padX - Math.abs(a.x - b.x);
+        const oy = (a.h + b.h) / 2 + padY - Math.abs(a.y - b.y);
+        if (ox > 0 && oy > 0) {
+          anyOverlap = true;
+          const aMove = a.type === "bigLabel" ? 0.1 : 0.9;
+          const bMove = b.type === "bigLabel" ? 0.1 : 0.9;
+          const total = aMove + bMove;
+          if (oy <= ox) {
+            const push = oy / 2 + 1;
+            const sign = a.y <= b.y ? 1 : -1;
+            a.y -= sign * push * bMove / total;
+            b.y += sign * push * aMove / total;
+          } else {
+            const push = ox / 2 + 1;
+            const sign = a.x <= b.x ? 1 : -1;
+            a.x -= sign * push * bMove / total;
+            b.x += sign * push * aMove / total;
           }
         }
       }
-    };
+    }
+    for (const lb of allLabels) {
+      const str = lb.type === "bigLabel" ? 0.05 : 0.02;
+      lb.x += (lb._ox - lb.x) * str;
+      lb.y += (lb._oy - lb.y) * str;
+    }
+    if (!anyOverlap) break;
   }
-  const labelSim = d3Lib.forceSimulation(allLabels).force("x", d3Lib.forceX((d) => d._ox).strength((d) => d.type === "bigLabel" ? 0.4 : 0.15)).force("y", d3Lib.forceY((d) => d._oy).strength((d) => d.type === "bigLabel" ? 0.4 : 0.15)).force("rectCollide", forceRectCollide()).alphaDecay(5e-3).stop();
-  for (let i = 0; i < 500; i++) labelSim.tick();
   for (const lb of allLabels) {
     if (lb.y - lb.h / 2 < ceilingY) lb.y = ceilingY + lb.h / 2;
     if (lb.y + lb.h / 2 > floorY) lb.y = floorY - lb.h / 2;
