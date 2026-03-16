@@ -95,6 +95,14 @@ function findDenseCenter(items, xKey, yKey) {
     y: nearby.reduce((s, d) => s + d[yKey], 0) / nearby.length
   };
 }
+function getHullBounds(points) {
+  return {
+    minX: Math.min(...points.map((p) => p[0])),
+    maxX: Math.max(...points.map((p) => p[0])),
+    minY: Math.min(...points.map((p) => p[1])),
+    maxY: Math.max(...points.map((p) => p[1]))
+  };
+}
 function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const {
     d3: d3Lib,
@@ -403,13 +411,33 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     if (items.length < 2) continue;
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
-    const center = {
-      x: d3Lib.mean(items, (d) => d._sx),
-      y: d3Lib.mean(items, (d) => d._sy)
-    };
     const fs = Math.max(11, Math.min(32, Math.sqrt(items.length) * 4 * labelScale));
     const measured = measureText(label, fs, "bold");
     const strokePad = Math.max(3, fs / 4) + 2;
+    let center;
+    let localBounds;
+    if (items.length < 3) {
+      const cx = d3Lib.mean(items, (d) => d._sx);
+      const cy = d3Lib.mean(items, (d) => d._sy);
+      const radius = (12 + items.length * 4) * scaleFactor;
+      center = { x: cx, y: cy };
+      localBounds = {
+        minX: cx - radius,
+        maxX: cx + radius,
+        minY: cy - radius,
+        maxY: cy + radius
+      };
+    } else {
+      const hull = d3Lib.polygonHull(items.map((d) => [d._sx, d._sy]));
+      const expandedHull = hull ? expandHull(hull, hullPad) : items.map((d) => [d._sx, d._sy]);
+      const denseCenter = findDenseCenter(items, "_sx", "_sy");
+      const hullBounds = getHullBounds(expandedHull);
+      center = {
+        x: Math.max(hullBounds.minX, Math.min(hullBounds.maxX, denseCenter.x)),
+        y: Math.max(hullBounds.minY, Math.min(hullBounds.maxY, denseCenter.y))
+      };
+      localBounds = hullBounds;
+    }
     allLabels.push({
       type: "label",
       key: label,
@@ -421,7 +449,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       h: measured.h + 4 + strokePad * 2,
       color: colorvariation(d3Lib, baseColor, 0, 0.2, -0.4),
       fs,
-      bigLabel
+      bigLabel,
+      localBounds
     });
   }
   const bigClusters = d3Lib.groups(data, (d) => d.bigLabel);
@@ -448,10 +477,26 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     });
   }
   const clampLabel = (lb) => {
-    const minX = margin.left + lb.w / 2;
-    const maxX = width - margin.right - lb.w / 2;
-    const minY = ceilingY + lb.h / 2;
-    const maxY = floorY - lb.h / 2;
+    let minX = margin.left + lb.w / 2;
+    let maxX = width - margin.right - lb.w / 2;
+    let minY = ceilingY + lb.h / 2;
+    let maxY = floorY - lb.h / 2;
+    if (lb.type === "label" && lb.localBounds) {
+      minX = Math.max(minX, lb.localBounds.minX + lb.w / 2);
+      maxX = Math.min(maxX, lb.localBounds.maxX - lb.w / 2);
+      minY = Math.max(minY, lb.localBounds.minY + lb.h / 2);
+      maxY = Math.min(maxY, lb.localBounds.maxY - lb.h / 2);
+    }
+    if (minX > maxX) {
+      const midX = (minX + maxX) / 2;
+      minX = midX;
+      maxX = midX;
+    }
+    if (minY > maxY) {
+      const midY = (minY + maxY) / 2;
+      minY = midY;
+      maxY = midY;
+    }
     lb.x = Math.max(minX, Math.min(maxX, lb.x));
     lb.y = Math.max(minY, Math.min(maxY, lb.y));
   };
@@ -492,7 +537,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       }
     }
     for (const lb of allLabels) {
-      const spring = lb.type === "bigLabel" ? 0.015 : 0.04;
+      const spring = lb.type === "bigLabel" ? 0.015 : 0.075;
       shiftLabel(lb, (lb.baseX - lb.x) * spring, (lb.baseY - lb.y) * spring);
     }
     if (totalOverlap < 1) break;
