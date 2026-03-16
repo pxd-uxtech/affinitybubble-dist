@@ -319,12 +319,11 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     d3Lib.select(event.target).attr("r", dotRadius).attr("opacity", 0.4);
     tooltip.style("display", "none");
   }).on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
-  const measureGroup = svg.append("g").attr("transform", "translate(-9999,-9999)");
+  const _measureCanvas = document.createElement("canvas").getContext("2d");
   const measureText = (text, fontSize2, fontWeight = "normal") => {
-    const tmp = measureGroup.append("text").attr("font-size", fontSize2).attr("font-weight", fontWeight).style("font-family", "inherit").text(text);
-    const bbox = tmp.node().getBBox();
-    tmp.remove();
-    return { w: bbox.width, h: bbox.height };
+    _measureCanvas.font = `${fontWeight} ${fontSize2}px 'KoddiUD OnGothic', sans-serif`;
+    const m = _measureCanvas.measureText(text);
+    return { w: m.width, h: fontSize2 * 1.2 };
   };
   const allLabels = [];
   for (const [label, items] of subClusters) {
@@ -370,7 +369,6 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       bigLabel
     });
   }
-  measureGroup.remove();
   allLabels.forEach((lb) => {
     lb._ox = lb.x;
     lb._oy = lb.y;
