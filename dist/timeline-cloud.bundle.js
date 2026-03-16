@@ -371,42 +371,48 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     });
   }
   measureGroup.remove();
-  for (let iter = 0; iter < 100; iter++) {
-    let moved = false;
-    for (let i = 0; i < allLabels.length; i++) {
-      for (let j = i + 1; j < allLabels.length; j++) {
-        const a = allLabels[i], b = allLabels[j];
-        const overlapX = (a.w + b.w) / 2 + 4 - Math.abs(a.x - b.x);
-        const overlapY = (a.h + b.h) / 2 + 4 - Math.abs(a.y - b.y);
-        if (overlapX > 0 && overlapY > 0) {
-          const aWeight = a.type === "bigLabel" ? 0.15 : 0.85;
-          const bWeight = b.type === "bigLabel" ? 0.15 : 0.85;
-          const total = aWeight + bWeight;
-          if (overlapY <= overlapX) {
-            const push = overlapY + 2;
-            if (a.y <= b.y) {
-              a.y -= push * (bWeight / total);
-              b.y += push * (aWeight / total);
+  allLabels.forEach((lb) => {
+    lb._ox = lb.x;
+    lb._oy = lb.y;
+  });
+  function forceRectCollide() {
+    return () => {
+      for (let i = 0; i < allLabels.length; i++) {
+        for (let j = i + 1; j < allLabels.length; j++) {
+          const a = allLabels[i], b = allLabels[j];
+          const padX = 6, padY = 4;
+          const overlapX = (a.w + b.w) / 2 + padX - Math.abs(a.x - b.x);
+          const overlapY = (a.h + b.h) / 2 + padY - Math.abs(a.y - b.y);
+          if (overlapX > 0 && overlapY > 0) {
+            const aRatio = a.type === "bigLabel" ? 0.15 : 0.85;
+            const bRatio = b.type === "bigLabel" ? 0.15 : 0.85;
+            const total = aRatio + bRatio;
+            if (overlapY <= overlapX) {
+              const push = overlapY * 0.6;
+              if (a.y <= b.y) {
+                a.y -= push * bRatio / total;
+                b.y += push * aRatio / total;
+              } else {
+                a.y += push * bRatio / total;
+                b.y -= push * aRatio / total;
+              }
             } else {
-              a.y += push * (bWeight / total);
-              b.y -= push * (aWeight / total);
-            }
-          } else {
-            const push = overlapX + 2;
-            if (a.x <= b.x) {
-              a.x -= push * (bWeight / total);
-              b.x += push * (aWeight / total);
-            } else {
-              a.x += push * (bWeight / total);
-              b.x -= push * (aWeight / total);
+              const push = overlapX * 0.6;
+              if (a.x <= b.x) {
+                a.x -= push * bRatio / total;
+                b.x += push * aRatio / total;
+              } else {
+                a.x += push * bRatio / total;
+                b.x -= push * aRatio / total;
+              }
             }
           }
-          moved = true;
         }
       }
-    }
-    if (!moved) break;
+    };
   }
+  const labelSim = d3Lib.forceSimulation(allLabels).force("x", d3Lib.forceX((d) => d._ox).strength((d) => d.type === "bigLabel" ? 0.5 : 0.2)).force("y", d3Lib.forceY((d) => d._oy).strength((d) => d.type === "bigLabel" ? 0.5 : 0.2)).force("rectCollide", forceRectCollide()).stop();
+  for (let i = 0; i < 300; i++) labelSim.tick();
   for (const lb of allLabels) {
     if (lb.y - lb.h / 2 < ceilingY) lb.y = ceilingY + lb.h / 2;
     if (lb.y + lb.h / 2 > floorY) lb.y = floorY - lb.h / 2;
