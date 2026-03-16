@@ -336,13 +336,16 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     };
     const fs = Math.max(11, Math.min(32, Math.sqrt(items.length) * 4 * labelScale));
     const measured = measureText(label, fs, "bold");
+    const strokePad = Math.max(3, fs / 4) + 2;
     allLabels.push({
       type: "label",
       key: label,
       x: center.x,
       y: center.y,
-      w: measured.w + fs * 0.5,
-      h: measured.h + 4,
+      baseX: center.x,
+      baseY: center.y,
+      w: measured.w + fs * 0.5 + strokePad * 2,
+      h: measured.h + 4 + strokePad * 2,
       color: colorvariation(d3Lib, baseColor, 0, 0.2, -0.4),
       fs,
       bigLabel
@@ -362,6 +365,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       key: bigLabel,
       x: denseCenter.x,
       y: denseCenter.y,
+      baseX: denseCenter.x,
+      baseY: denseCenter.y,
       w: pillW,
       h: pillH,
       color: colorvariation(d3Lib, baseColor, 0, 0.1, -0.15),
@@ -369,40 +374,55 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       bigLabel
     });
   }
-  for (let iter = 0; iter < 300; iter++) {
-    let anyOverlap = false;
+  const clampLabel = (lb) => {
+    const minX = margin.left + lb.w / 2;
+    const maxX = width - margin.right - lb.w / 2;
+    const minY = ceilingY + lb.h / 2;
+    const maxY = floorY - lb.h / 2;
+    lb.x = Math.max(minX, Math.min(maxX, lb.x));
+    lb.y = Math.max(minY, Math.min(maxY, lb.y));
+  };
+  const shiftLabel = (lb, dx, dy) => {
+    lb.x += dx;
+    lb.y += dy;
+    clampLabel(lb);
+  };
+  allLabels.forEach(clampLabel);
+  for (let iter = 0; iter < 400; iter++) {
+    let totalOverlap = 0;
     for (let i = 0; i < allLabels.length; i++) {
       for (let j = i + 1; j < allLabels.length; j++) {
-        const a = allLabels[i], b = allLabels[j];
-        const padX = 10, padY = 6;
-        const ox = (a.w + b.w) / 2 + padX - Math.abs(a.x - b.x);
-        const oy = (a.h + b.h) / 2 + padY - Math.abs(a.y - b.y);
-        if (ox > 0 && oy > 0) {
-          anyOverlap = true;
-          const aMove = a.type === "bigLabel" ? 0.1 : 0.9;
-          const bMove = b.type === "bigLabel" ? 0.1 : 0.9;
-          const total = aMove + bMove;
-          if (oy <= ox) {
-            const push = oy + 2;
-            const sign = a.y <= b.y ? 1 : -1;
-            a.y -= sign * push * bMove / total;
-            b.y += sign * push * aMove / total;
-          } else {
-            const push = ox + 2;
-            const sign = a.x <= b.x ? 1 : -1;
-            a.x -= sign * push * bMove / total;
-            b.x += sign * push * aMove / total;
-          }
+        const a = allLabels[i];
+        const b = allLabels[j];
+        const padX = a.type === "bigLabel" || b.type === "bigLabel" ? 16 : 12;
+        const padY = a.type === "bigLabel" || b.type === "bigLabel" ? 10 : 8;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const ox = (a.w + b.w) / 2 + padX - Math.abs(dx);
+        const oy = (a.h + b.h) / 2 + padY - Math.abs(dy);
+        if (ox <= 0 || oy <= 0) continue;
+        totalOverlap += ox * oy;
+        const aMove = a.type === "bigLabel" ? 0.2 : 1;
+        const bMove = b.type === "bigLabel" ? 0.2 : 1;
+        const totalMove = aMove + bMove;
+        let moveX = 0;
+        let moveY = 0;
+        if (ox < oy) {
+          const dir = dx === 0 ? b.baseX - a.baseX || j - i || 1 : dx;
+          moveX = (ox + 1.5) * Math.sign(dir);
+        } else {
+          const dir = dy === 0 ? b.baseY - a.baseY || j - i || 1 : dy;
+          moveY = (oy + 1.5) * Math.sign(dir);
         }
+        shiftLabel(a, -moveX * (bMove / totalMove), -moveY * (bMove / totalMove));
+        shiftLabel(b, moveX * (aMove / totalMove), moveY * (aMove / totalMove));
       }
     }
-    if (!anyOverlap) break;
-  }
-  for (const lb of allLabels) {
-    if (lb.y - lb.h / 2 < ceilingY) lb.y = ceilingY + lb.h / 2;
-    if (lb.y + lb.h / 2 > floorY) lb.y = floorY - lb.h / 2;
-    if (lb.x - lb.w / 2 < margin.left) lb.x = margin.left + lb.w / 2;
-    if (lb.x + lb.w / 2 > width - margin.right) lb.x = width - margin.right - lb.w / 2;
+    for (const lb of allLabels) {
+      const spring = lb.type === "bigLabel" ? 0.015 : 0.04;
+      shiftLabel(lb, (lb.baseX - lb.x) * spring, (lb.baseY - lb.y) * spring);
+    }
+    if (totalOverlap < 1) break;
   }
   const labelGroup = svg.append("g").attr("class", "cluster-labels");
   for (const lb of allLabels.filter((l) => l.type === "label")) {
