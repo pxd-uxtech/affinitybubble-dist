@@ -507,15 +507,20 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     });
   }
   const clampLabel = (lb) => {
-    let minX = margin.left + lb.w / 2;
-    let maxX = width - margin.right - lb.w / 2;
-    let minY = ceilingY + lb.h / 2;
-    let maxY = floorY - lb.h / 2;
+    let minX;
+    let maxX;
+    let minY;
+    let maxY;
     if (lb.type === "label" && lb.localBounds) {
-      minX = Math.max(minX, lb.localBounds.minX + lb.w / 2);
-      maxX = Math.min(maxX, lb.localBounds.maxX - lb.w / 2);
-      minY = Math.max(minY, lb.localBounds.minY + lb.h / 2);
-      maxY = Math.min(maxY, lb.localBounds.maxY - lb.h / 2);
+      minX = lb.localBounds.minX + lb.w / 2;
+      maxX = lb.localBounds.maxX - lb.w / 2;
+      minY = lb.localBounds.minY + lb.h / 2;
+      maxY = lb.localBounds.maxY - lb.h / 2;
+    } else {
+      minX = margin.left + lb.w / 2;
+      maxX = width - margin.right - lb.w / 2;
+      minY = ceilingY + lb.h / 2;
+      maxY = floorY - lb.h / 2;
     }
     if (minX > maxX) {
       const midX = (minX + maxX) / 2;
