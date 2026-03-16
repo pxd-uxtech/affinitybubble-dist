@@ -103,6 +103,36 @@ function getHullBounds(points) {
     maxY: Math.max(...points.map((p) => p[1]))
   };
 }
+function getPolygonCentroid(points) {
+  if (!points || points.length < 3) {
+    return {
+      x: points.reduce((sum, p) => sum + p[0], 0) / Math.max(points.length, 1),
+      y: points.reduce((sum, p) => sum + p[1], 0) / Math.max(points.length, 1)
+    };
+  }
+  let area = 0;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < points.length; i++) {
+    const [x1, y1] = points[i];
+    const [x2, y2] = points[(i + 1) % points.length];
+    const cross = x1 * y2 - x2 * y1;
+    area += cross;
+    cx += (x1 + x2) * cross;
+    cy += (y1 + y2) * cross;
+  }
+  if (Math.abs(area) < 1e-6) {
+    return {
+      x: points.reduce((sum, p) => sum + p[0], 0) / points.length,
+      y: points.reduce((sum, p) => sum + p[1], 0) / points.length
+    };
+  }
+  area *= 0.5;
+  return {
+    x: cx / (6 * area),
+    y: cy / (6 * area)
+  };
+}
 function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const {
     d3: d3Lib,
@@ -430,11 +460,11 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     } else {
       const hull = d3Lib.polygonHull(items.map((d) => [d._sx, d._sy]));
       const expandedHull = hull ? expandHull(hull, hullPad) : items.map((d) => [d._sx, d._sy]);
-      const denseCenter = findDenseCenter(items, "_sx", "_sy");
+      const hullCenter = getPolygonCentroid(expandedHull);
       const hullBounds = getHullBounds(expandedHull);
       center = {
-        x: Math.max(hullBounds.minX, Math.min(hullBounds.maxX, denseCenter.x)),
-        y: Math.max(hullBounds.minY, Math.min(hullBounds.maxY, denseCenter.y))
+        x: Math.max(hullBounds.minX, Math.min(hullBounds.maxX, hullCenter.x)),
+        y: Math.max(hullBounds.minY, Math.min(hullBounds.maxY, hullCenter.y))
       };
       localBounds = hullBounds;
     }
@@ -505,6 +535,13 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     lb.y += dy;
     clampLabel(lb);
   };
+  const hasOverlap = (a, b) => {
+    const padX = a.type === "bigLabel" || b.type === "bigLabel" ? 16 : 12;
+    const padY = a.type === "bigLabel" || b.type === "bigLabel" ? 10 : 8;
+    const ox = (a.w + b.w) / 2 + padX - Math.abs(a.x - b.x);
+    const oy = (a.h + b.h) / 2 + padY - Math.abs(a.y - b.y);
+    return ox > 0 && oy > 0;
+  };
   allLabels.forEach(clampLabel);
   for (let iter = 0; iter < 400; iter++) {
     let totalOverlap = 0;
@@ -541,6 +578,14 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       shiftLabel(lb, (lb.baseX - lb.x) * spring, (lb.baseY - lb.y) * spring);
     }
     if (totalOverlap < 1) break;
+  }
+  for (const lb of allLabels.filter((l) => l.type === "label")) {
+    const overlaps = allLabels.some((other) => other !== lb && hasOverlap(lb, other));
+    if (!overlaps) {
+      lb.x = lb.baseX;
+      lb.y = lb.baseY;
+      clampLabel(lb);
+    }
   }
   const labelGroup = svg.append("g").attr("class", "cluster-labels");
   for (const lb of allLabels.filter((l) => l.type === "label")) {
