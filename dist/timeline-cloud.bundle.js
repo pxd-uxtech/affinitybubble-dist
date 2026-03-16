@@ -122,6 +122,14 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     // 클러스터 응집력 (0~1, 0이면 끔)
     clusterXRatio = 0.3,
     // x방향 클러스터 힘 비율 (0~1)
+    dateIntraClusterStrength = 0.35,
+    // 클러스터 내부 상대 날짜 반영 강도 (0~1)
+    dateClusterCompression = 0.45,
+    // 클러스터 간 날짜 간격 압축 강도 (0~1)
+    dateClusterOrderStrength = 0.7,
+    // 클러스터 시간 순서 보존 강도 (0~1)
+    dateXForceStrength = 0.45,
+    // x축 목표 위치로 끌어당기는 힘 (0~1)
     onClick
   } = options;
   if (!d3Lib) throw new Error("d3 is required");
@@ -228,6 +236,10 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const floorY = cloudHeight - 10;
   const ceilingY = margin.top + 40;
   const availableH = floorY - ceilingY;
+  const safeDateIntraClusterStrength = Math.max(0, Math.min(1, dateIntraClusterStrength));
+  const safeDateClusterCompression = Math.max(0, Math.min(1, dateClusterCompression));
+  const safeDateClusterOrderStrength = Math.max(0, Math.min(1, dateClusterOrderStrength));
+  const safeDateXForceStrength = Math.max(0, Math.min(1, dateXForceStrength));
   const totalItems = data.length;
   const layerTargetY = /* @__PURE__ */ new Map();
   let cumRatio = 0;
@@ -249,8 +261,47 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       d._targetY = layer.center - layer.halfH * 0.7 + t * layer.halfH * 1.4;
     }
   }
+  const bigLabelItemsMap = new Map(groupedByBig);
+  const sortedBigLabelsByDate = [];
+  if (hasDate) {
+    const minClusterGap = 18 + dotRadius * 5;
+    const clusterDateStats = groupedByBig.map(([bigLabel, items]) => {
+      const datedItems = items.filter((d) => d._date && !isNaN(d._date.getTime()));
+      if (!datedItems.length) return null;
+      const sortedTimes = datedItems.map((d) => d._date.getTime()).sort((a, b) => a - b);
+      const medianTime = sortedTimes[Math.floor(sortedTimes.length / 2)];
+      const rawX = xScale(new Date(medianTime));
+      return {
+        bigLabel,
+        items,
+        datedItems,
+        medianTime,
+        rawX
+      };
+    }).filter(Boolean).sort((a, b) => a.medianTime - b.medianTime);
+    const rankScale = d3Lib.scalePoint().domain(clusterDateStats.map((d) => d.bigLabel)).range(xRange).padding(0.6);
+    clusterDateStats.forEach((cluster) => {
+      const compressedX = rankScale(cluster.bigLabel);
+      const centerX = cluster.rawX * (1 - safeDateClusterCompression) + compressedX * safeDateClusterCompression;
+      cluster.centerX = centerX;
+      const datedOffsets = cluster.datedItems.map((d) => xScale(d._date) - cluster.rawX);
+      const maxAbsOffset = d3Lib.max(datedOffsets, (v) => Math.abs(v)) || 0;
+      const allowedHalfSpan = Math.max(minClusterGap, Math.min(90, 18 + Math.sqrt(cluster.items.length) * 12));
+      const offsetScale = maxAbsOffset > 0 ? allowedHalfSpan / maxAbsOffset : 0;
+      cluster.items.forEach((d) => {
+        if (!d._date || isNaN(d._date.getTime())) {
+          d._targetX = centerX;
+          return;
+        }
+        const rawOffset = xScale(d._date) - cluster.rawX;
+        const localOffset = rawOffset * offsetScale * safeDateIntraClusterStrength;
+        d._targetX = centerX + localOffset;
+      });
+    });
+    sortedBigLabelsByDate.push(...clusterDateStats.map((d) => d.bigLabel));
+  }
   data.forEach((d) => {
-    d._targetX = hasDate && d._date ? xScale(d._date) : xScale(d._px);
+    if (d._targetX == null) d._targetX = hasDate && d._date ? xScale(d._date) : xScale(d._px);
     d._radius = Math.max(5, d._text.length * fontSize * 0.28);
   });
   const labelGroups = d3Lib.groups(data, (d) => d.label);
@@ -267,7 +318,28 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       }
     };
   }
-  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.3)).force("cluster", clusterStrength > 0 ? forceCluster(clusterStrength) : null).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
+  function forceClusterDateOrder(strength) {
+    const orderedGroups = sortedBigLabelsByDate.map((bigLabel) => ({ bigLabel, items: bigLabelItemsMap.get(bigLabel) || [] })).filter((group) => group.items.length > 0);
+    if (orderedGroups.length < 2) return null;
+    return () => {
+      for (let i = 0; i < orderedGroups.length - 1; i++) {
+        const left = orderedGroups[i];
+        const right = orderedGroups[i + 1];
+        const leftCenter = d3Lib.mean(left.items, (d) => d.x);
+        const rightCenter = d3Lib.mean(right.items, (d) => d.x);
+        const minGap = Math.max(
+          20 + dotRadius * 4,
+          (Math.sqrt(left.items.length) + Math.sqrt(right.items.length)) * 3
+        );
+        const gap = rightCenter - leftCenter;
+        if (gap >= minGap) continue;
+        const push = (minGap - gap) * strength * 0.08;
+        for (const d of left.items) d.vx -= push / Math.max(left.items.length, 1);
+        for (const d of right.items) d.vx += push / Math.max(right.items.length, 1);
+      }
+    };
+  }
+  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(hasDate ? safeDateXForceStrength : 0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.3)).force("cluster", clusterStrength > 0 ? forceCluster(clusterStrength) : null).force("date-order", hasDate && safeDateClusterOrderStrength > 0 ? forceClusterDateOrder(safeDateClusterOrderStrength) : null).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
     for (const d of data) {
       if (d.y > floorY) d.y = floorY;
       if (d.y < ceilingY) d.y = ceilingY;
