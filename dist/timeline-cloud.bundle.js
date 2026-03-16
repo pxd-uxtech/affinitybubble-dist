@@ -209,9 +209,16 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   }
   const titleAreaH = title || caption ? 60 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 50 : 0) - titleAreaH;
-  const xExtent = d3Lib.extent(data, (d) => d._px);
   const cloudPadding = 60;
-  const xScale = d3Lib.scaleLinear().domain(xExtent).range([margin.left + cloudPadding, width - margin.right - cloudPadding]);
+  const xRange = [margin.left + cloudPadding, width - margin.right - cloudPadding];
+  let xScale;
+  if (hasDate) {
+    const timeExtentForX = d3Lib.extent(validDateData, (d) => d._date);
+    xScale = d3Lib.scaleTime().domain(timeExtentForX).range(xRange);
+  } else {
+    const xExtent = d3Lib.extent(data, (d) => d._px);
+    xScale = d3Lib.scaleLinear().domain(xExtent).range(xRange);
+  }
   const n = data.length;
   const scaleFactor = Math.sqrt(500 / Math.max(n, 1));
   const dotRadius = Math.max(1.5, Math.min(4, 2.5 * scaleFactor));
@@ -243,7 +250,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     }
   }
   data.forEach((d) => {
-    d._targetX = xScale(d._px);
+    d._targetX = hasDate && d._date ? xScale(d._date) : xScale(d._px);
     d._radius = Math.max(5, d._text.length * fontSize * 0.28);
   });
   const labelGroups = d3Lib.groups(data, (d) => d.label);
@@ -312,6 +319,12 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     d3Lib.select(event.target).attr("r", dotRadius).attr("opacity", 0.4);
     tooltip.style("display", "none");
   }).on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
+  const measureText = (text, fontSize2, fontWeight = "normal") => {
+    const tmp = svg.append("text").attr("font-size", fontSize2).attr("font-weight", fontWeight).attr("visibility", "hidden").text(text);
+    const bbox = tmp.node().getBBox();
+    tmp.remove();
+    return { w: bbox.width, h: bbox.height };
+  };
   const allLabels = [];
   for (const [label, items] of subClusters) {
     if (items.length < 2) continue;
@@ -322,13 +335,14 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       y: d3Lib.mean(items, (d) => d._sy)
     };
     const fs = Math.max(11, Math.min(32, Math.sqrt(items.length) * 4 * labelScale));
+    const measured = measureText(label, fs, "bold");
     allLabels.push({
       type: "label",
       key: label,
       x: center.x,
       y: center.y,
-      w: label.length * fs * 0.6,
-      h: fs * 1.2,
+      w: measured.w + fs * 0.5,
+      h: measured.h + 4,
       color: colorvariation(d3Lib, baseColor, 0, 0.2, -0.4),
       fs,
       bigLabel
@@ -340,8 +354,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     if (items.length < 3) continue;
     const baseColor = getColorByLabel(null, bigLabel);
     const denseCenter = findDenseCenter(items, "_sx", "_sy");
-    const textW = [...bigLabel].reduce((sum, ch) => sum + (ch.charCodeAt(0) > 255 ? 0.9 : 0.55), 0) * pillFs;
-    const pillW = textW + pillFs * 4;
+    const measured = measureText(bigLabel, pillFs, "bold");
+    const pillW = measured.w + pillFs * 4;
     const pillH = pillFs + 16;
     allLabels.push({
       type: "bigLabel",
@@ -363,8 +377,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
         const overlapX = (a.w + b.w) / 2 + 4 - Math.abs(a.x - b.x);
         const overlapY = (a.h + b.h) / 2 + 4 - Math.abs(a.y - b.y);
         if (overlapX > 0 && overlapY > 0) {
-          const aWeight = a.type === "bigLabel" ? 0.2 : 0.5;
-          const bWeight = b.type === "bigLabel" ? 0.2 : 0.5;
+          const aWeight = a.type === "bigLabel" ? 0.15 : 0.85;
+          const bWeight = b.type === "bigLabel" ? 0.15 : 0.85;
           const total = aWeight + bWeight;
           if (overlapY <= overlapX) {
             const push = overlapY + 2;
