@@ -261,27 +261,28 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       d._targetY = layer.center - layer.halfH * 0.7 + t * layer.halfH * 1.4;
     }
   }
-  const bigLabelItemsMap = new Map(groupedByBig);
-  const sortedBigLabelsByDate = [];
+  const groupedByLabel = d3Lib.groups(data, (d) => d.label);
+  const labelItemsMap = new Map(groupedByLabel);
+  const sortedLabelsByDate = [];
   if (hasDate) {
     const minClusterGap = 18 + dotRadius * 5;
-    const clusterDateStats = groupedByBig.map(([bigLabel, items]) => {
+    const clusterDateStats = groupedByLabel.map(([label, items]) => {
       const datedItems = items.filter((d) => d._date && !isNaN(d._date.getTime()));
       if (!datedItems.length) return null;
       const sortedTimes = datedItems.map((d) => d._date.getTime()).sort((a, b) => a - b);
       const medianTime = sortedTimes[Math.floor(sortedTimes.length / 2)];
       const rawX = xScale(new Date(medianTime));
       return {
-        bigLabel,
+        label,
         items,
         datedItems,
         medianTime,
         rawX
       };
     }).filter(Boolean).sort((a, b) => a.medianTime - b.medianTime);
-    const rankScale = d3Lib.scalePoint().domain(clusterDateStats.map((d) => d.bigLabel)).range(xRange).padding(0.6);
+    const rankScale = d3Lib.scalePoint().domain(clusterDateStats.map((d) => d.label)).range(xRange).padding(0.6);
     clusterDateStats.forEach((cluster) => {
-      const compressedX = rankScale(cluster.bigLabel);
+      const compressedX = rankScale(cluster.label);
       const centerX = cluster.rawX * (1 - safeDateClusterCompression) + compressedX * safeDateClusterCompression;
       cluster.centerX = centerX;
       const datedOffsets = cluster.datedItems.map((d) => xScale(d._date) - cluster.rawX);
@@ -298,7 +299,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
         d._targetX = centerX + localOffset;
       });
     });
-    sortedBigLabelsByDate.push(...clusterDateStats.map((d) => d.bigLabel));
+    sortedLabelsByDate.push(...clusterDateStats.map((d) => d.label));
   }
   data.forEach((d) => {
     if (d._targetX == null) d._targetX = hasDate && d._date ? xScale(d._date) : xScale(d._px);
@@ -319,7 +320,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     };
   }
   function forceClusterDateOrder(strength) {
-    const orderedGroups = sortedBigLabelsByDate.map((bigLabel) => ({ bigLabel, items: bigLabelItemsMap.get(bigLabel) || [] })).filter((group) => group.items.length > 0);
+    const orderedGroups = sortedLabelsByDate.map((label) => ({ label, items: labelItemsMap.get(label) || [] })).filter((group) => group.items.length > 0);
     if (orderedGroups.length < 2) return null;
     return () => {
       for (let i = 0; i < orderedGroups.length - 1; i++) {
