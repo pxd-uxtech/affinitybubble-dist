@@ -369,16 +369,12 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       bigLabel
     });
   }
-  allLabels.forEach((lb) => {
-    lb._ox = lb.x;
-    lb._oy = lb.y;
-  });
-  for (let iter = 0; iter < 200; iter++) {
+  for (let iter = 0; iter < 300; iter++) {
     let anyOverlap = false;
     for (let i = 0; i < allLabels.length; i++) {
       for (let j = i + 1; j < allLabels.length; j++) {
         const a = allLabels[i], b = allLabels[j];
-        const padX = 8, padY = 6;
+        const padX = 10, padY = 6;
         const ox = (a.w + b.w) / 2 + padX - Math.abs(a.x - b.x);
         const oy = (a.h + b.h) / 2 + padY - Math.abs(a.y - b.y);
         if (ox > 0 && oy > 0) {
@@ -387,23 +383,18 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
           const bMove = b.type === "bigLabel" ? 0.1 : 0.9;
           const total = aMove + bMove;
           if (oy <= ox) {
-            const push = oy / 2 + 1;
+            const push = oy + 2;
             const sign = a.y <= b.y ? 1 : -1;
             a.y -= sign * push * bMove / total;
             b.y += sign * push * aMove / total;
           } else {
-            const push = ox / 2 + 1;
+            const push = ox + 2;
             const sign = a.x <= b.x ? 1 : -1;
             a.x -= sign * push * bMove / total;
             b.x += sign * push * aMove / total;
           }
         }
       }
-    }
-    for (const lb of allLabels) {
-      const str = lb.type === "bigLabel" ? 0.05 : 0.02;
-      lb.x += (lb._ox - lb.x) * str;
-      lb.y += (lb._oy - lb.y) * str;
     }
     if (!anyOverlap) break;
   }
