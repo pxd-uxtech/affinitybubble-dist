@@ -179,7 +179,8 @@ function createFileInputUIv3(Papa, options = {}) {
     showPreview = true,
     moment = null,
     guideContainerId = null,  // 외부 가이드 컨테이너 DOM ID (사용자가 직접 구현)
-    user_subscript = "free"   // 사용자 구독 유형
+    user_subscript = "free",  // 사용자 구독 유형
+    isEduUser = false         // EDU 사용자 여부
   } = options;
 
   // 외부 가이드 컨테이너 참조
@@ -786,6 +787,39 @@ function createFileInputUIv3(Papa, options = {}) {
     .file-input-v3 .preview-edit-btn:hover {
       background: #f5f5f5;
     }
+    .file-input-v3 .preview-copy-btn {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: #666;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .file-input-v3 .preview-copy-btn:hover {
+      background: #f5f5f5;
+    }
+    .file-input-v3 .copy-toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .file-input-v3 .copy-toast.show {
+      opacity: 1;
+    }
     .file-input-v3 .preview-delete-btn {
       background: none;
       border: 1px solid #ddd;
@@ -913,7 +947,8 @@ function createFileInputUIv3(Papa, options = {}) {
     <div class="preview-section">
       <div class="preview-header">
         <span class="preview-title">입력한 데이터</span>
-        <button class="preview-edit-btn">수정 ✎</button>
+        <button class="preview-edit-btn">수정</button>
+        <button class="preview-copy-btn">복사</button>
         <span style="flex:1;"></span>
         <button class="preview-delete-btn" title="삭제">×</button>
       </div>
@@ -938,6 +973,7 @@ function createFileInputUIv3(Papa, options = {}) {
   const previewTable = container.querySelector(".preview-table");
   const dataCountDiv = container.querySelector(".data-count");
   const editBtn = container.querySelector(".preview-edit-btn");
+  const copyBtn = container.querySelector(".preview-copy-btn");
   const deleteBtn = container.querySelector(".preview-delete-btn");
   const mainTitle = container.querySelector(".main-title");
 
@@ -1686,11 +1722,13 @@ function createFileInputUIv3(Papa, options = {}) {
 
     let noticeContent = '';
     if (user_subscript.match(/demo/i) && isOver) {
-      noticeContent = `<span class="bodyTitle">${activeCount}개중 처음 ${maxSize}개의 데이터를 분석합니다.</span><br>
-<span class="bodytext">무료 회원가입하면 더 많은 데이터를 분석할 수 있습니다.</span>`;
+      noticeContent = `<span class="bodyTitle">데모용으로 한 번에 ${maxSize}개까지만 분석합니다.</span><br>
+<span class="bodytext">회원 가입 시 100개까지 분석 및 모든 기능 사용가능하며,<br> 유료 구독 시 1,000개~3,000개까지 가능합니다.</span>`;
+    } else if (user_subscript.match(/free|basic/i) && isOver && isEduUser) {
+      noticeContent = `EDU 사용자는 ${activeCount}개중 처음 ${maxSize}개까지 분석할 수 있습니다.`;
     } else if (user_subscript.match(/free|basic/i) && isOver) {
-      noticeContent = `<span class="bodyTitle">${activeCount}개중 처음 ${maxSize}개의 데이터를 분석합니다.</span><br>
-<span class="bodytext">업그레이드하면 더 많은 데이터를 분석할 수 있습니다.</span>`;
+      noticeContent = `${activeCount}개중 처음 ${maxSize}개까지 분석합니다.<br>
+<span class="bodytext">유료 구독시 사용 시 1,000개까지 가능합니다.</span>`;
     } else if (isOver) {
       noticeContent = `${activeCount}개중 ${maxSize}개를 무작위 표본 추출합니다. 전체를 대표하는 내용이라고 볼 수 있습니다.`;
     }
@@ -1702,7 +1740,7 @@ function createFileInputUIv3(Papa, options = {}) {
     let actionButton = '';
     if (user_subscript.match(/demo/i) && isOver) {
       actionButton = `<a href="/welcome" target="_blank">무료 회원 가입 ↗</a>`;
-    } else if (user_subscript.match(/free|basic/i) && isOver) {
+    } else if (user_subscript.match(/free|basic/i) && isOver && !isEduUser) {
       actionButton = `<a href="/plan" target="_blank">업그레이드하기 ↗</a>`;
     }
 
@@ -1738,6 +1776,24 @@ function createFileInputUIv3(Papa, options = {}) {
     const sizeCandidates = findSizeKeyCandidates(rawCols, rawText);
     const dateCandidates = findDateKeyCandidates(moment, rawCols, rawText);
     showPopup(sizeCandidates, dateCandidates, true);
+  });
+
+  // 복사 버튼
+  copyBtn.addEventListener("click", async () => {
+    if (!inputContent) return;
+    try {
+      await navigator.clipboard.writeText(inputContent);
+      const toast = document.createElement("div");
+      toast.className = "copy-toast show";
+      toast.textContent = "클립보드에 복사되었습니다";
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+      }, 1500);
+    } catch (e) {
+      console.error("Copy failed:", e);
+    }
   });
 
   // value 프로퍼티 정의
