@@ -319,8 +319,9 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     d3Lib.select(event.target).attr("r", dotRadius).attr("opacity", 0.4);
     tooltip.style("display", "none");
   }).on("click", onClick ? (event, d) => onClick({ data: d, event }) : null);
+  const measureGroup = svg.append("g").attr("transform", "translate(-9999,-9999)");
   const measureText = (text, fontSize2, fontWeight = "normal") => {
-    const tmp = svg.append("text").attr("font-size", fontSize2).attr("font-weight", fontWeight).attr("visibility", "hidden").text(text);
+    const tmp = measureGroup.append("text").attr("font-size", fontSize2).attr("font-weight", fontWeight).style("font-family", "inherit").text(text);
     const bbox = tmp.node().getBBox();
     tmp.remove();
     return { w: bbox.width, h: bbox.height };
@@ -369,6 +370,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       bigLabel
     });
   }
+  measureGroup.remove();
   for (let iter = 0; iter < 100; iter++) {
     let moved = false;
     for (let i = 0; i < allLabels.length; i++) {
