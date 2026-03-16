@@ -253,7 +253,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   } else {
     getColorByLabel = (label, bigLabel) => labelColorMap.get(label) || bigLabelColorMap.get(bigLabel) || (colors || defaultColors)[bigLabelRank.get(bigLabel) || 0] || "#ccc";
   }
-  const titleAreaH = title || caption ? 60 : 10;
+  const titleAreaH = title && caption ? 42 : title || caption ? 26 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 50 : 0) - titleAreaH;
   const cloudPadding = 60;
   const xRange = [margin.left + cloudPadding, width - margin.right - cloudPadding];
@@ -618,12 +618,12 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     ).call((g) => g.select(".domain").attr("stroke", "#999")).call((g) => g.selectAll(".tick line").attr("stroke", "#ccc")).call((g) => g.selectAll(".tick text").attr("fill", "#666").attr("font-size", 11));
   }
   if (title || caption) {
-    const titleY = height - titleAreaH + 15;
+    const titleY = height - titleAreaH + 14;
     if (title) {
       svg.append("text").attr("x", width / 2).attr("y", titleY).attr("text-anchor", "middle").attr("font-size", 16).attr("font-weight", "bold").attr("fill", "#333").text(title);
     }
     if (caption) {
-      svg.append("text").attr("x", width / 2).attr("y", titleY + 22).attr("text-anchor", "middle").attr("font-size", 13).attr("fill", "#666").text(caption);
+      svg.append("text").attr("x", width / 2).attr("y", titleY + (title ? 18 : 0)).attr("text-anchor", "middle").attr("font-size", 13).attr("fill", "#666").text(caption);
     }
   }
   container.appendChild(svg.node());
