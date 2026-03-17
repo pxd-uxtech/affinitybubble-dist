@@ -208,22 +208,23 @@ function getReportTypeOptions() {
 }
 
 // src/insight/insightRenderer.js
+var _marked = null;
+async function loadMarked() {
+  if (_marked) return _marked;
+  try {
+    const mod = await import("https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js");
+    _marked = mod.marked;
+    return _marked;
+  } catch (e) {
+    console.warn("marked \uB85C\uB4DC \uC2E4\uD328, fallback \uC0AC\uC6A9:", e);
+    return null;
+  }
+}
+var _markedReady = loadMarked();
 function simpleMarkdownParse(text) {
   if (!text) return "";
-  const blocks = text.split(/\n\n+/);
-  return blocks.map((block) => {
-    const trimmed = block.trim();
-    if (!trimmed) return "";
-    const inline = (s) => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>");
-    if (/^#{1,3} /.test(trimmed)) {
-      return inline(trimmed).replace(/^### (.+)$/gm, "<h3>$1</h3>").replace(/^## (.+)$/gm, "<h2>$1</h2>").replace(/^# (.+)$/gm, "<h1>$1</h1>");
-    }
-    if (/^- /.test(trimmed)) {
-      const items = inline(trimmed).replace(/^- (.+)$/gm, "<li>$1</li>");
-      return "<ul>" + items.replace(/\n/g, "") + "</ul>";
-    }
-    return "<p>" + inline(trimmed).replace(/\n/g, "<br>") + "</p>";
-  }).join("\n");
+  if (_marked) return _marked(text);
+  return text.replace(/^### (.+)$/gm, "<h3>$1</h3>").replace(/^## (.+)$/gm, "<h2>$1</h2>").replace(/^# (.+)$/gm, "<h1>$1</h1>").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>").replace(/^- (.+)$/gm, "<li>$1</li>").replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>");
 }
 async function copyToClipboard(text) {
   try {
