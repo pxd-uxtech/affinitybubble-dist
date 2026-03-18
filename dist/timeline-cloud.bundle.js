@@ -258,6 +258,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   }
   const titleAreaH = title && caption ? 42 : title || caption ? 26 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 50 : 0) - titleAreaH;
+  const n = data.length;
   const areaRatio = Math.min(0.67, 0.5 + 0.17 * Math.min(1, n / 500));
   const cloudPadding = 60;
   const totalW = width - margin.left - margin.right - cloudPadding * 2;
@@ -271,7 +272,6 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const xExtent = d3Lib.extent(data, (d) => d._px);
     xScale = d3Lib.scaleLinear().domain(xExtent).range(xRange);
   }
-  const n = data.length;
   const scaleFactor = Math.sqrt(500 / Math.max(n, 1));
   const dotRadius = Math.max(1.5, Math.min(4, 2.5 * scaleFactor));
   const hullPad = Math.max(8, hullPadding * scaleFactor);
