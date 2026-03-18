@@ -61,6 +61,53 @@ function detectFormat(Papa, input) {
   return "text";
 }
 
+/**
+ * TSV에서 quoted 셀 내 줄바꿈을 공백으로 병합.
+ * 탭 뒤 또는 행 시작에 "로 시작하는 필드를 추적하여
+ * 닫는 " 전까지의 개행을 공백으로 치환한다.
+ * 이중따옴표는 건드리지 않으므로 quoteChar 비활성화와 호환.
+ */
+function _mergeTsvQuotedNewlines(text) {
+  const lines = text.split("\n");
+  const headerTabCount = (lines[0]?.match(/\t/g) || []).length;
+  if (headerTabCount === 0) return text;
+
+  const merged = [];
+  let accumulator = null;
+
+  for (const line of lines) {
+    if (accumulator !== null) {
+      // 이전 행에서 시작된 quoted 필드 계속
+      accumulator += " " + line;
+      // 현재까지 누적된 행에서 따옴표 쌍이 완성되었는지 확인
+      const tabCount = (accumulator.match(/\t/g) || []).length;
+      if (tabCount >= headerTabCount) {
+        merged.push(accumulator);
+        accumulator = null;
+      }
+    } else {
+      const tabCount = (line.match(/\t/g) || []).length;
+      if (tabCount < headerTabCount) {
+        // 탭 수가 부족 → 이전 행의 quoted 셀에서 줄바꿈된 것
+        if (merged.length > 0) {
+          accumulator = merged.pop() + " " + line;
+          const newTabCount = (accumulator.match(/\t/g) || []).length;
+          if (newTabCount >= headerTabCount) {
+            merged.push(accumulator);
+            accumulator = null;
+          }
+        } else {
+          merged.push(line);
+        }
+      } else {
+        merged.push(line);
+      }
+    }
+  }
+  if (accumulator !== null) merged.push(accumulator);
+  return merged.join("\n");
+}
+
 function guessTextKey(rawCols, rawText) {
   if (rawCols?.includes("text")) return "text";
   if (rawCols?.includes("텍스트")) return "텍스트";
@@ -1130,16 +1177,20 @@ function createFileInputUIv3(Papa, options = {}) {
       delimiter: format === "tsv" ? "\t" : ",",
       transformHeader: (h) => h.trim().replace(/^["']|["']$/g, '')
     };
-    // TSV는 quoting 비활성화 (셀 내 쌍따옴표가 quoted field로 오인되는 것 방지)
+    // TSV는 quoting 비활성화 (셀 내 이중따옴표 오인 방지)
     if (format === "csv") {
       parseOptions.quoteChar = '"';
     } else if (format === "tsv") {
       parseOptions.quoteChar = "\x00";
     }
-    const parsed = Papa.parse(
-      format === "text" ? "text\n" + inputContent : inputContent,
-      parseOptions
-    );
+
+    // TSV: 셀 내 줄바꿈을 탭 수 기반으로 전처리 병합
+    let contentToParse = format === "text" ? "text\n" + inputContent : inputContent;
+    if (format === "tsv") {
+      contentToParse = _mergeTsvQuotedNewlines(inputContent);
+    }
+
+    const parsed = Papa.parse(contentToParse, parseOptions);
 
     rawText = parsed.data.filter(d => Object.values(d).some(v => v && String(v).trim()));
 
