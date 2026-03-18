@@ -168,6 +168,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     // 클러스터 시간 순서 보존 강도 (0~1)
     dateXForceStrength = 0.45,
     // x축 목표 위치로 끌어당기는 힘 (0~1)
+    useTimeline,
+    // true/false로 타임라인 모드 명시 (undefined면 자동 감지)
     onClick
   } = options;
   if (!d3Lib) throw new Error("d3 is required");
@@ -230,7 +232,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       _idx: i
     };
   });
-  const hasDate = dateKey && data.some((d) => d._date && !isNaN(d._date.getTime()));
+  const autoHasDate = dateKey && data.some((d) => d._date && !isNaN(d._date.getTime()));
+  const hasDate = useTimeline !== void 0 ? useTimeline : autoHasDate;
   const validDateData = hasDate ? data.filter((d) => d._date && !isNaN(d._date.getTime())) : [];
   const bigGroups = d3Lib.groups(data, (d) => d.bigLabel).map(([key, items]) => ({ key, count: items.length })).sort((a, b) => b.count - a.count);
   const bigLabelRank = new Map(bigGroups.map((d, i) => [d.key, i]));
@@ -255,8 +258,11 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   }
   const titleAreaH = title && caption ? 42 : title || caption ? 26 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 50 : 0) - titleAreaH;
+  const areaRatio = Math.min(0.67, 0.5 + 0.17 * Math.min(1, n / 500));
   const cloudPadding = 60;
-  const xRange = [margin.left + cloudPadding, width - margin.right - cloudPadding];
+  const totalW = width - margin.left - margin.right - cloudPadding * 2;
+  const sideInset = (1 - areaRatio) * totalW / 2;
+  const xRange = [margin.left + cloudPadding + sideInset, width - margin.right - cloudPadding - sideInset];
   let xScale;
   if (hasDate) {
     const timeExtentForX = d3Lib.extent(validDateData, (d) => d._date);
@@ -271,33 +277,45 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const hullPad = Math.max(8, hullPadding * scaleFactor);
   const labelScale = Math.max(0.6, Math.min(1.5, scaleFactor));
   const fontSize = 7;
-  const floorY = cloudHeight - 10;
-  const ceilingY = margin.top + 40;
+  const rawFloorY = cloudHeight - 10;
+  const rawCeilingY = margin.top + 40;
+  const rawAvailableH = rawFloorY - rawCeilingY;
+  const yInset = (1 - areaRatio) * rawAvailableH / 2;
+  const floorY = rawFloorY - yInset;
+  const ceilingY = rawCeilingY + yInset;
   const availableH = floorY - ceilingY;
   const safeDateIntraClusterStrength = Math.max(0, Math.min(1, dateIntraClusterStrength));
   const safeDateClusterCompression = Math.max(0, Math.min(1, dateClusterCompression));
   const safeDateClusterOrderStrength = Math.max(0, Math.min(1, dateClusterOrderStrength));
   const safeDateXForceStrength = Math.max(0, Math.min(1, dateXForceStrength));
-  const totalItems = data.length;
-  const layerTargetY = /* @__PURE__ */ new Map();
-  let cumRatio = 0;
-  for (const { key, count } of bigGroups) {
-    const ratio = count / totalItems;
-    const centerY = floorY - cumRatio * availableH - ratio * availableH / 2;
-    layerTargetY.set(key, { center: centerY, halfH: ratio * availableH / 2 });
-    cumRatio += ratio;
-  }
-  const groupedByBig = d3Lib.groups(data, (d) => d.bigLabel);
-  for (const [, items] of groupedByBig) {
-    const layer = layerTargetY.get(items[0].bigLabel);
-    if (!layer) continue;
-    const yVals = items.map((d) => d._py);
-    const yMin = d3Lib.min(yVals), yMax = d3Lib.max(yVals);
-    const yRange = yMax - yMin || 1;
-    for (const d of items) {
-      const t = (d._py - yMin) / yRange;
-      d._targetY = layer.center - layer.halfH * 0.7 + t * layer.halfH * 1.4;
+  if (hasDate) {
+    const totalItems = data.length;
+    const layerTargetY = /* @__PURE__ */ new Map();
+    let cumRatio = 0;
+    for (const { key, count } of bigGroups) {
+      const ratio = count / totalItems;
+      const centerY = floorY - cumRatio * availableH - ratio * availableH / 2;
+      layerTargetY.set(key, { center: centerY, halfH: ratio * availableH / 2 });
+      cumRatio += ratio;
     }
+    const groupedByBig = d3Lib.groups(data, (d) => d.bigLabel);
+    for (const [, items] of groupedByBig) {
+      const layer = layerTargetY.get(items[0].bigLabel);
+      if (!layer) continue;
+      const yVals = items.map((d) => d._py);
+      const yMin = d3Lib.min(yVals), yMax = d3Lib.max(yVals);
+      const yRange = yMax - yMin || 1;
+      for (const d of items) {
+        const t = (d._py - yMin) / yRange;
+        d._targetY = layer.center - layer.halfH * 0.7 + t * layer.halfH * 1.4;
+      }
+    }
+  } else {
+    const yExtent = d3Lib.extent(data, (d) => d._py);
+    const yScale = d3Lib.scaleLinear().domain(yExtent).range([ceilingY, floorY]);
+    data.forEach((d) => {
+      d._targetY = yScale(d._py);
+    });
   }
   const groupedByLabel = d3Lib.groups(data, (d) => d.label);
   const labelItemsMap = new Map(groupedByLabel);
