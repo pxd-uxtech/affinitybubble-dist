@@ -305,7 +305,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     }
   } else {
     const yExtent = d3Lib.extent(data, (d) => d._py);
-    const yScale = d3Lib.scaleLinear().domain(yExtent).range([ceilingY, floorY]);
+    const yScale = d3Lib.scaleLinear().domain(yExtent).range([floorY, ceilingY]);
     data.forEach((d) => {
       d._targetY = yScale(d._py);
     });

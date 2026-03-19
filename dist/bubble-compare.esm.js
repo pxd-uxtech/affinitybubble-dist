@@ -665,10 +665,24 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     }
   };
 }
+function getCompareColumns(clusterWithLabel) {
+  const allCols = Object.keys(clusterWithLabel[0] || {});
+  const categoryKeys = guessCategoryKeys(allCols, clusterWithLabel);
+  const dateCols = detectDateColumns(allCols, clusterWithLabel);
+  const dateColumns = dateCols.map((key) => {
+    const info = computeDateGroupInfo(clusterWithLabel, key);
+    return { key, monthSpan: info.monthSpan, weekSpan: info.weekSpan };
+  });
+  const dateColNameSet = new Set(dateCols.map((dc) => dc.toLowerCase()));
+  dateColNameSet.add("date");
+  const filtered = dateColumns.length > 0 ? categoryKeys.filter((k) => !dateColNameSet.has(k.toLowerCase())) : categoryKeys;
+  return { categoryKeys: filtered, dateColumns };
+}
 export {
   createBubbleCompare,
   drawBumpChart,
   drawRatioChart,
+  getCompareColumns,
   getCompareStyles,
   guessCategoryKeys,
   makeStackedData,
