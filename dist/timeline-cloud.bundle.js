@@ -449,7 +449,6 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   };
   const allLabels = [];
   for (const [label, items] of subClusters) {
-    if (items.length < 2) continue;
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
     const fs = Math.max(11, Math.min(32, Math.sqrt(items.length) * 4 * labelScale));
