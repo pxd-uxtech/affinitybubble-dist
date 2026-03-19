@@ -416,7 +416,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     if (items.length < 3) {
       const cx = d3Lib.mean(items, (d) => d._sx);
       const cy = d3Lib.mean(items, (d) => d._sy);
-      hullGroup.append("circle").attr("cx", cx).attr("cy", cy).attr("r", (12 + items.length * 4) * scaleFactor).attr("fill", fillColor).attr("stroke", strokeColor).attr("stroke-width", 0.5).attr("opacity", 0.5);
+      hullGroup.append("circle").attr("cx", cx).attr("cy", cy).attr("r", Math.max(10, (12 + items.length * 4) * scaleFactor)).attr("fill", fillColor).attr("stroke", strokeColor).attr("stroke-width", 0.5).attr("opacity", 0.5);
       continue;
     }
     const points = items.map((d) => [d._sx, d._sy]);
