@@ -259,11 +259,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const titleAreaH = title && caption ? 42 : title || caption ? 26 : 10;
   const cloudHeight = height - (hasDate ? densityHeight + 50 : 0) - titleAreaH;
   const n = data.length;
-  const areaRatio = Math.min(0.67, 0.5 + 0.17 * Math.min(1, n / 500));
   const cloudPadding = 60;
-  const totalW = width - margin.left - margin.right - cloudPadding * 2;
-  const sideInset = (1 - areaRatio) * totalW / 2;
-  const xRange = [margin.left + cloudPadding + sideInset, width - margin.right - cloudPadding - sideInset];
+  const xRange = [margin.left + cloudPadding, width - margin.right - cloudPadding];
   let xScale;
   if (hasDate) {
     const timeExtentForX = d3Lib.extent(validDateData, (d) => d._date);
@@ -277,12 +274,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const hullPad = Math.max(8, hullPadding * scaleFactor);
   const labelScale = Math.max(0.6, Math.min(1.5, scaleFactor));
   const fontSize = 7;
-  const rawFloorY = cloudHeight - 10;
-  const rawCeilingY = margin.top + 40;
-  const rawAvailableH = rawFloorY - rawCeilingY;
-  const yInset = (1 - areaRatio) * rawAvailableH / 2;
-  const floorY = rawFloorY - yInset;
-  const ceilingY = rawCeilingY + yInset;
+  const floorY = cloudHeight - 10;
+  const ceilingY = margin.top + 40;
   const availableH = floorY - ceilingY;
   const safeDateIntraClusterStrength = Math.max(0, Math.min(1, dateIntraClusterStrength));
   const safeDateClusterCompression = Math.max(0, Math.min(1, dateClusterCompression));
@@ -359,7 +352,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   }
   data.forEach((d) => {
     if (d._targetX == null) d._targetX = hasDate && d._date ? xScale(d._date) : xScale(d._px);
-    d._radius = Math.max(5, d._text.length * fontSize * 0.28);
+    d._radius = Math.max(5, d._text.length * fontSize * 0.28) * 1.5;
   });
   const labelGroups = d3Lib.groups(data, (d) => d.label);
   function forceCluster(strength) {
@@ -396,7 +389,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       }
     };
   }
-  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(hasDate ? safeDateXForceStrength : 0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.3)).force("cluster", clusterStrength > 0 ? forceCluster(clusterStrength) : null).force("date-order", hasDate && safeDateClusterOrderStrength > 0 ? forceClusterDateOrder(safeDateClusterOrderStrength) : null).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
+  const simulation = d3Lib.forceSimulation(data).force("x", d3Lib.forceX((d) => d._targetX).strength(hasDate ? safeDateXForceStrength : 0.8)).force("y", d3Lib.forceY((d) => d._targetY).strength(0.15)).force("cluster", clusterStrength > 0 ? forceCluster(clusterStrength) : null).force("date-order", hasDate && safeDateClusterOrderStrength > 0 ? forceClusterDateOrder(safeDateClusterOrderStrength) : null).force("collide", d3Lib.forceCollide((d) => d._radius).strength(0.7).iterations(3)).force("bounds", () => {
     for (const d of data) {
       if (d.y > floorY) d.y = floorY;
       if (d.y < ceilingY) d.y = ceilingY;
@@ -411,6 +404,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   });
   if (typeof container === "string") container = document.querySelector(container);
   container.innerHTML = "";
+  document.querySelectorAll(".timeline-cloud-tooltip").forEach((el) => el.remove());
   const svg = d3Lib.create("svg").attr("width", width).attr("height", height).attr("viewBox", `0 0 ${width} ${height}`).style("font-family", "'KoddiUD OnGothic', sans-serif");
   const subClusters = d3Lib.groups(data, (d) => d.label);
   const hullGroup = svg.append("g").attr("class", "hulls");
@@ -432,7 +426,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const path = d3Lib.line().curve(d3Lib.curveCatmullRomClosed.alpha(0.5))(expanded);
     hullGroup.append("path").attr("d", path).attr("fill", fillColor).attr("stroke", strokeColor).attr("stroke-width", 0.5).attr("opacity", 0.5);
   }
-  const tooltip = d3Lib.select(container).append("div").style("position", "absolute").style("pointer-events", "none").style("background", "#fff").style("color", "#333").style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)").style("border", "1px solid #e0e0e0").style("padding", "6px 10px").style("border-radius", "4px").style("font-size", "12px").style("max-width", "300px").style("line-height", "1.4").style("white-space", "pre-wrap").style("display", "none").style("z-index", "1000");
+  const tooltip = d3Lib.select(document.body).append("div").attr("class", "timeline-cloud-tooltip").style("position", "fixed").style("pointer-events", "none").style("background", "#fff").style("color", "#333").style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)").style("border", "1px solid #e0e0e0").style("padding", "6px 10px").style("border-radius", "4px").style("font-size", "12px").style("max-width", "300px").style("line-height", "1.4").style("white-space", "pre-wrap").style("display", "none").style("z-index", "1000");
   d3Lib.select(container).style("position", "relative");
   const dotGroup = svg.append("g").attr("class", "cloud-dots");
   dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", dotRadius).attr("fill", (d) => colorvariation(d3Lib, d.color || getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", "all").attr("cursor", "pointer").on("mouseenter", (event, d) => {
@@ -442,8 +436,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     const dateStr = d._date ? d._date.toLocaleDateString("ko-KR") : "";
     tooltip.style("display", "block").html(`<strong>${label}</strong>${dateStr ? " \xB7 " + dateStr : ""}<br/>${text}`);
   }).on("mousemove", (event) => {
-    const rect = container.getBoundingClientRect();
-    tooltip.style("left", event.clientX - rect.left + 12 + "px").style("top", event.clientY - rect.top - 10 + "px");
+    tooltip.style("left", event.clientX + 12 + "px").style("top", event.clientY - 10 + "px");
   }).on("mouseleave", (event) => {
     d3Lib.select(event.target).attr("r", dotRadius).attr("opacity", 0.4);
     tooltip.style("display", "none");
