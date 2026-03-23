@@ -785,4 +785,4 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
   };
 }
 
-export { guessCategoryKeys, makeStackedData, drawBumpChart, drawRatioChart, renderSmallMultiples, getCompareStyles };
+export { guessCategoryKeys, guessCategoryKeys as getCompareColumns, makeStackedData, drawBumpChart, drawRatioChart, renderSmallMultiples, getCompareStyles };

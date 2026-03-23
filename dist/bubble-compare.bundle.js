@@ -602,6 +602,7 @@ export {
   createBubbleCompare,
   drawBumpChart,
   drawRatioChart,
+  guessCategoryKeys as getCompareColumns,
   getCompareStyles,
   guessCategoryKeys,
   makeStackedData,
