@@ -243,12 +243,14 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     .range([9, 25]);
 
   // Bump chart (main)
+  const marginLeft = 40;
   const bumpPlot = Plot.plot({
     title,
     width,
     height,
     marginTop: 30,
     marginBottom: 5,
+    marginLeft,
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
     y: { reverse: false, ticks: 5, label: "" },
@@ -309,7 +311,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     height: 120,
     marginTop: 15,
     marginBottom: 30,
-    marginLeft: bumpPlot.querySelector("svg")?.getAttribute("marginLeft") || 40,
+    marginLeft,
     insetLeft: 5,
     y: { percent: true, nice: true, label: "", ticks: 3 },
     x: { ticks: [], label: null },
