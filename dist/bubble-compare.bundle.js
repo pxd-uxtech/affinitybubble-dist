@@ -229,10 +229,13 @@ ${d.percent.toFixed(1)}%`
   const newH = origH + ratioAreaH;
   svgEl.setAttribute("height", newH);
   svgEl.setAttribute("viewBox", `0 0 ${width} ${newH}`);
-  const ratioG = d3.select(svgEl).append("g").attr("transform", `translate(0, ${origH + 15})`);
-  const barAreaH = ratioAreaH - 55;
+  const ratioG = d3.select(svgEl).append("g").attr("transform", `translate(0, ${origH + 25})`);
+  const barAreaH = ratioAreaH - 65;
   const maxRatio = d3.max(ratioData, (d) => d.ratio);
   const yScale = d3.scaleLinear().domain([0, maxRatio * 1.2]).nice().range([barAreaH, 0]);
+  const xLeft = bumpXScale.apply(0);
+  const xRight = bumpXScale.apply(xDomain[1]);
+  ratioG.append("line").attr("x1", xLeft).attr("x2", xRight).attr("y1", barAreaH).attr("y2", barAreaH).attr("stroke", "#ccc");
   ratioData.forEach((d, i) => {
     const x1 = bumpXScale.apply(i * colWidth * 1.3);
     const x2 = bumpXScale.apply(i * colWidth * 1.3 + colWidth);
@@ -242,7 +245,7 @@ ${d.percent.toFixed(1)}%`
     ratioG.append("rect").attr("x", x1).attr("y", y).attr("width", x2 - x1).attr("height", barH).attr("fill", "#8882").attr("stroke", "#888a");
     ratioG.append("text").attr("x", cx).attr("y", y - 4).attr("text-anchor", "middle").attr("font-size", 14).attr("fill", "#444").text(Math.round(d.ratio * 100) + "%");
     ratioG.append("text").attr("x", cx).attr("y", y - 20).attr("text-anchor", "middle").attr("font-size", 11).attr("fill", "#4448").text(d.count);
-    ratioG.append("text").attr("x", cx).attr("y", barAreaH + 16).attr("text-anchor", "middle").attr("font-size", 13).attr("fill", "#444").text(d.category);
+    ratioG.append("text").attr("x", cx).attr("y", barAreaH + 22).attr("text-anchor", "middle").attr("font-size", 17).attr("font-weight", "500").attr("fill", "#444").text(d.category);
   });
   return bumpPlot;
 }
