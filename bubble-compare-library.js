@@ -539,7 +539,6 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
     VoronoiTreemap: VTClass,
     colors,
     regionColors,
-    title = "",
     smallMultipleWidth = 500,
     smallMultipleHeight = 380,
     bumpChartWidth = 1100,
@@ -582,7 +581,7 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
   selectorDiv.className = "bubble-compare-selector";
 
   const selectorLabel = document.createElement("label");
-  selectorLabel.textContent = "비교 기준";
+  selectorLabel.textContent = "비교 범주 선택";
 
   const select = document.createElement("select");
   const defaultOption = document.createElement("option");
@@ -680,7 +679,7 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
     const bumpSection = document.createElement("div");
     bumpSection.className = "bubble-compare-section";
     const bumpTitle = document.createElement("h3");
-    bumpTitle.textContent = `${title ? title + " - " : ""}${selKey} 비교`;
+    bumpTitle.textContent = `이슈 x [${selKey}] 교차 분석`;
     bumpSection.appendChild(bumpTitle);
 
     try {
@@ -724,7 +723,7 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
       const smSection = document.createElement("div");
       smSection.className = "bubble-compare-section";
       const smTitle = document.createElement("h3");
-      smTitle.textContent = `${selKey}별 Small Multiples`;
+      smTitle.textContent = `이슈 x [${selKey}] Small Multiples`;
       smSection.appendChild(smTitle);
 
       try {
