@@ -257,7 +257,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     getColorByLabel = (label, bigLabel) => labelColorMap.get(label) || bigLabelColorMap.get(bigLabel) || (colors || defaultColors)[bigLabelRank.get(bigLabel) || 0] || "#ccc";
   }
   const titleAreaH = title && caption ? 42 : title || caption ? 26 : 10;
-  const cloudHeight = height - (hasDate ? densityHeight + 50 : 0) - titleAreaH;
+  const cloudHeight = height - (hasDate ? densityHeight + 70 : 0) - titleAreaH;
   const n = data.length;
   const cloudPadding = 60;
   const xRange = [margin.left + cloudPadding, width - margin.right - cloudPadding];
@@ -612,7 +612,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     bigLabelGroup.append("text").attr("x", lb.x).attr("y", lb.y).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", lb.fs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(lb.key);
   }
   if (hasDate && validDateData.length > 0) {
-    const tlTop = cloudHeight + 50;
+    const tlTop = cloudHeight + 30;
     const tlBottom = cloudHeight + densityHeight - 5;
     const timeExtent = d3Lib.extent(validDateData, (d) => d._date);
     const timeScale = d3Lib.scaleTime().domain(timeExtent).range([margin.left, width - margin.right]);
