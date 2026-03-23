@@ -259,14 +259,9 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     marginRight,
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
-    y: { reverse: false, ticks: 5, label: "" },
+    y: { reverse: true, ticks: 5, label: "" },
     x: { ticks: [], domain: xDomain },
     marks: [
-      Plot.text(groupLabel, {
-        x: d => d.groupOrder * colWidth * 1.3 + colWidth / 2,
-        y: 0, dy: -15, fontSize: 15, fill: "#444",
-        text: "ageGroup"
-      }),
       Plot.areaY(data, {
         x: d => d.groupOrder * colWidth * 1.3 + (d.pos === "end" ? colWidth : 0),
         y: "stack",
@@ -311,46 +306,36 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
   // ratioData가 없으면 bump chart만 반환
   if (!ratioData || !ratioData.length) return bumpPlot;
 
-  // Ratio chart (하단) - 범프차트 컬럼과 x 위치 정렬
-  const ratioPlot = Plot.plot({
-    width,
-    height: 120,
-    marginTop: 15,
-    marginBottom: 30,
-    marginLeft,
-    marginRight,
-    insetLeft: 5,
-    y: { percent: true, nice: true, label: "", ticks: 3 },
-    x: { ticks: [], label: null, domain: xDomain },
-    marks: [
-      Plot.rectY(ratioData, {
-        x1: (d, i) => i * colWidth * 1.3 + colWidth * 0.15,
-        x2: (d, i) => i * colWidth * 1.3 + colWidth * 0.85,
-        y1: 0,
-        y2: "ratio",
-        fill: "#8882", stroke: "#888a"
-      }),
-      Plot.text(ratioData, {
-        x: (d, i) => i * colWidth * 1.3 + colWidth / 2,
-        y: "ratio", dy: -10,
-        text: d => d3.format(".0%")(d.ratio),
-        fontSize: 14, fill: "#444"
-      }),
-      Plot.text(ratioData, {
-        x: (d, i) => i * colWidth * 1.3 + colWidth / 2,
-        y: "ratio", dy: -25,
-        text: d => `${d.count}`,
-        fontSize: 11, fill: "#4448"
-      }),
-      Plot.ruleY([0], { stroke: "#4444" })
-    ]
+  // 범프차트 SVG에 직접 비율 바 추가 (동일 좌표계 보장)
+  const bumpXScale = bumpPlot.scale("x");
+  const svgEl = bumpPlot.querySelector("svg");
+  const origH = +svgEl.getAttribute("height");
+  const ratioAreaH = 160;
+  const newH = origH + ratioAreaH;
+  svgEl.setAttribute("height", newH);
+  svgEl.setAttribute("viewBox", `0 0 ${width} ${newH}`);
+
+  const ratioG = d3.select(svgEl).append("g").attr("transform", `translate(0, ${origH + 15})`);
+  const barAreaH = ratioAreaH - 55;
+  const maxRatio = d3.max(ratioData, d => d.ratio);
+  const yScale = d3.scaleLinear().domain([0, maxRatio * 1.2]).nice().range([barAreaH, 0]);
+
+  // 바 + 텍스트
+  ratioData.forEach((d, i) => {
+    const x1 = bumpXScale.apply(i * colWidth * 1.3);
+    const x2 = bumpXScale.apply(i * colWidth * 1.3 + colWidth);
+    const barH = barAreaH - yScale(d.ratio);
+    const y = yScale(d.ratio);
+    const cx = (x1 + x2) / 2;
+
+    ratioG.append("rect").attr("x", x1).attr("y", y).attr("width", x2 - x1).attr("height", barH).attr("fill", "#8882").attr("stroke", "#888a");
+    ratioG.append("text").attr("x", cx).attr("y", y - 4).attr("text-anchor", "middle").attr("font-size", 14).attr("fill", "#444").text(Math.round(d.ratio * 100) + "%");
+    ratioG.append("text").attr("x", cx).attr("y", y - 20).attr("text-anchor", "middle").attr("font-size", 11).attr("fill", "#4448").text(d.count);
+    // x 레이블
+    ratioG.append("text").attr("x", cx).attr("y", barAreaH + 16).attr("text-anchor", "middle").attr("font-size", 13).attr("fill", "#444").text(d.category);
   });
 
-  // 두 차트를 하나의 컨테이너에 합치기
-  const container = document.createElement("div");
-  container.appendChild(bumpPlot);
-  container.appendChild(ratioPlot);
-  return container;
+  return bumpPlot;
 }
 
 // ============================================================
