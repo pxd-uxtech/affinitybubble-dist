@@ -589,10 +589,9 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
   select.appendChild(defaultOption);
 
   for (const key of categoryKeys) {
-    const uniqueCount = new Set(clusterWithLabel.map(d => d[key]).filter(Boolean)).size;
     const opt = document.createElement("option");
     opt.value = key;
-    opt.textContent = `${key} (${uniqueCount})`;
+    opt.textContent = key;
     select.appendChild(opt);
   }
 

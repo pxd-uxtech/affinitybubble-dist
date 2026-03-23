@@ -436,10 +436,9 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   defaultOption.textContent = "\uC120\uD0DD\uD558\uC138\uC694";
   select.appendChild(defaultOption);
   for (const key of categoryKeys) {
-    const uniqueCount = new Set(clusterWithLabel.map((d) => d[key]).filter(Boolean)).size;
     const opt = document.createElement("option");
     opt.value = key;
-    opt.textContent = `${key} (${uniqueCount})`;
+    opt.textContent = key;
     select.appendChild(opt);
   }
   for (const dc of dateColumns) {
