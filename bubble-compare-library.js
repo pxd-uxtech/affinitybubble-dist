@@ -33,6 +33,7 @@ function sortFunc(d3) {
 // ============================================================
 function guessCategoryKeys(cols, data, d3) {
   if (!cols || !cols.length) return [];
+  if (!data || !data.length) return [];
 
   // 분석 결과 컬럼 제외
   const excludeKeys = new Set([

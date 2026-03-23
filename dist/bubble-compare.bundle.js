@@ -16,6 +16,7 @@ function sortFunc(d3) {
 }
 function guessCategoryKeys(cols, data, d3) {
   if (!cols || !cols.length) return [];
+  if (!data || !data.length) return [];
   const excludeKeys = /* @__PURE__ */ new Set([
     "text",
     "\uD14D\uC2A4\uD2B8",
