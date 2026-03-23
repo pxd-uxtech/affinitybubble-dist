@@ -244,6 +244,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
 
   // x domain 통일 (bump chart + ratio chart)
   const marginLeft = 40;
+  const marginRight = 20;
   const nGroups = ratioData ? ratioData.length : d3.max(data, d => d.groupOrder) + 1;
   const xDomain = [0, (nGroups - 1) * colWidth * 1.3 + colWidth];
 
@@ -255,6 +256,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     marginTop: 30,
     marginBottom: 5,
     marginLeft,
+    marginRight,
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
     y: { reverse: false, ticks: 5, label: "" },
@@ -316,6 +318,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     marginTop: 15,
     marginBottom: 30,
     marginLeft,
+    marginRight,
     insetLeft: 5,
     y: { percent: true, nice: true, label: "", ticks: 3 },
     x: { ticks: [], label: null, domain: xDomain },
