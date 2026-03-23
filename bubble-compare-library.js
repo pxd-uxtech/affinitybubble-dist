@@ -242,8 +242,12 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     .domain(d3.extent(data, d => d.percent))
     .range([9, 25]);
 
-  // Bump chart (main)
+  // x domain 통일 (bump chart + ratio chart)
   const marginLeft = 40;
+  const nGroups = ratioData ? ratioData.length : d3.max(data, d => d.groupOrder) + 1;
+  const xDomain = [0, (nGroups - 1) * colWidth * 1.3 + colWidth];
+
+  // Bump chart (main)
   const bumpPlot = Plot.plot({
     title,
     width,
@@ -254,7 +258,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
     y: { reverse: false, ticks: 5, label: "" },
-    x: { ticks: [] },
+    x: { ticks: [], domain: xDomain },
     marks: [
       Plot.text(groupLabel, {
         x: d => d.groupOrder * colWidth * 1.3 + colWidth / 2,
@@ -314,14 +318,13 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
     marginLeft,
     insetLeft: 5,
     y: { percent: true, nice: true, label: "", ticks: 3 },
-    x: { ticks: [], label: null },
+    x: { ticks: [], label: null, domain: xDomain },
     marks: [
-      Plot.barY(ratioData, {
-        x: d => {
-          const idx = ratioData.indexOf(d);
-          return idx * colWidth * 1.3 + colWidth / 2;
-        },
-        y: "ratio",
+      Plot.rectY(ratioData, {
+        x1: (d, i) => i * colWidth * 1.3 + colWidth * 0.15,
+        x2: (d, i) => i * colWidth * 1.3 + colWidth * 0.85,
+        y1: 0,
+        y2: "ratio",
         fill: "#8882", stroke: "#888a"
       }),
       Plot.text(ratioData, {
