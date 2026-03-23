@@ -786,4 +786,10 @@ export function createBubbleCompare(container, clusterWithLabel, options = {}) {
   };
 }
 
-export { guessCategoryKeys, guessCategoryKeys as getCompareColumns, makeStackedData, drawBumpChart, drawRatioChart, renderSmallMultiples, getCompareStyles };
+function getCompareColumns(data) {
+  if (!data || !data.length) return [];
+  const cols = Object.keys(data[0] || {});
+  return guessCategoryKeys(cols, data);
+}
+
+export { guessCategoryKeys, getCompareColumns, makeStackedData, drawBumpChart, drawRatioChart, renderSmallMultiples, getCompareStyles };

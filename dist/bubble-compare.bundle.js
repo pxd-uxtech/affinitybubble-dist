@@ -599,11 +599,16 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     }
   };
 }
+function getCompareColumns(data) {
+  if (!data || !data.length) return [];
+  const cols = Object.keys(data[0] || {});
+  return guessCategoryKeys(cols, data);
+}
 export {
   createBubbleCompare,
   drawBumpChart,
   drawRatioChart,
-  guessCategoryKeys as getCompareColumns,
+  getCompareColumns,
   getCompareStyles,
   guessCategoryKeys,
   makeStackedData,
