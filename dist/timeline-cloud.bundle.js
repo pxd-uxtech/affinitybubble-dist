@@ -155,7 +155,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     maxTextLength = 15,
     hullPadding = 18,
     densityHeight = 80,
-    margin = { top: 20, right: 50, bottom: 20, left: 50 },
+    margin = { top: 50, right: 50, bottom: 20, left: 50 },
     clusterStrength = 0.15,
     // 클러스터 응집력 (0~1, 0이면 끔)
     clusterXRatio = 0.3,
@@ -274,7 +274,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   const hullPad = Math.max(8, hullPadding * scaleFactor);
   const labelScale = Math.max(0.6, Math.min(1.5, scaleFactor));
   const fontSize = 7;
-  const floorY = cloudHeight - 10;
+  const floorY = cloudHeight - 25;
   const ceilingY = margin.top + 40;
   const availableH = floorY - ceilingY;
   const safeDateIntraClusterStrength = Math.max(0, Math.min(1, dateIntraClusterStrength));
@@ -612,7 +612,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     bigLabelGroup.append("text").attr("x", lb.x).attr("y", lb.y).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", lb.fs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(lb.key);
   }
   if (hasDate && validDateData.length > 0) {
-    const tlTop = cloudHeight + 30;
+    const tlTop = cloudHeight + 50;
     const tlBottom = cloudHeight + densityHeight - 5;
     const timeExtent = d3Lib.extent(validDateData, (d) => d._date);
     const timeScale = d3Lib.scaleTime().domain(timeExtent).range([margin.left, width - margin.right]);
