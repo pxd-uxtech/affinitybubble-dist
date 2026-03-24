@@ -406,8 +406,9 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   container.innerHTML = "";
   document.querySelectorAll(".timeline-cloud-tooltip").forEach((el) => el.remove());
   const svg = d3Lib.create("svg").attr("width", width).attr("height", height).attr("viewBox", `0 0 ${width} ${height}`).style("font-family", "'KoddiUD OnGothic', sans-serif");
+  const zoomGroup = svg.append("g").attr("class", "zoom-group");
   const subClusters = d3Lib.groups(data, (d) => d.label);
-  const hullGroup = svg.append("g").attr("class", "hulls");
+  const hullGroup = zoomGroup.append("g").attr("class", "hulls");
   for (const [label, items] of subClusters) {
     const bigLabel = items[0].bigLabel;
     const baseColor = getColorByLabel(label, bigLabel);
@@ -428,7 +429,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   }
   const tooltip = d3Lib.select(document.body).append("div").attr("class", "timeline-cloud-tooltip").style("position", "fixed").style("pointer-events", "none").style("background", "#fff").style("color", "#333").style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)").style("border", "1px solid #e0e0e0").style("padding", "6px 10px").style("border-radius", "4px").style("font-size", "12px").style("max-width", "300px").style("line-height", "1.4").style("white-space", "pre-wrap").style("display", "none").style("z-index", "1000");
   d3Lib.select(container).style("position", "relative");
-  const dotGroup = svg.append("g").attr("class", "cloud-dots");
+  const dotGroup = zoomGroup.append("g").attr("class", "cloud-dots");
   dotGroup.selectAll("circle").data(data).join("circle").attr("cx", (d) => d._sx).attr("cy", (d) => d._sy).attr("r", dotRadius).attr("fill", (d) => colorvariation(d3Lib, d.color || getColorByLabel(d.label, d.bigLabel), 0, 0, 0.1)).attr("opacity", 0.4).attr("pointer-events", "all").attr("cursor", "pointer").on("mouseenter", (event, d) => {
     d3Lib.select(event.target).attr("r", dotRadius * 2).attr("opacity", 1);
     const text = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
@@ -602,15 +603,72 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       clampLabel(lb);
     }
   }
-  const labelGroup = svg.append("g").attr("class", "cluster-labels");
+  const labelGroup = zoomGroup.append("g").attr("class", "cluster-labels");
   for (const lb of allLabels.filter((l) => l.type === "label")) {
     labelGroup.append("text").attr("x", lb.x).attr("y", lb.y).attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("font-size", lb.fs).attr("font-weight", "bold").attr("fill", lb.color).attr("stroke", "#ffffffcc").attr("stroke-width", Math.max(3, lb.fs / 4)).attr("paint-order", "stroke").attr("pointer-events", "none").text(lb.key);
   }
-  const bigLabelGroup = svg.append("g").attr("class", "big-labels");
+  const bigLabelGroup = zoomGroup.append("g").attr("class", "big-labels");
   for (const lb of allLabels.filter((l) => l.type === "bigLabel")) {
     bigLabelGroup.append("rect").attr("x", lb.x - lb.w / 2).attr("y", lb.y - lb.h / 2).attr("width", lb.w).attr("height", lb.h).attr("rx", lb.h / 2).attr("ry", lb.h / 2).attr("fill", lb.color).attr("opacity", 0.85);
     bigLabelGroup.append("text").attr("x", lb.x).attr("y", lb.y).attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("font-size", lb.fs).attr("font-weight", "700").attr("fill", "#fff").attr("pointer-events", "none").text(lb.key);
   }
+  const dotTextGroup = zoomGroup.append("g").attr("class", "dot-texts").style("display", "none");
+  const dotTextFs = 10;
+  const dotTexts = dotTextGroup.selectAll("text").data(data).join("text").attr("x", (d) => d._sx + dotRadius + 3).attr("y", (d) => d._sy).attr("dominant-baseline", "middle").attr("font-size", dotTextFs).attr("fill", "#333").attr("pointer-events", "none").text((d) => {
+    const t = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
+    return t.length > maxTextLength ? t.slice(0, maxTextLength) + "\u2026" : t;
+  });
+  let currentK = 1;
+  function updateDotTexts(transform) {
+    const k = transform.k;
+    currentK = k;
+    if (k < 2) {
+      dotTextGroup.style("display", "none");
+      return;
+    }
+    dotTextGroup.style("display", null);
+    const maxLen = Math.min(80, Math.round(maxTextLength + (k - 2) * 15));
+    const invK = 1 / k;
+    const adjustedFs = dotTextFs * invK;
+    dotTexts.attr("font-size", adjustedFs).attr("x", (d) => d._sx + (dotRadius + 3) * invK).text((d) => {
+      const t = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
+      return t.length > maxLen ? t.slice(0, maxLen) + "\u2026" : t;
+    });
+    const svgNode = svg.node();
+    const svgRect = svgNode.getBoundingClientRect();
+    const occupied = [];
+    dotTexts.each(function(d) {
+      const el = d3Lib.select(this);
+      const sx = d._sx * k + transform.x;
+      const sy = d._sy * k + transform.y;
+      if (sx < -50 || sx > svgRect.width + 50 || sy < -20 || sy > svgRect.height + 20) {
+        el.style("display", "none");
+        return;
+      }
+      const textW = (d.text || d["\uD14D\uC2A4\uD2B8"] || "").slice(0, maxLen).length * adjustedFs * 0.6;
+      const textH = adjustedFs * 1.3;
+      const tx = d._sx + (dotRadius + 3) * invK;
+      const ty = d._sy - textH / 2;
+      const box = { x1: tx, y1: ty, x2: tx + textW, y2: ty + textH };
+      const overlaps = occupied.some(
+        (o) => box.x1 < o.x2 && box.x2 > o.x1 && box.y1 < o.y2 && box.y2 > o.y1
+      );
+      if (overlaps) {
+        el.style("display", "none");
+      } else {
+        el.style("display", null);
+        occupied.push(box);
+      }
+    });
+  }
+  const zoom = d3Lib.zoom().scaleExtent([1, 20]).on("zoom", (event) => {
+    zoomGroup.attr("transform", event.transform);
+    updateDotTexts(event.transform);
+  });
+  svg.call(zoom);
+  svg.on("dblclick.zoom", () => {
+    svg.transition().duration(300).call(zoom.transform, d3Lib.zoomIdentity);
+  });
   if (hasDate && validDateData.length > 0) {
     const tlTop = cloudHeight + 30;
     const tlBottom = cloudHeight + densityHeight - 5;
