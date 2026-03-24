@@ -614,9 +614,20 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   }
   const dotTextGroup = zoomGroup.append("g").attr("class", "dot-texts").style("display", "none");
   const dotTextFs = 10;
-  const dotTexts = dotTextGroup.selectAll("text").data(data).join("text").attr("x", (d) => d._sx + dotRadius + 3).attr("y", (d) => d._sy).attr("dominant-baseline", "middle").attr("font-size", dotTextFs).attr("fill", "#333").attr("pointer-events", "none").text((d) => {
-    const t = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
-    return t.length > maxTextLength ? t.slice(0, maxTextLength) + "\u2026" : t;
+  const lineCharsBase = 20;
+  function wrapText(text, charsPerLine) {
+    const lines = [];
+    for (let i = 0; i < text.length; i += charsPerLine) {
+      lines.push(text.slice(i, i + charsPerLine));
+    }
+    return lines;
+  }
+  const dotTextNodes = dotTextGroup.selectAll("g").data(data).join("g").attr("pointer-events", "none");
+  dotTextNodes.each(function(d) {
+    const baseColor = d.color || getColorByLabel(d.label, d.bigLabel);
+    const textColor = colorvariation(d3Lib, baseColor, 0, -0.3, -0.35);
+    d._dotTextColor = textColor;
+    d3Lib.select(this).append("text").attr("fill", textColor).attr("font-size", dotTextFs);
   });
   let currentK = 1;
   function updateDotTexts(transform) {
@@ -627,29 +638,38 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       return;
     }
     dotTextGroup.style("display", null);
-    const maxLen = Math.min(80, Math.round(maxTextLength + (k - 2) * 15));
     const invK = 1 / k;
     const adjustedFs = dotTextFs * invK;
-    dotTexts.attr("font-size", adjustedFs).attr("x", (d) => d._sx + (dotRadius + 3) * invK).text((d) => {
-      const t = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
-      return t.length > maxLen ? t.slice(0, maxLen) + "\u2026" : t;
-    });
+    const charsPerLine = Math.max(12, Math.round(lineCharsBase + (k - 2) * 8));
+    const maxLines = Math.min(8, Math.max(3, Math.round(k * 1.5)));
+    const lineH = adjustedFs * 1.35;
     const svgNode = svg.node();
     const svgRect = svgNode.getBoundingClientRect();
     const occupied = [];
-    dotTexts.each(function(d) {
+    dotTextNodes.each(function(d) {
       const el = d3Lib.select(this);
+      const textEl = el.select("text");
       const sx = d._sx * k + transform.x;
       const sy = d._sy * k + transform.y;
-      if (sx < -50 || sx > svgRect.width + 50 || sy < -20 || sy > svgRect.height + 20) {
+      if (sx < -100 || sx > svgRect.width + 100 || sy < -50 || sy > svgRect.height + 50) {
         el.style("display", "none");
         return;
       }
-      const textW = (d.text || d["\uD14D\uC2A4\uD2B8"] || "").slice(0, maxLen).length * adjustedFs * 0.6;
-      const textH = adjustedFs * 1.3;
-      const tx = d._sx + (dotRadius + 3) * invK;
-      const ty = d._sy - textH / 2;
-      const box = { x1: tx, y1: ty, x2: tx + textW, y2: ty + textH };
+      const rawText = d.text || d["\uD14D\uC2A4\uD2B8"] || "";
+      if (!rawText) {
+        el.style("display", "none");
+        return;
+      }
+      const lines = wrapText(rawText, charsPerLine).slice(0, maxLines);
+      if (rawText.length > charsPerLine * maxLines) {
+        const last = lines[lines.length - 1];
+        lines[lines.length - 1] = last.slice(0, -1) + "\u2026";
+      }
+      const tx = d._sx + (dotRadius + 4) * invK;
+      const ty = d._sy;
+      const textW = charsPerLine * adjustedFs * 0.6;
+      const textH = lines.length * lineH;
+      const box = { x1: tx, y1: ty - lineH * 0.3, x2: tx + textW, y2: ty - lineH * 0.3 + textH };
       const overlaps = occupied.some(
         (o) => box.x1 < o.x2 && box.x2 > o.x1 && box.y1 < o.y2 && box.y2 > o.y1
       );
@@ -658,6 +678,10 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
       } else {
         el.style("display", null);
         occupied.push(box);
+        textEl.attr("font-size", adjustedFs).attr("x", tx).attr("y", ty);
+        const tspans = textEl.selectAll("tspan").data(lines);
+        tspans.enter().append("tspan").merge(tspans).attr("x", tx).attr("dy", (_, i) => i === 0 ? 0 : lineH).text((t) => t);
+        tspans.exit().remove();
       }
     });
   }
