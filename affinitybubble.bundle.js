@@ -8218,7 +8218,7 @@ var Level1Pipeline = class {
           onProgress({
             progress: pct,
             embeds: embeddings,
-            message: `\uC784\uBCA0\uB529 \uC911... (${pct}%)`
+            message: `\uC784\uBCA0\uB529 \uC911... (${embeddings.length}/${total})`
           });
         }
       }
@@ -8255,7 +8255,7 @@ var Level1Pipeline = class {
           onProgress({
             progress: pct,
             embeds: sampleEmbeds,
-            message: `\uC784\uBCA0\uB529 \uC911... (${pct}%)`
+            message: `\uC0D8\uD50C \uC784\uBCA0\uB529 \uC911... (${sampleEmbeds.length}/${sample.length}) \uC804\uCCB4 ${chunkData.length}\uAC1C`
           });
         }
       }
@@ -8318,7 +8318,7 @@ var Level1Pipeline = class {
       onProgress({
         progress: (i + batch.length) / rest.length,
         allEmbeds,
-        message: `\uC784\uBCA0\uB529 \uC911... (${Math.round(40 + (i + batch.length) / rest.length * 60)}%)`
+        message: `\uB098\uBA38\uC9C0 \uC784\uBCA0\uB529 \uC911... (${allEmbeds.length}/${rest.length})`
       });
     }
     return { allEmbeds };
