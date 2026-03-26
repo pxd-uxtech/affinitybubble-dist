@@ -8198,20 +8198,33 @@ var Level1Pipeline = class {
     }
   }
   /**
-   * 전체 임베딩 (소규모 데이터)
+   * 전체 임베딩 (배치 분할)
    */
   async _embedAll(chunkData, onProgress) {
     const embeddings = [];
-    const stream = this.api.streamEmbeddings(
-      chunkData.map((d) => this._sanitizeText(d.text))
-    );
-    for await (const embedding of stream) {
-      embeddings.push(embedding);
-      onProgress({
-        progress: Math.round(embeddings.length / chunkData.length * 100),
-        embeds: embeddings,
-        message: `\uC784\uBCA0\uB529 \uC911... (${Math.round(embeddings.length / chunkData.length * 100)}%)`
-      });
+    const batchSize = 200;
+    const total = chunkData.length;
+    let lastReportedPct = -1;
+    for (let i = 0; i < total; i += batchSize) {
+      const batch = chunkData.slice(i, Math.min(i + batchSize, total));
+      const stream = this.api.streamEmbeddings(
+        batch.map((d) => this._sanitizeText(d.text))
+      );
+      for await (const embedding of stream) {
+        embeddings.push(embedding);
+        const pct = Math.round(embeddings.length / total * 100);
+        if (pct >= lastReportedPct + 5 || embeddings.length === total) {
+          lastReportedPct = pct;
+          onProgress({
+            progress: pct,
+            embeds: embeddings,
+            message: `\uC784\uBCA0\uB529 \uC911... (${pct}%)`
+          });
+        }
+      }
+    }
+    if (embeddings.length !== total) {
+      console.warn(`\uC784\uBCA0\uB529 \uC218 \uBD88\uC77C\uCE58: \uC694\uCCAD ${total}\uAC1C, \uC218\uC2E0 ${embeddings.length}\uAC1C`);
     }
     const embeds = chunkData.map((d, i) => ({ ...d, embed: embeddings[i] }));
     return { embeds };
@@ -8229,14 +8242,23 @@ var Level1Pipeline = class {
     const sample = sampleIdxs.map((i) => chunkData[i]);
     const rest = chunkData.filter((_, i) => !sampleSet.has(i));
     const sampleEmbeds = [];
-    const sampleStream = this.api.streamEmbeddings(sample.map((d) => this._sanitizeText(d.text)));
-    for await (const e of sampleStream) {
-      sampleEmbeds.push(e);
-      onProgress({
-        progress: Math.round(sampleEmbeds.length / sample.length * 30),
-        embeds: sampleEmbeds,
-        message: `\uC784\uBCA0\uB529 \uC911... (${Math.round(sampleEmbeds.length / sample.length * 30)}%)`
-      });
+    const batchSize = 200;
+    let lastReportedPct = -1;
+    for (let i = 0; i < sample.length; i += batchSize) {
+      const batch = sample.slice(i, Math.min(i + batchSize, sample.length));
+      const sampleStream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)));
+      for await (const e of sampleStream) {
+        sampleEmbeds.push(e);
+        const pct = Math.round(sampleEmbeds.length / sample.length * 30);
+        if (pct >= lastReportedPct + 3 || sampleEmbeds.length === sample.length) {
+          lastReportedPct = pct;
+          onProgress({
+            progress: pct,
+            embeds: sampleEmbeds,
+            message: `\uC784\uBCA0\uB529 \uC911... (${pct}%)`
+          });
+        }
+      }
     }
     let sampleWithEmbeds = sample.map((d, i) => ({ ...d, embed: sampleEmbeds[i] }));
     onProgress({ progress: 30, embeds: sampleWithEmbeds, message: "\uC0D8\uD50C \uD074\uB7EC\uC2A4\uD130\uB9C1..." });
@@ -12705,9 +12727,23 @@ function getReportTypeOptions() {
 }
 
 // src/insight/insightRenderer.js
+var _marked = null;
+async function loadMarked() {
+  if (_marked) return _marked;
+  try {
+    const mod = await import("https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js");
+    _marked = mod.marked;
+    return _marked;
+  } catch (e) {
+    console.warn("marked \uB85C\uB4DC \uC2E4\uD328, fallback \uC0AC\uC6A9:", e);
+    return null;
+  }
+}
+var _markedReady = loadMarked();
 function simpleMarkdownParse(text) {
   if (!text) return "";
-  return text.replace(/^### (.+)$/gm, "<h3>$1</h3>").replace(/^## (.+)$/gm, "<h2>$1</h2>").replace(/^# (.+)$/gm, "<h1>$1</h1>").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>").replace(/^- (.+)$/gm, "<li>$1</li>").replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>").replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>").replace(/^/, "<p>").replace(/$/, "</p>");
+  if (_marked) return _marked(text);
+  return text.replace(/^### (.+)$/gm, "<h3>$1</h3>").replace(/^## (.+)$/gm, "<h2>$1</h2>").replace(/^# (.+)$/gm, "<h1>$1</h1>").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>").replace(/^- (.+)$/gm, "<li>$1</li>").replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>");
 }
 async function copyToClipboard(text) {
   try {
