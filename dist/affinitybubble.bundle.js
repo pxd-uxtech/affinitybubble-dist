@@ -11593,6 +11593,7 @@ async function processInParallel(processingFunc, data, {
   chunk_size = 20,
   max_threads = 4,
   delay_between_batches = 0,
+  timeout_ms = 6e4,
   feedbackFunc = (d) => console.log(`\uC9C4\uD589\uB960: ${(d * 100).toFixed(1)}%`),
   context = null
 } = {}) {
@@ -11600,6 +11601,12 @@ async function processInParallel(processingFunc, data, {
   console.log(
     `\uBCD1\uB82C \uCC98\uB9AC \uC2DC\uC791: ${data.length}\uAC1C \uD56D\uBAA9, \uCCAD\uD06C \uD06C\uAE30 ${chunk_size}, \uCD5C\uB300 ${max_threads} \uC2A4\uB808\uB4DC`
   );
+  const withTimeout = (fn, ms) => {
+    return Promise.race([
+      fn(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error(`${ms}ms \uD0C0\uC784\uC544\uC6C3`)), ms))
+    ]);
+  };
   const chunkArray = (array2, size) => {
     const chunks = [];
     for (let i = 0; i < array2.length; i += size) {
@@ -11625,7 +11632,7 @@ async function processInParallel(processingFunc, data, {
             (resolve) => setTimeout(resolve, delay_between_batches)
           );
         }
-        return processingFunc(currentChunk, context);
+        return withTimeout(() => processingFunc(currentChunk, context), timeout_ms);
       })().then((result) => {
         const flatResult = Array.isArray(result) ? result : [result];
         results.push(...flatResult);
@@ -11640,7 +11647,7 @@ async function processInParallel(processingFunc, data, {
         console.warn(`\uCCAD\uD06C ${currentChunkIndex} \uCC98\uB9AC \uC2E4\uD328, 1\uD68C \uC7AC\uC2DC\uB3C4...`, error.message || error);
         try {
           await new Promise((r) => setTimeout(r, 1e3));
-          const retryResult = await processingFunc(currentChunk, context);
+          const retryResult = await withTimeout(() => processingFunc(currentChunk, context), timeout_ms);
           const flatResult = Array.isArray(retryResult) ? retryResult : [retryResult];
           results.push(...flatResult);
           completedItems += currentChunk.length;
