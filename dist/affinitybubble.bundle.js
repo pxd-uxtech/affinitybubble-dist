@@ -11653,32 +11653,33 @@ async function processInParallel(processingFunc, data, {
   return results;
 }
 var SERVICE_TIMEOUTS = {
-  // 분류: 빠른 응답 기대 (스트림 시작이 느리면 빠르게 재시도)
-  classification: { totalMs: 9e4, idleMs: 25e3, retries: 3 },
-  classification_with_id: { totalMs: 9e4, idleMs: 25e3, retries: 3 },
+  // 분류: 빠른 응답 기대
+  classification: { totalMs: 18e4, firstChunkMs: 9e4, idleMs: 2e4, retries: 3 },
+  classification_with_id: { totalMs: 18e4, firstChunkMs: 9e4, idleMs: 2e4, retries: 3 },
   // 라벨링: 중간 길이
-  get_label: { totalMs: 18e4, idleMs: 9e4, retries: 2 },
-  get_label_voice: { totalMs: 18e4, idleMs: 9e4, retries: 2 },
-  get_label_outlier_sentiment: { totalMs: 18e4, idleMs: 9e4, retries: 2 },
+  get_label: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
+  get_label_voice: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
+  get_label_outlier_sentiment: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
   // 토픽/페르소나/도메인 추출: 중간
-  extract_topic: { totalMs: 18e4, idleMs: 9e4, retries: 2 },
-  extract_persona: { totalMs: 18e4, idleMs: 9e4, retries: 2 },
-  extract_domain: { totalMs: 18e4, idleMs: 9e4, retries: 2 },
+  extract_topic: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
+  extract_persona: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
+  extract_domain: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
   // 인사이트/리포트: 길게
-  insight: { totalMs: 3e5, idleMs: 12e4, retries: 1 },
-  report: { totalMs: 3e5, idleMs: 12e4, retries: 1 }
+  insight: { totalMs: 36e4, firstChunkMs: 18e4, idleMs: 6e4, retries: 1 },
+  report: { totalMs: 36e4, firstChunkMs: 18e4, idleMs: 6e4, retries: 1 }
 };
-var DEFAULT_TIMEOUT = { totalMs: 18e4, idleMs: 9e4, retries: 2 };
+var DEFAULT_TIMEOUT = { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 };
 async function getPromptResult(api, userInput, promptId, configId = "Production", tick = async () => {
 }, onPartial = null, timeoutOverride = null) {
   if (!promptId) promptId = userInput.service_type;
-  const cfg = timeoutOverride || SERVICE_TIMEOUTS[userInput.service_type] || SERVICE_TIMEOUTS[promptId] || DEFAULT_TIMEOUT;
-  const { totalMs, idleMs, retries } = cfg;
+  const baseCfg = SERVICE_TIMEOUTS[userInput.service_type] || SERVICE_TIMEOUTS[promptId] || DEFAULT_TIMEOUT;
+  const cfg = { ...baseCfg, ...timeoutOverride || {} };
+  const { totalMs, firstChunkMs, idleMs, retries } = cfg;
   await tick();
   let lastError = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const response = await _runPromptOnce(api, userInput, promptId, configId, onPartial, totalMs, idleMs);
+      const response = await _runPromptOnce(api, userInput, promptId, configId, onPartial, totalMs, firstChunkMs, idleMs);
       if (_isEmptyPromptResponse(response)) {
         throw new Error(`getPromptResult empty response (${promptId})`);
       }
@@ -11702,24 +11703,32 @@ function _isEmptyPromptResponse(response) {
   if (typeof response.result === "object" && !Array.isArray(response.result) && Object.keys(response.result).length === 0) return true;
   return false;
 }
-async function _runPromptOnce(api, userInput, promptId, configId, onPartial, totalMs, idleMs) {
+async function _runPromptOnce(api, userInput, promptId, configId, onPartial, totalMs, firstChunkMs, idleMs) {
   const generator = api.prompt(userInput, promptId ?? userInput.service_type, configId);
   let response = null;
+  let firstChunkReceived = false;
   let lastChunkAt = Date.now();
   const startedAt = Date.now();
   while (true) {
-    const remainingTotal = totalMs - (Date.now() - startedAt);
-    const remainingIdle = idleMs - (Date.now() - lastChunkAt);
-    const wait = Math.min(remainingTotal, remainingIdle);
+    const elapsed = Date.now() - startedAt;
+    const remainingTotal = totalMs - elapsed;
+    const currentLimit = firstChunkReceived ? idleMs : firstChunkMs;
+    const remainingCurrent = currentLimit - (Date.now() - lastChunkAt);
+    const wait = Math.min(remainingTotal, remainingCurrent);
     if (wait <= 0) {
-      throw new Error(`getPromptResult timeout (${promptId}): total=${totalMs}ms idle=${idleMs}ms`);
+      const reason = !firstChunkReceived ? `no first chunk in ${firstChunkMs}ms` : `no chunk for ${idleMs}ms`;
+      try {
+        await generator.return?.();
+      } catch {
+      }
+      throw new Error(`getPromptResult timeout (${promptId}): ${reason}`);
     }
     let timer2;
     const timeoutPromise = new Promise((_, reject) => {
-      timer2 = setTimeout(
-        () => reject(new Error(`getPromptResult idle timeout (${promptId}): no chunk for ${idleMs}ms`)),
-        wait
-      );
+      timer2 = setTimeout(() => {
+        const reason = !firstChunkReceived ? `no first chunk in ${firstChunkMs}ms` : `no chunk for ${idleMs}ms`;
+        reject(new Error(`getPromptResult timeout (${promptId}): ${reason}`));
+      }, wait);
     });
     let result;
     try {
@@ -11734,6 +11743,7 @@ async function _runPromptOnce(api, userInput, promptId, configId, onPartial, tot
       clearTimeout(timer2);
     }
     if (result.done) break;
+    firstChunkReceived = true;
     lastChunkAt = Date.now();
     try {
       response = result.value;
