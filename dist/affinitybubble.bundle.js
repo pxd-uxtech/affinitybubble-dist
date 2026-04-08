@@ -11669,16 +11669,29 @@ async function getPromptResult(api, userInput, promptId, configId = "Production"
   let lastError = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await _runPromptOnce(api, userInput, promptId, configId, onPartial, totalMs, idleMs);
+      const response = await _runPromptOnce(api, userInput, promptId, configId, onPartial, totalMs, idleMs);
+      if (_isEmptyPromptResponse(response)) {
+        throw new Error(`getPromptResult empty response (${promptId})`);
+      }
+      return response;
     } catch (e) {
       lastError = e;
-      const isTimeout = /timeout/i.test(e?.message || "");
-      console.warn(`getPromptResult [${promptId}] attempt ${attempt + 1}/${retries + 1} \uC2E4\uD328:`, e?.message || e);
-      if (!isTimeout || attempt === retries) break;
+      const msg = e?.message || "";
+      const retriable = /timeout|empty response/i.test(msg);
+      console.warn(`getPromptResult [${promptId}] attempt ${attempt + 1}/${retries + 1} \uC2E4\uD328:`, msg || e);
+      if (!retriable || attempt === retries) break;
       await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
     }
   }
   throw lastError;
+}
+function _isEmptyPromptResponse(response) {
+  if (response == null) return true;
+  if (response.result == null) return true;
+  if (Array.isArray(response.result) && response.result.length === 0) return true;
+  if (typeof response.result === "string" && response.result.trim() === "") return true;
+  if (typeof response.result === "object" && !Array.isArray(response.result) && Object.keys(response.result).length === 0) return true;
+  return false;
 }
 async function _runPromptOnce(api, userInput, promptId, configId, onPartial, totalMs, idleMs) {
   const generator = api.prompt(userInput, promptId ?? userInput.service_type, configId);
