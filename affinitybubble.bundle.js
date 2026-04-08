@@ -8549,7 +8549,7 @@ var Level2Pipeline = class {
       language: selLabelLanguage || this.options.language,
       labelOption: userbigLabelOption + " \uAD04\uD638\uB098 \uCF5C\uB860 \uC0AC\uC6A9\uD55C \uCD94\uAC00 \uC124\uBA85 \uAE08\uC9C0"
     };
-    const response = await this.getPromptResult(userInput);
+    const response = await this.getPromptResult(userInput, null, selUsecase?.configId);
     return (response.result || []).map(
       (d) => d.replace(/\*/g, "").replace(/: .+$/, "").replace(/- .+$/, "").replace(/\([^\(]+\)$/, "").trim()
     );
@@ -8643,8 +8643,11 @@ var Level2Pipeline = class {
   }
   /**
    * usecase에 따른 서비스 타입 결정
+   * 우선순위: selUsecase.serviceType (명시) > category 매핑 > 기본값
+   * 명시적 serviceType을 사용하면 새 분석 유형 추가 시 SDK 수정 불필요.
    */
   _getServiceType(selUsecase) {
+    if (selUsecase?.serviceType) return selUsecase.serviceType;
     const category = selUsecase?.category;
     if (category === "\uD37C\uC18C\uB098") return "extract_persona";
     if (category === "\uB3C4\uBA54\uC778") return "extract_domain";
