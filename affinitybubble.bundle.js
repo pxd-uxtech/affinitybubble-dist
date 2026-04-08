@@ -11603,6 +11603,7 @@ async function processInParallel(processingFunc, data, {
   const pendingPromises = /* @__PURE__ */ new Set();
   let chunkIndex = 0;
   let completedItems = 0;
+  let failedChunks = 0;
   feedbackFunc(0, []);
   while (chunkIndex < dataChunks.length) {
     while (pendingPromises.size < max_threads && chunkIndex < dataChunks.length) {
@@ -11627,8 +11628,14 @@ async function processInParallel(processingFunc, data, {
         );
         return result;
       }).catch((error) => {
-        console.error(`\uCCAD\uD06C ${currentChunkIndex} \uCC98\uB9AC \uC911 \uC624\uB958:`, error);
+        console.error(`\uCCAD\uD06C ${currentChunkIndex} \uCC98\uB9AC \uC2E4\uD328:`, error?.message || error);
         pendingPromises.delete(promise);
+        completedItems += currentChunk.length;
+        failedChunks += 1;
+        feedbackFunc(
+          totalItems > 0 ? Math.min(completedItems / totalItems, 1) : 1,
+          []
+        );
         return [];
       });
       pendingPromises.add(promise);
@@ -11640,13 +11647,15 @@ async function processInParallel(processingFunc, data, {
   if (pendingPromises.size > 0) {
     await Promise.all(Array.from(pendingPromises));
   }
-  const end = /* @__PURE__ */ new Date();
+  if (dataChunks.length > 0 && failedChunks === dataChunks.length) {
+    throw new Error(`processInParallel: \uBAA8\uB4E0 \uCCAD\uD06C \uC2E4\uD328 (${failedChunks}/${dataChunks.length})`);
+  }
   return results;
 }
 var SERVICE_TIMEOUTS = {
-  // 분류: 빠른 응답 기대
-  classification: { totalMs: 12e4, idleMs: 6e4, retries: 2 },
-  classification_with_id: { totalMs: 12e4, idleMs: 6e4, retries: 2 },
+  // 분류: 빠른 응답 기대 (스트림 시작이 느리면 빠르게 재시도)
+  classification: { totalMs: 9e4, idleMs: 25e3, retries: 3 },
+  classification_with_id: { totalMs: 9e4, idleMs: 25e3, retries: 3 },
   // 라벨링: 중간 길이
   get_label: { totalMs: 18e4, idleMs: 9e4, retries: 2 },
   get_label_voice: { totalMs: 18e4, idleMs: 9e4, retries: 2 },
