@@ -12022,7 +12022,7 @@ var AffinityBubblePipeline = class {
         this.state.level2.bigLabelClusters
       );
       this.state.complete();
-      onProgress(this.state.progress, { combined });
+      onProgress(this.state.progress, this.state.snapshot());
       this._saveCurrentState(chunkData, options, level1Result, labels, labelClusters);
       const snapshot = this.history.save(options, this.state.snapshot());
       return {
