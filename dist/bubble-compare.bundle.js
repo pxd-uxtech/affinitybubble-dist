@@ -505,6 +505,10 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
       dateRadioDiv.hidden = true;
       return;
     }
+    const headerLabel = document.createElement("label");
+    headerLabel.className = "bubble-compare-date-radio__header";
+    headerLabel.textContent = "\uB2E8\uC704\uAE30\uAC04 :";
+    dateRadioDiv.appendChild(headerLabel);
     const modes = [
       { value: "monthly", label: "\uC6D4\uBCC4" },
       { value: "weekly", label: "\uC8FC\uBCC4" }
