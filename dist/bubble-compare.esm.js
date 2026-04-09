@@ -392,6 +392,23 @@ function getCompareStyles() {
       color: #888;
       font-size: 14px;
     }
+    .bubble-compare-date-radio {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+    }
+    .bubble-compare-date-radio[hidden] {
+      display: none;
+    }
+    .bubble-compare-date-radio__item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #444;
+    }
   `;
 }
 function createBubbleCompare(container, clusterWithLabel, options = {}) {
@@ -405,7 +422,9 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     smallMultipleHeight = 380,
     bumpChartWidth = 1100,
     bumpChartHeight = 600,
-    onChange
+    onChange,
+    onSelectorCreated,
+    onDateRadioCreated
   } = options;
   if (!d3Lib) throw new Error("d3 is required");
   if (!PlotLib) throw new Error("Plot is required");
@@ -454,8 +473,22 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   selectorDiv.appendChild(select);
   const dateRadioDiv = document.createElement("div");
   dateRadioDiv.className = "bubble-compare-date-radio";
-  dateRadioDiv.style.cssText = "display:none;align-items:center;gap:8px;margin-left:8px;";
+  dateRadioDiv.hidden = true;
   selectorDiv.appendChild(dateRadioDiv);
+  if (typeof onSelectorCreated === "function") {
+    try {
+      onSelectorCreated(selectorDiv);
+    } catch (e) {
+      console.warn("onSelectorCreated:", e);
+    }
+  }
+  if (typeof onDateRadioCreated === "function") {
+    try {
+      onDateRadioCreated(dateRadioDiv);
+    } catch (e) {
+      console.warn("onDateRadioCreated:", e);
+    }
+  }
   root.appendChild(selectorDiv);
   const chartArea = document.createElement("div");
   root.appendChild(chartArea);
@@ -463,10 +496,13 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   function setupDateRadio(dateCol) {
     dateRadioDiv.innerHTML = "";
     const info = dateColumnInfo[dateCol];
-    if (!info) return;
+    if (!info) {
+      dateRadioDiv.hidden = true;
+      return;
+    }
     const hasWeekly = info.weeks <= 20;
     if (!hasWeekly) {
-      dateRadioDiv.style.display = "none";
+      dateRadioDiv.hidden = true;
       return;
     }
     const modes = [
@@ -475,7 +511,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     ];
     for (const mode of modes) {
       const label = document.createElement("label");
-      label.style.cssText = "display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:#444;";
+      label.className = "bubble-compare-date-radio__item";
       const radio = document.createElement("input");
       radio.type = "radio";
       radio.name = "bubble-compare-date-mode";
@@ -490,7 +526,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
       label.appendChild(document.createTextNode(mode.label));
       dateRadioDiv.appendChild(label);
     }
-    dateRadioDiv.style.display = "flex";
+    dateRadioDiv.hidden = false;
   }
   function applyDateGroup(dateCol, mode) {
     activeData = addDateGroupColumn(clusterWithLabel, dateCol, mode);
@@ -585,7 +621,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
       renderCharts(groupKey);
       if (onChange) onChange(groupKey);
     } else {
-      dateRadioDiv.style.display = "none";
+      dateRadioDiv.hidden = true;
       dateRadioDiv.innerHTML = "";
       activeData = clusterWithLabel;
       renderCharts(val);
