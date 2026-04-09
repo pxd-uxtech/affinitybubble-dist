@@ -26,6 +26,7 @@ function guessCategoryKeys(cols, data, d3) {
     "label",
     "bigLabel",
     "bigCluster",
+    "bigClusterOrder",
     "cluster_keywords",
     "x",
     "y",
