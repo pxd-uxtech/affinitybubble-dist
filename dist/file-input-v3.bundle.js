@@ -309,7 +309,9 @@ function createFileInputUIv3(Papa, options = {}) {
       border-radius: 20px;
       width: 90%;
       max-width: 1000px;
-      max-height: 85vh;
+      /* dvh\uB294 \uBAA8\uBC14\uC77C \uBE0C\uB77C\uC6B0\uC800 \uD234\uBC14 \uD3EC\uD568\uD574\uC11C \uC2E4\uC81C \uBDF0\uD3EC\uD2B8 \uAE30\uC900, \uBBF8\uC9C0\uC6D0 \uC2DC vh \uD3F4\uBC31 */
+      max-height: 90vh;
+      max-height: 90dvh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -318,6 +320,7 @@ function createFileInputUIv3(Papa, options = {}) {
     .file-input-v3-popup-header {
       padding: 28px 32px 24px;
       background: #fff;
+      flex-shrink: 0;
     }
     .file-input-v3-popup-title-row {
       display: flex;
@@ -492,7 +495,8 @@ function createFileInputUIv3(Papa, options = {}) {
       opacity: 1;
     }
     .file-input-v3-popup-body {
-      flex: 1;
+      flex: 1 1 auto;
+      min-height: 0;
       overflow: auto;
       padding: 0;
       background: #fff;
@@ -623,6 +627,7 @@ function createFileInputUIv3(Papa, options = {}) {
       display: flex;
       justify-content: center;
       gap: 16px;
+      flex-shrink: 0;
     }
     .file-input-v3-popup-footer .cancel-btn {
       background: #fff;
