@@ -517,11 +517,15 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     dateRadioDiv.innerHTML = "";
     const info = dateColumnInfo[dateCol];
     if (!info) return;
-    const modes = [];
-    modes.push({ value: "monthly", label: `\uC6D4\uBCC4 (${info.months})` });
-    if (info.weeks <= 20) {
-      modes.push({ value: "weekly", label: `\uC8FC\uBCC4 (${info.weeks})` });
+    const hasWeekly = info.weeks <= 20;
+    if (!hasWeekly) {
+      dateRadioDiv.style.display = "none";
+      return;
     }
+    const modes = [
+      { value: "monthly", label: "\uC6D4\uBCC4" },
+      { value: "weekly", label: "\uC8FC\uBCC4" }
+    ];
     for (const mode of modes) {
       const label = document.createElement("label");
       label.style.cssText = "display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:#444;";

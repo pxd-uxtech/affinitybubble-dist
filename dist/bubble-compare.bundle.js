@@ -16,7 +16,6 @@ function sortFunc(d3) {
 }
 function guessCategoryKeys(cols, data, d3) {
   if (!cols || !cols.length) return [];
-  if (!data || !data.length) return [];
   const excludeKeys = /* @__PURE__ */ new Set([
     "text",
     "\uD14D\uC2A4\uD2B8",
@@ -26,7 +25,6 @@ function guessCategoryKeys(cols, data, d3) {
     "label",
     "bigLabel",
     "bigCluster",
-    "bigClusterOrder",
     "cluster_keywords",
     "x",
     "y",
@@ -168,22 +166,41 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
   );
   const colWidth = 120;
   const fontScale = d3.scaleLinear().domain(d3.extent(data, (d) => d.percent)).range([9, 25]);
-  const marginLeft = 40;
-  const marginRight = 20;
-  const nGroups = ratioData ? ratioData.length : d3.max(data, (d) => d.groupOrder) + 1;
-  const xDomain = [0, (nGroups - 1) * colWidth * 1.3 + colWidth];
+  const maxGroup = d3.max(data, (d) => d.groupOrder);
+  const startData = data.filter((d) => d.pos === "start");
+  const orderMap = /* @__PURE__ */ new Map();
+  startData.forEach((d) => orderMap.set(`${d.artist}|${d.groupOrder}`, d.order));
+  const labelVisible = /* @__PURE__ */ new Set();
+  const artists = [...new Set(startData.map((d) => d.artist))];
+  for (const artist of artists) {
+    const groups = [];
+    for (let g = 0; g <= maxGroup; g++) {
+      groups.push({ g, order: orderMap.get(`${artist}|${g}`) });
+    }
+    let runStart = 0;
+    while (runStart <= maxGroup) {
+      const currentOrder = groups[runStart].order;
+      let runEnd = runStart;
+      while (runEnd < maxGroup && groups[runEnd + 1].order === currentOrder) runEnd++;
+      if (currentOrder !== void 0) {
+        const mid = Math.floor((runStart + runEnd) / 2);
+        labelVisible.add(`${artist}|${mid}`);
+      }
+      runStart = runEnd + 1;
+    }
+  }
+  const bumpMargin = 45;
   const bumpPlot = Plot.plot({
     title,
     width,
     height,
     marginTop: 30,
     marginBottom: 5,
-    marginLeft,
-    marginRight,
+    marginLeft: bumpMargin,
     insetLeft: 5,
     color: { scheme: "Tableau10", domain: artistOrder },
-    y: { reverse: true, ticks: 5, label: "" },
-    x: { ticks: [], domain: xDomain },
+    y: { domain: [100, 0], ticks: 5, label: "" },
+    x: { ticks: [] },
     marks: [
       Plot.areaY(data, {
         x: (d) => d.groupOrder * colWidth * 1.3 + (d.pos === "end" ? colWidth : 0),
@@ -196,7 +213,7 @@ function drawBumpChart(d3, Plot, chartData, options = {}) {
         curve: "monotone-x"
       }),
       Plot.text(data, {
-        filter: (d) => d.pos === "start",
+        filter: (d) => d.pos === "start" && labelVisible.has(`${d.artist}|${d.groupOrder}`),
         x: (d) => d.groupOrder * colWidth * 1.3 + colWidth / 2,
         dy: -2,
         y: (d) => d.stack + d.percent / 2,
@@ -223,32 +240,65 @@ ${d.percent.toFixed(1)}%`
     ]
   });
   if (!ratioData || !ratioData.length) return bumpPlot;
-  const bumpXScale = bumpPlot.scale("x");
-  const svgEl = bumpPlot.querySelector("svg");
-  const origH = +svgEl.getAttribute("height");
-  const ratioAreaH = 160;
-  const newH = origH + ratioAreaH;
-  svgEl.setAttribute("height", newH);
-  svgEl.setAttribute("viewBox", `0 0 ${width} ${newH}`);
-  const ratioG = d3.select(svgEl).append("g").attr("transform", `translate(0, ${origH + 25})`);
-  const barAreaH = ratioAreaH - 65;
-  const maxRatio = d3.max(ratioData, (d) => d.ratio);
-  const yScale = d3.scaleLinear().domain([0, maxRatio * 1.2]).nice().range([barAreaH, 0]);
-  const xLeft = bumpXScale.apply(0);
-  const xRight = bumpXScale.apply(xDomain[1]);
-  ratioG.append("line").attr("x1", xLeft).attr("x2", xRight).attr("y1", barAreaH).attr("y2", barAreaH).attr("stroke", "#ccc");
-  ratioData.forEach((d, i) => {
-    const x1 = bumpXScale.apply(i * colWidth * 1.3);
-    const x2 = bumpXScale.apply(i * colWidth * 1.3 + colWidth);
-    const barH = barAreaH - yScale(d.ratio);
-    const y = yScale(d.ratio);
-    const cx = (x1 + x2) / 2;
-    ratioG.append("rect").attr("x", x1).attr("y", y).attr("width", x2 - x1).attr("height", barH).attr("fill", "#8882").attr("stroke", "#888a");
-    ratioG.append("text").attr("x", cx).attr("y", y - 4).attr("text-anchor", "middle").attr("font-size", 14).attr("fill", "#444").text(Math.round(d.ratio * 100) + "%");
-    ratioG.append("text").attr("x", cx).attr("y", y - 20).attr("text-anchor", "middle").attr("font-size", 11).attr("fill", "#4448").text(d.count);
-    ratioG.append("text").attr("x", cx).attr("y", barAreaH + 22).attr("text-anchor", "middle").attr("font-size", 17).attr("font-weight", "500").attr("fill", "#444").text(d.category);
+  const ratioPlot = Plot.plot({
+    width,
+    height: 120,
+    marginTop: 10,
+    marginBottom: 5,
+    marginLeft: bumpMargin,
+    insetLeft: 5,
+    y: { percent: true, nice: true, label: "", ticks: 3 },
+    x: { ticks: [], label: null },
+    marks: [
+      Plot.barY(ratioData, {
+        x: (d) => {
+          const idx = ratioData.indexOf(d);
+          return idx * colWidth * 1.3 + colWidth / 2;
+        },
+        y: "ratio",
+        fill: "#8882",
+        stroke: "#888a"
+      }),
+      Plot.text(ratioData, {
+        x: (d, i) => i * colWidth * 1.3 + colWidth / 2,
+        y: "ratio",
+        dy: -10,
+        text: (d) => d3.format(".0%")(d.ratio),
+        fontSize: 14,
+        fill: "#444"
+      }),
+      Plot.text(ratioData, {
+        x: (d, i) => i * colWidth * 1.3 + colWidth / 2,
+        y: "ratio",
+        dy: -25,
+        text: (d) => `${d.count}`,
+        fontSize: 11,
+        fill: "#4448"
+      }),
+      Plot.ruleY([0], { stroke: "#4444" })
+    ]
   });
-  return bumpPlot;
+  const barRects = ratioPlot.querySelectorAll("rect");
+  const barCenters = [];
+  barRects.forEach((r) => {
+    const rx = parseFloat(r.getAttribute("x"));
+    const rw = parseFloat(r.getAttribute("width"));
+    if (!isNaN(rx) && !isNaN(rw) && rw > 0) barCenters.push(rx + rw / 2);
+  });
+  const labelDiv = document.createElement("div");
+  labelDiv.style.cssText = `position:relative; width:${width}px; height:22px; margin-top:2px;`;
+  ratioData.forEach((d, i) => {
+    const lbl = document.createElement("div");
+    const pixelX = barCenters[i] ?? i * colWidth * 1.3 + colWidth / 2 + bumpMargin;
+    lbl.style.cssText = `position:absolute; left:${pixelX}px; font-size:13px; color:#222; font-weight:bold; text-align:center; transform:translateX(-50%); white-space:nowrap;`;
+    lbl.textContent = d.category;
+    labelDiv.appendChild(lbl);
+  });
+  const container = document.createElement("div");
+  container.appendChild(bumpPlot);
+  container.appendChild(ratioPlot);
+  container.appendChild(labelDiv);
+  return container;
 }
 function drawRatioChart(d3, Plot, clusterWithLabel, selCategoryKey) {
   const total = clusterWithLabel.length;
@@ -402,6 +452,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     VoronoiTreemap: VTClass,
     colors,
     regionColors,
+    title = "",
     smallMultipleWidth = 500,
     smallMultipleHeight = 380,
     bumpChartWidth = 1100,
@@ -423,6 +474,9 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   for (const dc of dateColumns) {
     dateColumnInfo[dc] = computeDateGroupInfo(clusterWithLabel, dc);
   }
+  const dateColNameSet = new Set(dateColumns.map((dc) => dc.toLowerCase()));
+  dateColNameSet.add("date");
+  const filteredCategoryKeys = dateColumns.length > 0 ? categoryKeys.filter((k) => !dateColNameSet.has(k.toLowerCase())) : categoryKeys;
   let activeData = clusterWithLabel;
   container.innerHTML = "";
   const root = document.createElement("div");
@@ -430,16 +484,17 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
   const selectorDiv = document.createElement("div");
   selectorDiv.className = "bubble-compare-selector";
   const selectorLabel = document.createElement("label");
-  selectorLabel.textContent = "\uBE44\uAD50 \uBC94\uC8FC \uC120\uD0DD";
+  selectorLabel.textContent = "\uBE44\uAD50 \uAE30\uC900";
   const select = document.createElement("select");
   const defaultOption = document.createElement("option");
   defaultOption.value = "";
   defaultOption.textContent = "\uC120\uD0DD\uD558\uC138\uC694";
   select.appendChild(defaultOption);
-  for (const key of categoryKeys) {
+  for (const key of filteredCategoryKeys) {
+    const uniqueCount = new Set(clusterWithLabel.map((d) => d[key]).filter(Boolean)).size;
     const opt = document.createElement("option");
     opt.value = key;
-    opt.textContent = key;
+    opt.textContent = `${key} (${uniqueCount})`;
     select.appendChild(opt);
   }
   for (const dc of dateColumns) {
@@ -462,11 +517,15 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     dateRadioDiv.innerHTML = "";
     const info = dateColumnInfo[dateCol];
     if (!info) return;
-    const modes = [];
-    modes.push({ value: "monthly", label: `\uC6D4\uBCC4 (${info.months})` });
-    if (info.weeks <= 20) {
-      modes.push({ value: "weekly", label: `\uC8FC\uBCC4 (${info.weeks})` });
+    const hasWeekly = info.weeks <= 20;
+    if (!hasWeekly) {
+      dateRadioDiv.style.display = "none";
+      return;
     }
+    const modes = [
+      { value: "monthly", label: "\uC6D4\uBCC4" },
+      { value: "weekly", label: "\uC8FC\uBCC4" }
+    ];
     for (const mode of modes) {
       const label = document.createElement("label");
       label.style.cssText = "display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:#444;";
@@ -503,7 +562,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     const bumpSection = document.createElement("div");
     bumpSection.className = "bubble-compare-section";
     const bumpTitle = document.createElement("h3");
-    bumpTitle.textContent = `\uC774\uC288 x [${selKey}] \uAD50\uCC28 \uBD84\uC11D`;
+    bumpTitle.textContent = `${title ? title + " - " : ""}${selKey} \uBE44\uAD50`;
     bumpSection.appendChild(bumpTitle);
     try {
       const itemCompare = computeItemCompare(d3Lib, dataToUse, selKey);
@@ -522,12 +581,20 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
           count: dataToUse.filter((d) => String(d[selKey]) === String(category)).length,
           ratio: dataToUse.filter((d) => String(d[selKey]) === String(category)).length / total
         }));
+        let bumpColorRange = cardColors.map((c) => colorvariation(d3Lib, c, 0, 0, -0.2));
+        let bumpDomain = bigLabels;
+        if (regionColors && regionColors.length) {
+          const rcMap = new Map(regionColors.map((rc) => [rc.key, rc.color]));
+          bumpColorRange = bigLabels.map(
+            (bl, i) => rcMap.get(bl) || cardColors[i] || CLUSTER_COLORS[i]
+          );
+        }
         const bumpChart = drawBumpChart(d3Lib, PlotLib, compareData, {
           width: bumpChartWidth,
           height: bumpChartHeight,
           showPercent: true,
-          colorRange: cardColors.map((c) => colorvariation(d3Lib, c, 0, 0, -0.2)),
-          domain: bigLabels,
+          colorRange: bumpColorRange,
+          domain: bumpDomain,
           title: "",
           ratioData
         });
@@ -541,7 +608,7 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
       const smSection = document.createElement("div");
       smSection.className = "bubble-compare-section";
       const smTitle = document.createElement("h3");
-      smTitle.textContent = `\uC774\uC288 x [${selKey}] Small Multiples`;
+      smTitle.textContent = `${selKey}\uBCC4 Small Multiples`;
       smSection.appendChild(smTitle);
       try {
         const smChart = renderSmallMultiples(
@@ -602,10 +669,18 @@ function createBubbleCompare(container, clusterWithLabel, options = {}) {
     }
   };
 }
-function getCompareColumns(data) {
-  if (!data || !data.length) return [];
-  const cols = Object.keys(data[0] || {});
-  return guessCategoryKeys(cols, data);
+function getCompareColumns(clusterWithLabel) {
+  const allCols = Object.keys(clusterWithLabel[0] || {});
+  const categoryKeys = guessCategoryKeys(allCols, clusterWithLabel);
+  const dateCols = detectDateColumns(allCols, clusterWithLabel);
+  const dateColumns = dateCols.map((key) => {
+    const info = computeDateGroupInfo(clusterWithLabel, key);
+    return { key, monthSpan: info.monthSpan, weekSpan: info.weekSpan };
+  });
+  const dateColNameSet = new Set(dateCols.map((dc) => dc.toLowerCase()));
+  dateColNameSet.add("date");
+  const filtered = dateColumns.length > 0 ? categoryKeys.filter((k) => !dateColNameSet.has(k.toLowerCase())) : categoryKeys;
+  return { categoryKeys: filtered, dateColumns };
 }
 export {
   createBubbleCompare,
