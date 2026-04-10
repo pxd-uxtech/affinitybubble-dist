@@ -8986,18 +8986,38 @@ var HistoryManager = class {
    * @param {Object} results - 결과 데이터 (level1, level1Labels, level2)
    * @returns {Object} 저장된 스냅샷
    */
-  async save(options, results) {
+  /**
+   * @param {Object} options - 사용된 옵션
+   * @param {Object} results - 결과 데이터
+   * @param {Object} [meta] - 추가 메타데이터
+   * @param {SVGElement|HTMLCanvasElement} [meta.thumbnailEl] - 썸네일 캡처할 DOM 요소
+   * @param {string} [meta.memo] - 사용자 메모
+   */
+  async save(options, results, { thumbnailEl, memo = "" } = {}) {
     const snapshot = {
       id: `snapshot_${Date.now()}`,
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       options: { ...options },
       results: this._cloneResults(results),
-      stats: this._calculateStats(results)
+      stats: this._calculateStats(results),
+      thumbnail: thumbnailEl ? this._captureThumbnail(thumbnailEl) : null,
+      memo
     };
     this.snapshots = [snapshot, ...this.snapshots.slice(0, this.options.maxSnapshots - 1)];
     this.currentIndex = -1;
     await this._persistToStorage();
     return snapshot;
+  }
+  /**
+   * 메모 업데이트
+   */
+  async setMemo(snapshotId, memo) {
+    const snapshot = this.snapshots.find((s) => s.id === snapshotId);
+    if (snapshot) {
+      snapshot.memo = memo;
+      await this._persistToStorage();
+    }
+    return this;
   }
   /**
    * 스냅샷 복원
@@ -9028,6 +9048,8 @@ var HistoryManager = class {
       timestamp: s.timestamp,
       options: s.options,
       stats: s.stats,
+      thumbnail: s.thumbnail || null,
+      memo: s.memo || "",
       isCurrent: this.currentIndex === -1 ? idx === 0 : idx === this.currentIndex
     }));
   }
@@ -9236,6 +9258,34 @@ var HistoryManager = class {
       console.warn("History \uBCF5\uC6D0 \uC2E4\uD328:", e);
     }
     return this;
+  }
+  /**
+   * SVG 또는 Canvas 요소를 JPEG data URL로 캡처 (300px 너비 썸네일)
+   */
+  _captureThumbnail(el) {
+    try {
+      const THUMB_W = 300;
+      if (el instanceof SVGElement || el.tagName?.toLowerCase() === "svg") {
+        const svg = el.cloneNode(true);
+        const bbox = el.getBoundingClientRect();
+        const ratio = bbox.height / (bbox.width || 1);
+        svg.setAttribute("width", THUMB_W);
+        svg.setAttribute("height", Math.round(THUMB_W * ratio));
+        const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" });
+        return URL.createObjectURL(blob);
+      }
+      if (el instanceof HTMLCanvasElement) {
+        const ratio = el.height / (el.width || 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = THUMB_W;
+        canvas.height = Math.round(THUMB_W * ratio);
+        canvas.getContext("2d").drawImage(el, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL("image/jpeg", 0.7);
+      }
+    } catch (e) {
+      console.warn("\uC378\uB124\uC77C \uCEA1\uCC98 \uC2E4\uD328:", e);
+    }
+    return null;
   }
   /**
    * 저장용 결과 경량화 — combined에서 chunk 제외
