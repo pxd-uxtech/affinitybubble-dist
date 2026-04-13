@@ -156,7 +156,7 @@ function createFileInputUIv3(Papa, options = {}) {
     isEduUser = false,
     // EDU 사용자 여부
     hateSpeechFilter = null
-    // 혐오발언 필터. { getPromptResult, configId? } 또는 async (texts) => number[]
+    // 혐오발언 필터. getPromptResult 함수를 그대로 전달. service_type: 'filter_hate_speech' 자동 사용
   } = options;
   let guideContainer = null;
   let rawText = [];
@@ -1542,16 +1542,11 @@ function createFileInputUIv3(Papa, options = {}) {
         const batchSize = 50;
         let processed = 0;
         let removedCount = 0;
-        const filterFn = typeof hateSpeechFilter === "function" ? hateSpeechFilter : async (texts) => {
+        const filterFn = async (texts) => {
           const numbered = texts.map((t, i) => `${i + 1}. ${t}`).join("\n");
-          const userInput = {
-            service_type: "filter_hate_speech",
-            texts: numbered
-          };
-          const resp = await hateSpeechFilter.getPromptResult(
-            userInput,
-            null,
-            hateSpeechFilter.configId
+          const resp = await hateSpeechFilter(
+            { service_type: "filter_hate_speech", texts: numbered },
+            null
           );
           const raw = Array.isArray(resp?.result) ? resp.result[0] : resp?.result;
           return parseFilterResponse(String(raw || "\uC5C6\uC74C"), texts.length);
