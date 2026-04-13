@@ -1900,7 +1900,7 @@ function createFileInputUIv3(Papa, options = {}) {
     document.body.classList.add("data-attached");
     document.body.classList.remove("no-data");
 
-    const rows = chunks.slice(0, 100);
+    const rows = chunks.slice(0, maxSize);
     const hasSizeCol = columnMapping.size !== "없음";
     const hasDateCol = columnMapping.date !== "없음";
 
