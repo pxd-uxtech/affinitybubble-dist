@@ -1517,6 +1517,9 @@ function createFileInputUIv3(Papa, options = {}) {
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
 
+    // 초기 선택 컬럼으로 스크롤 (DOM 렌더 후)
+    requestAnimationFrame(() => scrollToColumn(columnMapping.text));
+
     // Transpose 버튼 이벤트
     const transposeBtn = popup.querySelector(".file-input-v3-transpose-btn");
     if (transposeBtn) {
