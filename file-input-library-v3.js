@@ -30,19 +30,25 @@ function detectFormat(Papa, input) {
   if (typeof input !== "string") return "text";
 
   // PapaParse로 전체 파싱하여 포맷 판별 (셀 내 줄바꿈 올바르게 처리)
-  // TSV 먼저 시도 (TSV는 따옴표 인용을 쓰지 않으므로 quoteChar 비활성화)
-  const tsvResult = Papa.parse(input, {
-    delimiter: "\t",
-    quoteChar: "\0",
-    skipEmptyLines: true,
-    preview: 20
-  });
-  if (tsvResult.data.length >= 2 && tsvResult.data[0]?.length > 1) {
-    const headerCount = tsvResult.data[0].length;
-    const matchingRows = tsvResult.data.filter(r => r.length >= headerCount - 1 && r.length <= headerCount + 1).length;
-    if (matchingRows / tsvResult.data.length >= 0.8) {
-      return "tsv";
+  // TSV 먼저 시도: quoteChar '"'(구글 시트 스타일)와 "\0"(비활성화) 양쪽 시도 후
+  // 더 높은 컬럼 일치율을 채택 — 어느 한쪽이 0.8 이상이면 TSV로 판정
+  {
+    let bestTsvRatio = 0;
+    for (const quoteChar of ['"', "\0"]) {
+      const tsvResult = Papa.parse(input, {
+        delimiter: "\t",
+        quoteChar,
+        skipEmptyLines: true,
+        preview: 20
+      });
+      if (tsvResult.data.length >= 2 && tsvResult.data[0]?.length > 1) {
+        const headerCount = tsvResult.data[0].length;
+        const matchingRows = tsvResult.data.filter(r => r.length >= headerCount - 1 && r.length <= headerCount + 1).length;
+        const ratio = matchingRows / tsvResult.data.length;
+        if (ratio > bestTsvRatio) bestTsvRatio = ratio;
+      }
     }
+    if (bestTsvRatio >= 0.8) return "tsv";
   }
 
   // CSV 시도 (따옴표 인용 있는 경우 → 없는 경우 순서로 시도)
