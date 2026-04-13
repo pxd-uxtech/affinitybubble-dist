@@ -834,6 +834,22 @@ function createFileInputUIv3(Papa, options = {}) {
       padding: 8px 32px 8px 14px;
       font-size: 13px;
       cursor: pointer;
+      min-width: 100px;
+    }
+    .file-input-v3-dropdown select.text-colored {
+      background: #e0f7f4;
+      color: #0d7680;
+      border-color: #0d9488;
+    }
+    .file-input-v3-dropdown select.size-colored {
+      background: #F5FBFF;
+      color: #0369a1;
+      border-color: #0369a1;
+    }
+    .file-input-v3-dropdown select.date-colored {
+      background: #FBF5FF;
+      color: #7c3aed;
+      border-color: #7c3aed;
     }
     .file-input-v3-dropdown::after {
       content: '▼';
@@ -1331,25 +1347,17 @@ function createFileInputUIv3(Papa, options = {}) {
         <div class="file-input-v3-popup-selectors">
           <div class="file-input-v3-popup-selector-row">
             <span class="label required">분석할 텍스트 컬럼</span>
-            <span class="file-input-v3-popup-tag text-tag">
-              ${columnMapping.text}
-              <span class="remove">×</span>
-            </span>
-            <div class="file-input-v3-dropdown" style="display:none;">
-              <select class="text-column-select">
-                ${rawCols.map(col => `<option value="${col}" ${col === columnMapping.text ? 'selected' : ''}>${col}</option>`).join('')}
+            <div class="file-input-v3-dropdown">
+              <select class="text-column-select text-colored">
+                ${rawCols.filter(col => !sizeCandidates.includes(col) && !dateCandidates.includes(col)).map(col => `<option value="${col}" ${col === columnMapping.text ? 'selected' : ''}>${col}</option>`).join('')}
               </select>
             </div>
           </div>
           ${hasSizeOptions ? `
           <div class="file-input-v3-popup-selector-row">
             <span class="label">가중치 컬럼 <span class="info-wrapper"><span class="info-icon">${infoIconSmall}</span><div class="weight-tooltip">가중치에 따라 중요한 버블 크기를 크게 표시합니다. 없음으로 하면 동일한 가중치를 사용합니다. <br><br><strong>예시:</strong><br>• 클릭수: 50, 120, 35 → 120이 가장 큰 버블<br>• 좋아요: 등은 log나 제곱근 스케일로 변환하여 반영하는 것이 좋습니다.</div></span></span>
-            <span class="file-input-v3-popup-tag size-tag" ${columnMapping.size === '없음' ? 'style="display:none;"' : ''}>
-              ${columnMapping.size}
-              <span class="remove">×</span>
-            </span>
-            <div class="file-input-v3-dropdown" ${columnMapping.size !== '없음' ? 'style="display:none;"' : ''}>
-              <select class="size-column-select">
+            <div class="file-input-v3-dropdown">
+              <select class="size-column-select ${columnMapping.size !== '없음' ? 'size-colored' : ''}">
                 <option value="없음">없음</option>
                 ${sizeCandidates.map(col => `<option value="${col}" ${col === columnMapping.size ? 'selected' : ''}>${col}</option>`).join('')}
               </select>
@@ -1359,12 +1367,8 @@ function createFileInputUIv3(Papa, options = {}) {
           ${hasDateOptions ? `
           <div class="file-input-v3-popup-selector-row">
             <span class="label">날짜 컬럼</span>
-            <span class="file-input-v3-popup-tag date-tag" ${columnMapping.date === '없음' ? 'style="display:none;"' : ''}>
-              ${columnMapping.date}
-              <span class="remove">×</span>
-            </span>
-            <div class="file-input-v3-dropdown" ${columnMapping.date !== '없음' ? 'style="display:none;"' : ''}>
-              <select class="date-column-select">
+            <div class="file-input-v3-dropdown">
+              <select class="date-column-select ${columnMapping.date !== '없음' ? 'date-colored' : ''}">
                 <option value="없음">없음</option>
                 ${dateCandidates.map(col => `<option value="${col}" ${col === columnMapping.date ? 'selected' : ''}>${col}</option>`).join('')}
               </select>
@@ -1569,82 +1573,47 @@ function createFileInputUIv3(Papa, options = {}) {
       });
     }
 
-    // 모든 태그 UI 업데이트
+    // 모든 select UI 업데이트 (옵션 갱신 + 색상)
     function updateAllTagsUI() {
       updateTextTagUI();
-      if (hasSizeOptions) updateSizeTagUI();
-      if (hasDateOptions) updateDateTagUI();
+      updateSizeTagUI();
+      updateDateTagUI();
     }
 
     // 팝업 이벤트 핸들러
-    const textTag = popup.querySelector(".text-tag");
-    const textDropdown = popup.querySelector(".file-input-v3-dropdown");
     const textSelect = popup.querySelector(".text-column-select");
+    const dateSelect = hasDateOptions ? popup.querySelector(".date-column-select") : null;
+    const sizeSelect = hasSizeOptions ? popup.querySelector(".size-column-select") : null;
 
-    textTag?.querySelector(".remove")?.addEventListener("click", () => {
-      textTag.style.display = "none";
-      textDropdown.style.display = "inline-block";
-    });
-
-    // 텍스트 태그 업데이트 함수
+    // 텍스트 컬럼 select 업데이트 (옵션 갱신 + 현재 값 반영)
     function updateTextTagUI() {
-      textTag.innerHTML = columnMapping.text + '<span class="remove">×</span>';
-      textTag.style.display = "inline-flex";
-      textDropdown.style.display = "none";
+      const excludedCols = new Set([...sizeCandidates, ...dateCandidates]);
+      textSelect.innerHTML = rawCols
+        .filter(col => !excludedCols.has(col))
+        .map(col => `<option value="${col}" ${col === columnMapping.text ? 'selected' : ''}>${col}</option>`)
+        .join('');
+      textSelect.value = columnMapping.text;
+    }
 
-      // select 옵션 업데이트 (transpose 후 변경될 수 있음)
-      textSelect.innerHTML = rawCols.map(col =>
-        `<option value="${col}" ${col === columnMapping.text ? 'selected' : ''}>${col}</option>`
-      ).join('');
+    function updateSizeTagUI() {
+      if (!sizeSelect) return;
+      sizeSelect.value = columnMapping.size;
+      sizeSelect.classList.toggle('size-colored', columnMapping.size !== '없음');
+    }
 
-      textTag.querySelector(".remove")?.addEventListener("click", () => {
-        textTag.style.display = "none";
-        textDropdown.style.display = "inline-block";
-      });
+    function updateDateTagUI() {
+      if (!dateSelect) return;
+      dateSelect.value = columnMapping.date;
+      dateSelect.classList.toggle('date-colored', columnMapping.date !== '없음');
     }
 
     textSelect?.addEventListener("change", () => {
       columnMapping.text = textSelect.value;
-      updateTextTagUI();
       renderTable();
       setupHeaderClickHandlers();
     });
 
-    // 날짜 컬럼 관련 요소
-    const dateTag = hasDateOptions ? popup.querySelector(".date-tag") : null;
-    const dateDropdown = hasDateOptions ? popup.querySelector(".date-column-select")?.parentElement : null;
-    const dateSelect = hasDateOptions ? popup.querySelector(".date-column-select") : null;
-
-    // 날짜 태그 업데이트 함수
-    function updateDateTagUI() {
-      if (!hasDateOptions || !dateTag) return;
-      if (columnMapping.date === "없음") {
-        dateTag.style.display = "none";
-        if (dateDropdown) dateDropdown.style.display = "inline-block";
-        if (dateSelect) dateSelect.value = "없음";
-      } else {
-        dateTag.innerHTML = columnMapping.date + '<span class="remove">×</span>';
-        dateTag.style.display = "inline-flex";
-        if (dateDropdown) dateDropdown.style.display = "none";
-        if (dateSelect) dateSelect.value = columnMapping.date;
-
-        dateTag.querySelector(".remove")?.addEventListener("click", () => {
-          columnMapping.date = "없음";
-          updateDateTagUI();
-          renderTable();
-          setupHeaderClickHandlers();
-        });
-      }
-    }
-
     if (hasDateOptions) {
-      dateTag?.querySelector(".remove")?.addEventListener("click", () => {
-        columnMapping.date = "없음";
-        updateDateTagUI();
-        renderTable();
-        setupHeaderClickHandlers();
-      });
-
       dateSelect?.addEventListener("change", () => {
         columnMapping.date = dateSelect.value;
         updateDateTagUI();
@@ -1653,41 +1622,7 @@ function createFileInputUIv3(Papa, options = {}) {
       });
     }
 
-    // 사이즈 컬럼 관련 요소
-    const sizeTag = hasSizeOptions ? popup.querySelector(".size-tag") : null;
-    const sizeDropdown = hasSizeOptions ? popup.querySelector(".size-column-select")?.parentElement : null;
-    const sizeSelect = hasSizeOptions ? popup.querySelector(".size-column-select") : null;
-
-    // 사이즈 태그 업데이트 함수
-    function updateSizeTagUI() {
-      if (!hasSizeOptions || !sizeTag) return;
-      if (columnMapping.size === "없음") {
-        sizeTag.style.display = "none";
-        if (sizeDropdown) sizeDropdown.style.display = "inline-block";
-        if (sizeSelect) sizeSelect.value = "없음";
-      } else {
-        sizeTag.innerHTML = columnMapping.size + '<span class="remove">×</span>';
-        sizeTag.style.display = "inline-flex";
-        if (sizeDropdown) sizeDropdown.style.display = "none";
-        if (sizeSelect) sizeSelect.value = columnMapping.size;
-
-        sizeTag.querySelector(".remove")?.addEventListener("click", () => {
-          columnMapping.size = "없음";
-          updateSizeTagUI();
-          renderTable();
-          setupHeaderClickHandlers();
-        });
-      }
-    }
-
     if (hasSizeOptions) {
-      sizeTag?.querySelector(".remove")?.addEventListener("click", () => {
-        columnMapping.size = "없음";
-        updateSizeTagUI();
-        renderTable();
-        setupHeaderClickHandlers();
-      });
-
       sizeSelect?.addEventListener("change", () => {
         columnMapping.size = sizeSelect.value;
         updateSizeTagUI();
