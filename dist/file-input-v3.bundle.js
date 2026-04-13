@@ -31,6 +31,41 @@ function detectFormat(Papa, input) {
   }
   return "text";
 }
+function _mergeTsvQuotedNewlines(text) {
+  const lines = text.split("\n");
+  const headerTabCount = (lines[0]?.match(/\t/g) || []).length;
+  if (headerTabCount === 0) return text;
+  const merged = [];
+  let accumulator = null;
+  for (const line of lines) {
+    if (accumulator !== null) {
+      accumulator += " " + line;
+      const tabCount = (accumulator.match(/\t/g) || []).length;
+      if (tabCount >= headerTabCount) {
+        merged.push(accumulator);
+        accumulator = null;
+      }
+    } else {
+      const tabCount = (line.match(/\t/g) || []).length;
+      if (tabCount < headerTabCount) {
+        if (merged.length > 0) {
+          accumulator = merged.pop() + " " + line;
+          const newTabCount = (accumulator.match(/\t/g) || []).length;
+          if (newTabCount >= headerTabCount) {
+            merged.push(accumulator);
+            accumulator = null;
+          }
+        } else {
+          merged.push(line);
+        }
+      } else {
+        merged.push(line);
+      }
+    }
+  }
+  if (accumulator !== null) merged.push(accumulator);
+  return merged.join("\n");
+}
 function guessTextKey(rawCols, rawText) {
   if (rawCols?.includes("text")) return "text";
   if (rawCols?.includes("\uD14D\uC2A4\uD2B8")) return "\uD14D\uC2A4\uD2B8";
@@ -116,8 +151,12 @@ function createFileInputUIv3(Papa, options = {}) {
     moment = null,
     guideContainerId = null,
     // 외부 가이드 컨테이너 DOM ID (사용자가 직접 구현)
-    user_subscript = "free"
+    user_subscript = "free",
     // 사용자 구독 유형
+    isEduUser = false,
+    // EDU 사용자 여부
+    hateSpeechFilter = null
+    // 혐오발언 필터. { getPromptResult, configId? } 또는 async (texts) => number[]
   } = options;
   let guideContainer = null;
   let rawText = [];
@@ -126,6 +165,7 @@ function createFileInputUIv3(Papa, options = {}) {
   let chunks = [];
   let inputContent = "";
   let excludedRows = /* @__PURE__ */ new Set();
+  let filterExcludedRows = /* @__PURE__ */ new Set();
   const container = document.createElement("div");
   container.className = "file-input-v3";
   container.style.cssText = `width: ${width}px; font-family: var(--sans-serif, system-ui);`;
@@ -620,6 +660,45 @@ function createFileInputUIv3(Papa, options = {}) {
     .file-input-v3-popup-table tr:hover td.selected-date {
       background: #f3e8ff;
     }
+    .file-input-v3-filter-bar {
+      padding: 12px 32px;
+      background: #fafafa;
+      border-top: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .file-input-v3-filter-bar .filter-btn {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      padding: 7px 16px;
+      font-size: 13px;
+      color: #555;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .file-input-v3-filter-bar .filter-btn:hover:not(:disabled) {
+      background: #f5f5f5;
+      border-color: #bbb;
+    }
+    .file-input-v3-filter-bar .filter-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .file-input-v3-filter-bar .filter-progress {
+      font-size: 13px;
+      color: #888;
+    }
+    .file-input-v3-filter-bar .filter-result {
+      font-size: 13px;
+      color: #e53e3e;
+    }
     .file-input-v3-popup-footer {
       padding: 20px 32px;
       background: #fff;
@@ -725,6 +804,39 @@ function createFileInputUIv3(Papa, options = {}) {
     }
     .file-input-v3 .preview-edit-btn:hover {
       background: #f5f5f5;
+    }
+    .file-input-v3 .preview-copy-btn {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: #666;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .file-input-v3 .preview-copy-btn:hover {
+      background: #f5f5f5;
+    }
+    .file-input-v3 .copy-toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .file-input-v3 .copy-toast.show {
+      opacity: 1;
     }
     .file-input-v3 .preview-delete-btn {
       background: none;
@@ -851,7 +963,8 @@ function createFileInputUIv3(Papa, options = {}) {
     <div class="preview-section">
       <div class="preview-header">
         <span class="preview-title">\uC785\uB825\uD55C \uB370\uC774\uD130</span>
-        <button class="preview-edit-btn">\uC218\uC815 \u270E</button>
+        <button class="preview-edit-btn">\uC218\uC815</button>
+        <button class="preview-copy-btn">\uBCF5\uC0AC</button>
         <span style="flex:1;"></span>
         <button class="preview-delete-btn" title="\uC0AD\uC81C">\xD7</button>
       </div>
@@ -874,6 +987,7 @@ function createFileInputUIv3(Papa, options = {}) {
   const previewTable = container.querySelector(".preview-table");
   const dataCountDiv = container.querySelector(".data-count");
   const editBtn = container.querySelector(".preview-edit-btn");
+  const copyBtn = container.querySelector(".preview-copy-btn");
   const deleteBtn = container.querySelector(".preview-delete-btn");
   const mainTitle = container.querySelector(".main-title");
   if (guideContainerId) {
@@ -999,10 +1113,11 @@ function createFileInputUIv3(Papa, options = {}) {
     } else if (format === "tsv") {
       parseOptions.quoteChar = "\0";
     }
-    const parsed = Papa.parse(
-      format === "text" ? "text\n" + inputContent : inputContent,
-      parseOptions
-    );
+    let contentToParse = format === "text" ? "text\n" + inputContent : inputContent;
+    if (format === "tsv") {
+      contentToParse = _mergeTsvQuotedNewlines(inputContent);
+    }
+    const parsed = Papa.parse(contentToParse, parseOptions);
     rawText = parsed.data.filter((d) => Object.values(d).some((v) => v && String(v).trim()));
     if (rawText.length === 0) {
       alert("\uC720\uD6A8\uD55C \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.");
@@ -1017,6 +1132,10 @@ function createFileInputUIv3(Papa, options = {}) {
     columnMapping.date = dateCandidates.length > 0 ? dateCandidates[0] : "\uC5C6\uC74C";
     showPopup(sizeCandidates, dateCandidates);
   }
+  function parseFilterResponse(raw, batchLen) {
+    if (!raw || raw.trim() === "\uC5C6\uC74C") return [];
+    return raw.split(/[,，\s]+/).map((s) => parseInt(s, 10)).filter((n) => !isNaN(n) && n >= 1 && n <= batchLen);
+  }
   function showPopup(sizeCandidates, dateCandidates, fromEdit = false) {
     const savedMapping = { ...columnMapping };
     const overlay = document.createElement("div");
@@ -1027,6 +1146,7 @@ function createFileInputUIv3(Papa, options = {}) {
     const hasDateOptions = dateCandidates.length > 0;
     if (!fromEdit) {
       excludedRows = /* @__PURE__ */ new Set();
+      filterExcludedRows = /* @__PURE__ */ new Set();
     }
     const transposeIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="5" y="10" width="4" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
@@ -1104,6 +1224,16 @@ function createFileInputUIv3(Papa, options = {}) {
           <tbody></tbody>
         </table>
       </div>
+      ${hateSpeechFilter ? `
+      <div class="file-input-v3-filter-bar">
+        <button class="filter-btn">
+          <i class="fi fi-rr-shield-exclamation"></i>
+          \uC695\uC124\xB7\uD610\uC624 \uC81C\uAC70
+        </button>
+        <span class="filter-progress" style="display:none;">\uCC98\uB9AC \uC911... <span class="fp-current">0</span> / <span class="fp-total">0</span></span>
+        <span class="filter-result" style="display:none;"><span class="fp-removed">0</span>\uAC74 \uC81C\uAC70\uB428</span>
+      </div>
+      ` : ""}
       <div class="file-input-v3-popup-footer">
         <button class="cancel-btn">\uCDE8\uC18C</button>
         <button class="complete-btn">\uC644\uB8CC</button>
@@ -1113,7 +1243,7 @@ function createFileInputUIv3(Papa, options = {}) {
       const thead = popup.querySelector("thead");
       const tbody = popup.querySelector("tbody");
       const checkIcon = `<span class="check-icon">\u2713</span>`;
-      const displayedRows = rawText.slice(0, 100);
+      const displayedRows = rawText.slice(0, maxSize);
       const allChecked = displayedRows.every((_, idx) => !excludedRows.has(idx));
       thead.innerHTML = `
         <tr>
@@ -1161,7 +1291,7 @@ function createFileInputUIv3(Papa, options = {}) {
     function setupCheckboxHandlers() {
       const checkboxes = popup.querySelectorAll(".row-checkbox");
       const selectAllCheckbox = popup.querySelector(".select-all-checkbox");
-      const displayedRows = rawText.slice(0, 100);
+      const displayedRows = rawText.slice(0, maxSize);
       if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener("change", (e) => {
           const isChecked = e.target.checked;
@@ -1385,6 +1515,77 @@ function createFileInputUIv3(Papa, options = {}) {
       });
     }
     setupHeaderClickHandlers();
+    if (hateSpeechFilter) {
+      const filterBtn = popup.querySelector(".filter-btn");
+      const completeBtn = popup.querySelector(".complete-btn");
+      const filterProgress = popup.querySelector(".filter-progress");
+      const filterResult = popup.querySelector(".filter-result");
+      const fpCurrent = popup.querySelector(".fp-current");
+      const fpTotal = popup.querySelector(".fp-total");
+      const fpRemoved = popup.querySelector(".fp-removed");
+      if (filterExcludedRows.size > 0) {
+        filterResult.style.display = "";
+        fpRemoved.textContent = filterExcludedRows.size;
+      }
+      filterBtn.addEventListener("click", async () => {
+        const textKey = columnMapping.text;
+        if (!textKey) return;
+        const totalRows = rawText.length;
+        filterExcludedRows.forEach((idx) => excludedRows.delete(idx));
+        filterExcludedRows = /* @__PURE__ */ new Set();
+        filterBtn.disabled = true;
+        completeBtn.disabled = true;
+        filterResult.style.display = "none";
+        filterProgress.style.display = "";
+        fpTotal.textContent = totalRows;
+        fpCurrent.textContent = 0;
+        const batchSize = 50;
+        let processed = 0;
+        let removedCount = 0;
+        const filterFn = typeof hateSpeechFilter === "function" ? hateSpeechFilter : async (texts) => {
+          const numbered = texts.map((t, i) => `${i + 1}. ${t}`).join("\n");
+          const userInput = {
+            service_type: "filter_hate_speech",
+            texts: numbered
+          };
+          const resp = await hateSpeechFilter.getPromptResult(
+            userInput,
+            null,
+            hateSpeechFilter.configId
+          );
+          const raw = Array.isArray(resp?.result) ? resp.result[0] : resp?.result;
+          return parseFilterResponse(String(raw || "\uC5C6\uC74C"), texts.length);
+        };
+        for (let i = 0; i < totalRows; i += batchSize) {
+          const batchRows = rawText.slice(i, i + batchSize);
+          const texts = batchRows.map(
+            (row) => String(row[textKey] || "").replace(/\n/g, " ").trim()
+          );
+          try {
+            const flagged = await filterFn(texts);
+            flagged.forEach((n) => {
+              const globalIdx = i + (n - 1);
+              if (globalIdx >= 0 && globalIdx < totalRows) {
+                excludedRows.add(globalIdx);
+                filterExcludedRows.add(globalIdx);
+                removedCount++;
+              }
+            });
+          } catch (e) {
+            console.warn("Filter batch error (skipped):", e);
+          }
+          processed += batchRows.length;
+          fpCurrent.textContent = processed;
+          renderTable();
+          setupCheckboxHandlers();
+        }
+        filterBtn.disabled = false;
+        completeBtn.disabled = false;
+        filterProgress.style.display = "none";
+        filterResult.style.display = "";
+        fpRemoved.textContent = removedCount;
+      });
+    }
     popup.querySelector(".cancel-btn").addEventListener("click", () => {
       columnMapping.text = savedMapping.text;
       columnMapping.size = savedMapping.size;
@@ -1470,11 +1671,13 @@ function createFileInputUIv3(Papa, options = {}) {
     const showNotice = isOver || chunks.length > 1500;
     let noticeContent = "";
     if (user_subscript.match(/demo/i) && isOver) {
-      noticeContent = `<span class="bodyTitle">${activeCount}\uAC1C\uC911 \uCC98\uC74C ${maxSize}\uAC1C\uC758 \uB370\uC774\uD130\uB97C \uBD84\uC11D\uD569\uB2C8\uB2E4.</span><br>
-<span class="bodytext">\uBB34\uB8CC \uD68C\uC6D0\uAC00\uC785\uD558\uBA74 \uB354 \uB9CE\uC740 \uB370\uC774\uD130\uB97C \uBD84\uC11D\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.</span>`;
+      noticeContent = `<span class="bodyTitle">\uB370\uBAA8\uC6A9\uC73C\uB85C \uD55C \uBC88\uC5D0 ${maxSize}\uAC1C\uAE4C\uC9C0\uB9CC \uBD84\uC11D\uD569\uB2C8\uB2E4.</span><br>
+<span class="bodytext">\uD68C\uC6D0 \uAC00\uC785 \uC2DC 100\uAC1C\uAE4C\uC9C0 \uBD84\uC11D \uBC0F \uBAA8\uB4E0 \uAE30\uB2A5 \uC0AC\uC6A9\uAC00\uB2A5\uD558\uBA70,<br> \uC720\uB8CC \uAD6C\uB3C5 \uC2DC 1,000\uAC1C~3,000\uAC1C\uAE4C\uC9C0 \uAC00\uB2A5\uD569\uB2C8\uB2E4.</span>`;
+    } else if (user_subscript.match(/free|basic/i) && isOver && isEduUser) {
+      noticeContent = `EDU \uC0AC\uC6A9\uC790\uB294 ${activeCount}\uAC1C\uC911 \uCC98\uC74C ${maxSize}\uAC1C\uAE4C\uC9C0 \uBD84\uC11D\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.`;
     } else if (user_subscript.match(/free|basic/i) && isOver) {
-      noticeContent = `<span class="bodyTitle">${activeCount}\uAC1C\uC911 \uCC98\uC74C ${maxSize}\uAC1C\uC758 \uB370\uC774\uD130\uB97C \uBD84\uC11D\uD569\uB2C8\uB2E4.</span><br>
-<span class="bodytext">\uC5C5\uADF8\uB808\uC774\uB4DC\uD558\uBA74 \uB354 \uB9CE\uC740 \uB370\uC774\uD130\uB97C \uBD84\uC11D\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.</span>`;
+      noticeContent = `${activeCount}\uAC1C\uC911 \uCC98\uC74C ${maxSize}\uAC1C\uAE4C\uC9C0 \uBD84\uC11D\uD569\uB2C8\uB2E4.<br>
+<span class="bodytext">\uC720\uB8CC \uAD6C\uB3C5\uC2DC \uC0AC\uC6A9 \uC2DC 1,000\uAC1C\uAE4C\uC9C0 \uAC00\uB2A5\uD569\uB2C8\uB2E4.</span>`;
     } else if (isOver) {
       noticeContent = `${activeCount}\uAC1C\uC911 ${maxSize}\uAC1C\uB97C \uBB34\uC791\uC704 \uD45C\uBCF8 \uCD94\uCD9C\uD569\uB2C8\uB2E4. \uC804\uCCB4\uB97C \uB300\uD45C\uD558\uB294 \uB0B4\uC6A9\uC774\uB77C\uACE0 \uBCFC \uC218 \uC788\uC2B5\uB2C8\uB2E4.`;
     }
@@ -1484,7 +1687,7 @@ function createFileInputUIv3(Papa, options = {}) {
     let actionButton = "";
     if (user_subscript.match(/demo/i) && isOver) {
       actionButton = `<a href="/welcome" target="_blank">\uBB34\uB8CC \uD68C\uC6D0 \uAC00\uC785 \u2197</a>`;
-    } else if (user_subscript.match(/free|basic/i) && isOver) {
+    } else if (user_subscript.match(/free|basic/i) && isOver && !isEduUser) {
       actionButton = `<a href="/plan" target="_blank">\uC5C5\uADF8\uB808\uC774\uB4DC\uD558\uAE30 \u2197</a>`;
     }
     const textLength = `
@@ -1512,6 +1715,22 @@ function createFileInputUIv3(Papa, options = {}) {
     const sizeCandidates = findSizeKeyCandidates(rawCols, rawText);
     const dateCandidates = findDateKeyCandidates(moment, rawCols, rawText);
     showPopup(sizeCandidates, dateCandidates, true);
+  });
+  copyBtn.addEventListener("click", async () => {
+    if (!inputContent) return;
+    try {
+      await navigator.clipboard.writeText(inputContent);
+      const toast = document.createElement("div");
+      toast.className = "copy-toast show";
+      toast.textContent = "\uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4";
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+      }, 1500);
+    } catch (e) {
+      console.error("Copy failed:", e);
+    }
   });
   Object.defineProperty(container, "value", {
     get: () => chunks,
