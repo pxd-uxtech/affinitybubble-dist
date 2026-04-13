@@ -687,6 +687,9 @@ function createFileInputUIv3(Papa, options = {}) {
       max-width: 50px;
       text-align: center;
       cursor: default;
+      position: sticky;
+      left: 0;
+      z-index: 2;
     }
     .file-input-v3-popup-table td {
       padding: 12px 16px;
@@ -702,6 +705,9 @@ function createFileInputUIv3(Papa, options = {}) {
       color: #999;
       text-align: center;
       font-size: 12px;
+      position: sticky;
+      left: 0;
+      z-index: 1;
     }
     .file-input-v3-popup-table tr:hover td:not(.row-num) {
       background: #fafafa;
