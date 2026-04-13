@@ -1254,18 +1254,12 @@ function createFileInputUIv3(Papa, options = {}) {
       delimiter: format === "tsv" ? "\t" : ",",
       transformHeader: (h) => h.trim().replace(/^["']|["']$/g, '')
     };
-    // TSV는 quoting 비활성화 (셀 내 이중따옴표 오인 방지)
-    if (format === "csv") {
+    // TSV/CSV 모두 quoteChar: '"' 사용 — PapaParse가 따옴표 처리(셀 내 줄바꿈 포함)를 네이티브로 처리
+    if (format === "csv" || format === "tsv") {
       parseOptions.quoteChar = '"';
-    } else if (format === "tsv") {
-      parseOptions.quoteChar = "\x00";
     }
 
-    // TSV: 셀 내 줄바꿈을 탭 수 기반으로 전처리 병합
     let contentToParse = format === "text" ? "text\n" + inputContent : inputContent;
-    if (format === "tsv") {
-      contentToParse = _mergeTsvQuotedNewlines(inputContent);
-    }
 
     const parsed = Papa.parse(contentToParse, parseOptions);
 
