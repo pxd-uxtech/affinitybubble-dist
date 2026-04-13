@@ -1268,13 +1268,15 @@ function createFileInputUIv3(Papa, options = {}) {
     showPopup(sizeCandidates, dateCandidates);
   }
 
-  // 필터 응답 파싱: "없음" | "1, 3, 5" → 1-based 인덱스 배열
+  // 필터 응답 파싱: [1, 4] 숫자 배열 또는 JSON 문자열 → 유효 인덱스 배열
   function parseFilterResponse(raw, batchLen) {
-    if (!raw || raw.trim() === "없음") return [];
-    return raw
-      .split(/[,，\s]+/)
-      .map(s => parseInt(s, 10))
-      .filter(n => !isNaN(n) && n >= 1 && n <= batchLen);
+    try {
+      const arr = Array.isArray(raw) ? raw : JSON.parse(raw);
+      if (!Array.isArray(arr)) return [];
+      return arr.filter(n => Number.isInteger(n) && n >= 1 && n <= batchLen);
+    } catch (e) {
+      return [];
+    }
   }
 
   // 팝업 생성 및 표시
@@ -1783,8 +1785,7 @@ function createFileInputUIv3(Papa, options = {}) {
             { service_type: "filter_hate_speech", texts: numbered },
             null
           );
-          const raw = Array.isArray(resp?.result) ? resp.result[0] : resp?.result;
-          return parseFilterResponse(String(raw || "없음"), texts.length);
+          return parseFilterResponse(resp?.result ?? [], texts.length);
         };
 
         for (let i = 0; i < totalRows; i += batchSize) {
