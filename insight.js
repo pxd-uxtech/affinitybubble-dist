@@ -100,11 +100,53 @@ function makeCompactData(clusterWithLabel, options = {}) {
     };
   }).sort(sorter("size")).filter((d) => forTopics || d.sample.length);
 }
+function makeCompactTextHierarchical(clusterWithLabel, options = {}) {
+  const {
+    totalSampleSize = 100,
+    sortFunc = null
+  } = options;
+  if (!clusterWithLabel || clusterWithLabel.length === 0) {
+    return [];
+  }
+  const hasBigLabel = clusterWithLabel.some((d) => d.bigLabel);
+  if (!hasBigLabel) {
+    return makeCompactText(clusterWithLabel, options);
+  }
+  const total = clusterWithLabel.length;
+  const defaultSortFunc = (key) => (a, b) => b[key] - a[key];
+  const sorter = sortFunc || defaultSortFunc;
+  const result = [];
+  const bigGroups = groupBy(clusterWithLabel, (d) => d.bigCluster ?? d.bigLabel);
+  bigGroups.map(([bigKey, bigData]) => ({
+    bigKey,
+    bigLabel: bigData[0].bigLabel,
+    size: bigData.length,
+    subGroups: groupBy(bigData, (d) => d.cluster)
+  })).sort(sorter("size")).forEach(({ bigLabel, size, subGroups }) => {
+    result.push("# " + bigLabel);
+    subGroups.map(([cluster, data]) => {
+      const sampleSize = Math.round(data.length * totalSampleSize / total);
+      return {
+        label: data[0].label,
+        size: data.length,
+        sample: reservoirSample(data, Math.min(sampleSize, 5))[0]
+      };
+    }).sort(sorter("size")).forEach(({ label, sample }) => {
+      result.push("## " + label);
+      sample.forEach((t) => {
+        result.push("- " + (t.text || t.chunk || "").slice(0, 140));
+      });
+    });
+  });
+  return result;
+}
 
 // src/insight/getInsightStream.js
 var REPORT_TYPES = {
   SUMMARY: "get_insight",
   // 요약 정리
+  CLUSTER: "get_insight_cluster",
+  // 클러스터별
   PERSONA: "get_user_segment",
   // 퍼소나
   REVIEW: "get_review_insight",
@@ -185,10 +227,8 @@ async function generateReport(api, options = {}) {
   if (!data || data.length === 0) {
     throw new Error("\uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.");
   }
-  const compactText = makeCompactText(data, {
-    totalSampleSize: sampleSize,
-    pipelineResult
-  });
+  const isClusterType = type === REPORT_TYPES.CLUSTER;
+  const compactText = isClusterType ? makeCompactTextHierarchical(data, { totalSampleSize: sampleSize }) : makeCompactText(data, { totalSampleSize: sampleSize, pipelineResult });
   return getInsightStream(api, compactText, {
     type,
     requirements,
@@ -200,6 +240,7 @@ async function generateReport(api, options = {}) {
 function getReportTypeOptions() {
   return [
     { name: "\uC694\uC57D \uC815\uB9AC", func: REPORT_TYPES.SUMMARY },
+    { name: "\uD074\uB7EC\uC2A4\uD130\uBCC4", func: REPORT_TYPES.CLUSTER },
     { name: "\uD37C\uC18C\uB098", func: REPORT_TYPES.PERSONA },
     // { name: "리뷰 분석", func: REPORT_TYPES.REVIEW },
     // { name: "사용자 분석", func: REPORT_TYPES.THEMATIC },
