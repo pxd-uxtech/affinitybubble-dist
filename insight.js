@@ -119,9 +119,9 @@ function makeCompactTextHierarchical(clusterWithLabel, options = {}) {
     bigLabel: bigData[0].bigLabel,
     size: bigData.length,
     subGroups: groupBy(bigData, (d) => d.cluster)
-  })).sort(sorter("size")).forEach(({ bigLabel, size, subGroups }) => {
+  })).sort(sorter("size")).forEach(({ bigLabel, size, subGroups }, i) => {
     const bigPct = Math.round(size / total * 100);
-    result.push(`# ${bigLabel} (${bigPct}%)`);
+    result.push(`# ${i + 1}. ${bigLabel} (${bigPct}%)`);
     subGroups.map(([cluster, data]) => {
       const sampleSize = Math.round(data.length * totalSampleSize / total);
       const clampedSize = Math.max(2, Math.min(sampleSize, 5));
