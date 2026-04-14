@@ -120,17 +120,19 @@ function makeCompactTextHierarchical(clusterWithLabel, options = {}) {
     size: bigData.length,
     subGroups: groupBy(bigData, (d) => d.cluster)
   })).sort(sorter("size")).forEach(({ bigLabel, size, subGroups }) => {
-    result.push("# " + bigLabel);
+    const bigPct = Math.round(size / total * 100);
+    result.push(`# ${bigLabel} (${bigPct}%)`);
     subGroups.map(([cluster, data]) => {
       const sampleSize = Math.round(data.length * totalSampleSize / total);
       const clampedSize = Math.max(2, Math.min(sampleSize, 5));
       return {
         label: data[0].label,
         size: data.length,
+        pct: Math.round(data.length / total * 100),
         sample: reservoirSample(data, clampedSize)[0]
       };
-    }).sort(sorter("size")).forEach(({ label, sample }) => {
-      result.push("## " + label);
+    }).sort(sorter("size")).forEach(({ label, pct, sample }) => {
+      result.push(`## ${label} (${pct}%)`);
       sample.forEach((t) => {
         result.push("- " + (t.text || t.chunk || "").slice(0, 140));
       });
