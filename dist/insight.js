@@ -126,10 +126,11 @@ function makeCompactTextHierarchical(clusterWithLabel, options = {}) {
     result.push("# " + bigLabel);
     subGroups.map(([cluster, data]) => {
       const sampleSize = Math.round(data.length * totalSampleSize / total);
+      const clampedSize = Math.max(2, Math.min(sampleSize, 5));
       return {
         label: data[0].label,
         size: data.length,
-        sample: reservoirSample(data, Math.min(sampleSize, 5))[0]
+        sample: reservoirSample(data, clampedSize)[0]
       };
     }).sort(sorter("size")).forEach(({ label, sample }) => {
       result.push("## " + label);
