@@ -40,15 +40,18 @@ function makeCompactText(clusterWithLabel, options = {}) {
   const result = [];
   const defaultSortFunc = (key) => (a, b) => b[key] - a[key];
   const sorter = sortFunc || defaultSortFunc;
-  const groups = groupBy(clusterWithLabel, (d) => d.cluster);
-  const processedGroups = groups.map(([cluster, data]) => {
+  const hasBigLabel = clusterWithLabel.some((d) => d.bigLabel);
+  const groupKey = hasBigLabel ? (d) => d.bigCluster ?? d.bigLabel : (d) => d.cluster;
+  const labelKey = hasBigLabel ? "bigLabel" : "label";
+  const groups = groupBy(clusterWithLabel, groupKey);
+  const processedGroups = groups.map(([key, data]) => {
     const sampleSize = Math.round(data.length * totalSampleSize / total);
+    const label = data[0][labelKey];
+    const description = hasBigLabel ? pipelineResult?.level2?.bigLabels?.find((t) => t.label === label)?.description : pipelineResult?.level1?.labels?.find((t) => t.label === label)?.description;
     return {
-      cluster,
-      label: data[0].label,
-      description: pipelineResult?.level1?.labels?.find(
-        (t) => t.label === data[0].label
-      )?.description,
+      key,
+      label,
+      description,
       size: data.length,
       sample: reservoirSample(
         data,
