@@ -856,6 +856,7 @@ function createFileInputUIv3(Papa, options = {}) {
       padding: 20px;
       background: #f9fafc;
       border-radius: 8px;
+      box-sizing: border-box;
     }
     /* 미리보기 활성화 시 메인 타이틀 숨김 */
     .file-input-v3 .preview-section.active ~ .main-title,
