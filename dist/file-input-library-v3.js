@@ -30,25 +30,19 @@ function detectFormat(Papa, input) {
   if (typeof input !== "string") return "text";
 
   // PapaParse로 전체 파싱하여 포맷 판별 (셀 내 줄바꿈 올바르게 처리)
-  // TSV 먼저 시도: quoteChar '"'(구글 시트 스타일)와 "\0"(비활성화) 양쪽 시도 후
-  // 더 높은 컬럼 일치율을 채택 — 어느 한쪽이 0.8 이상이면 TSV로 판정
-  {
-    let bestTsvRatio = 0;
-    for (const quoteChar of ['"', "\0"]) {
-      const tsvResult = Papa.parse(input, {
-        delimiter: "\t",
-        quoteChar,
-        skipEmptyLines: true,
-        preview: 20
-      });
-      if (tsvResult.data.length >= 2 && tsvResult.data[0]?.length > 1) {
-        const headerCount = tsvResult.data[0].length;
-        const matchingRows = tsvResult.data.filter(r => r.length >= headerCount - 1 && r.length <= headerCount + 1).length;
-        const ratio = matchingRows / tsvResult.data.length;
-        if (ratio > bestTsvRatio) bestTsvRatio = ratio;
-      }
+  // TSV 먼저 시도 (TSV는 따옴표 인용을 쓰지 않으므로 quoteChar 비활성화)
+  const tsvResult = Papa.parse(input, {
+    delimiter: "\t",
+    quoteChar: "\0",
+    skipEmptyLines: true,
+    preview: 20
+  });
+  if (tsvResult.data.length >= 2 && tsvResult.data[0]?.length > 1) {
+    const headerCount = tsvResult.data[0].length;
+    const matchingRows = tsvResult.data.filter(r => r.length >= headerCount - 1 && r.length <= headerCount + 1).length;
+    if (matchingRows / tsvResult.data.length >= 0.8) {
+      return "tsv";
     }
-    if (bestTsvRatio >= 0.8) return "tsv";
   }
 
   // CSV 시도 (따옴표 인용 있는 경우 → 없는 경우 순서로 시도)
@@ -256,7 +250,7 @@ function createFileInputUIv3(Papa, options = {}) {
   // 메인 컨테이너 생성
   const container = document.createElement("div");
   container.className = "file-input-v3";
-  container.style.cssText = `width: ${width}px; font-family: var(--sans-serif, system-ui);`;
+  container.style.cssText = `width: 100%; max-width: ${width}px; font-family: var(--sans-serif, system-ui);`;
 
   // 스타일 추가
   const style = document.createElement("style");
@@ -687,9 +681,6 @@ function createFileInputUIv3(Papa, options = {}) {
       max-width: 50px;
       text-align: center;
       cursor: default;
-      position: sticky;
-      left: 0;
-      z-index: 2;
     }
     .file-input-v3-popup-table td {
       padding: 12px 16px;
@@ -705,9 +696,6 @@ function createFileInputUIv3(Papa, options = {}) {
       color: #999;
       text-align: center;
       font-size: 12px;
-      position: sticky;
-      left: 0;
-      z-index: 1;
     }
     .file-input-v3-popup-table tr:hover td:not(.row-num) {
       background: #fafafa;
@@ -846,22 +834,6 @@ function createFileInputUIv3(Papa, options = {}) {
       padding: 8px 32px 8px 14px;
       font-size: 13px;
       cursor: pointer;
-      min-width: 100px;
-    }
-    .file-input-v3-dropdown select.text-colored {
-      background: #e0f7f4;
-      color: #0d7680;
-      border-color: #0d9488;
-    }
-    .file-input-v3-dropdown select.size-colored {
-      background: #F5FBFF;
-      color: #0369a1;
-      border-color: #0369a1;
-    }
-    .file-input-v3-dropdown select.date-colored {
-      background: #FBF5FF;
-      color: #7c3aed;
-      border-color: #7c3aed;
     }
     .file-input-v3-dropdown::after {
       content: '▼';
@@ -1260,12 +1232,18 @@ function createFileInputUIv3(Papa, options = {}) {
       delimiter: format === "tsv" ? "\t" : ",",
       transformHeader: (h) => h.trim().replace(/^["']|["']$/g, '')
     };
-    // TSV/CSV 모두 quoteChar: '"' 사용 — PapaParse가 따옴표 처리(셀 내 줄바꿈 포함)를 네이티브로 처리
-    if (format === "csv" || format === "tsv") {
+    // TSV는 quoting 비활성화 (셀 내 이중따옴표 오인 방지)
+    if (format === "csv") {
       parseOptions.quoteChar = '"';
+    } else if (format === "tsv") {
+      parseOptions.quoteChar = "\x00";
     }
 
+    // TSV: 셀 내 줄바꿈을 탭 수 기반으로 전처리 병합
     let contentToParse = format === "text" ? "text\n" + inputContent : inputContent;
+    if (format === "tsv") {
+      contentToParse = _mergeTsvQuotedNewlines(inputContent);
+    }
 
     const parsed = Papa.parse(contentToParse, parseOptions);
 
@@ -1353,17 +1331,25 @@ function createFileInputUIv3(Papa, options = {}) {
         <div class="file-input-v3-popup-selectors">
           <div class="file-input-v3-popup-selector-row">
             <span class="label required">분석할 텍스트 컬럼</span>
-            <div class="file-input-v3-dropdown">
-              <select class="text-column-select text-colored">
-                ${rawCols.filter(col => !sizeCandidates.includes(col) && !dateCandidates.includes(col)).map(col => `<option value="${col}" ${col === columnMapping.text ? 'selected' : ''}>${col}</option>`).join('')}
+            <span class="file-input-v3-popup-tag text-tag">
+              ${columnMapping.text}
+              <span class="remove">×</span>
+            </span>
+            <div class="file-input-v3-dropdown" style="display:none;">
+              <select class="text-column-select">
+                ${rawCols.map(col => `<option value="${col}" ${col === columnMapping.text ? 'selected' : ''}>${col}</option>`).join('')}
               </select>
             </div>
           </div>
           ${hasSizeOptions ? `
           <div class="file-input-v3-popup-selector-row">
             <span class="label">가중치 컬럼 <span class="info-wrapper"><span class="info-icon">${infoIconSmall}</span><div class="weight-tooltip">가중치에 따라 중요한 버블 크기를 크게 표시합니다. 없음으로 하면 동일한 가중치를 사용합니다. <br><br><strong>예시:</strong><br>• 클릭수: 50, 120, 35 → 120이 가장 큰 버블<br>• 좋아요: 등은 log나 제곱근 스케일로 변환하여 반영하는 것이 좋습니다.</div></span></span>
-            <div class="file-input-v3-dropdown">
-              <select class="size-column-select ${columnMapping.size !== '없음' ? 'size-colored' : ''}">
+            <span class="file-input-v3-popup-tag size-tag" ${columnMapping.size === '없음' ? 'style="display:none;"' : ''}>
+              ${columnMapping.size}
+              <span class="remove">×</span>
+            </span>
+            <div class="file-input-v3-dropdown" ${columnMapping.size !== '없음' ? 'style="display:none;"' : ''}>
+              <select class="size-column-select">
                 <option value="없음">없음</option>
                 ${sizeCandidates.map(col => `<option value="${col}" ${col === columnMapping.size ? 'selected' : ''}>${col}</option>`).join('')}
               </select>
@@ -1373,8 +1359,12 @@ function createFileInputUIv3(Papa, options = {}) {
           ${hasDateOptions ? `
           <div class="file-input-v3-popup-selector-row">
             <span class="label">날짜 컬럼</span>
-            <div class="file-input-v3-dropdown">
-              <select class="date-column-select ${columnMapping.date !== '없음' ? 'date-colored' : ''}">
+            <span class="file-input-v3-popup-tag date-tag" ${columnMapping.date === '없음' ? 'style="display:none;"' : ''}>
+              ${columnMapping.date}
+              <span class="remove">×</span>
+            </span>
+            <div class="file-input-v3-dropdown" ${columnMapping.date !== '없음' ? 'style="display:none;"' : ''}>
+              <select class="date-column-select">
                 <option value="없음">없음</option>
                 ${dateCandidates.map(col => `<option value="${col}" ${col === columnMapping.date ? 'selected' : ''}>${col}</option>`).join('')}
               </select>
@@ -1517,9 +1507,6 @@ function createFileInputUIv3(Papa, options = {}) {
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
 
-    // 초기 선택 컬럼으로 스크롤 (레이아웃 완전히 잡힌 후)
-    requestAnimationFrame(() => requestAnimationFrame(() => scrollToColumn(columnMapping.text)));
-
     // Transpose 버튼 이벤트
     const transposeBtn = popup.querySelector(".file-input-v3-transpose-btn");
     if (transposeBtn) {
@@ -1582,81 +1569,130 @@ function createFileInputUIv3(Papa, options = {}) {
       });
     }
 
-    // 모든 select UI 업데이트 (옵션 갱신 + 색상)
+    // 모든 태그 UI 업데이트
     function updateAllTagsUI() {
       updateTextTagUI();
-      updateSizeTagUI();
-      updateDateTagUI();
-    }
-
-    // 선택된 컬럼이 가로 스크롤로 가려있을 때 보이도록 스크롤
-    function scrollToColumn(col) {
-      if (!col || col === "없음") return;
-      const body = popup.querySelector(".file-input-v3-popup-body");
-      const th = popup.querySelector(`.file-input-v3-popup-table th[data-col="${CSS.escape(col)}"]`);
-      if (!body || !th) return;
-      const bodyRect = body.getBoundingClientRect();
-      const thRect = th.getBoundingClientRect();
-      // sticky 체크박스 열 너비만큼 여유 확보
-      const stickyW = (popup.querySelector(".file-input-v3-popup-table th.row-num")?.offsetWidth || 0);
-      if (thRect.left < bodyRect.left + stickyW) {
-        body.scrollLeft += thRect.left - bodyRect.left - stickyW - 8;
-      } else if (thRect.right > bodyRect.right) {
-        body.scrollLeft += thRect.right - bodyRect.right + 8;
-      }
+      if (hasSizeOptions) updateSizeTagUI();
+      if (hasDateOptions) updateDateTagUI();
     }
 
     // 팝업 이벤트 핸들러
+    const textTag = popup.querySelector(".text-tag");
+    const textDropdown = popup.querySelector(".file-input-v3-dropdown");
     const textSelect = popup.querySelector(".text-column-select");
-    const dateSelect = hasDateOptions ? popup.querySelector(".date-column-select") : null;
-    const sizeSelect = hasSizeOptions ? popup.querySelector(".size-column-select") : null;
 
-    // 텍스트 컬럼 select 업데이트 (옵션 갱신 + 현재 값 반영)
+    textTag?.querySelector(".remove")?.addEventListener("click", () => {
+      textTag.style.display = "none";
+      textDropdown.style.display = "inline-block";
+    });
+
+    // 텍스트 태그 업데이트 함수
     function updateTextTagUI() {
-      const excludedCols = new Set([...sizeCandidates, ...dateCandidates]);
-      textSelect.innerHTML = rawCols
-        .filter(col => !excludedCols.has(col))
-        .map(col => `<option value="${col}" ${col === columnMapping.text ? 'selected' : ''}>${col}</option>`)
-        .join('');
-      textSelect.value = columnMapping.text;
-    }
+      textTag.innerHTML = columnMapping.text + '<span class="remove">×</span>';
+      textTag.style.display = "inline-flex";
+      textDropdown.style.display = "none";
 
-    function updateSizeTagUI() {
-      if (!sizeSelect) return;
-      sizeSelect.value = columnMapping.size;
-      sizeSelect.classList.toggle('size-colored', columnMapping.size !== '없음');
-    }
+      // select 옵션 업데이트 (transpose 후 변경될 수 있음)
+      textSelect.innerHTML = rawCols.map(col =>
+        `<option value="${col}" ${col === columnMapping.text ? 'selected' : ''}>${col}</option>`
+      ).join('');
 
-    function updateDateTagUI() {
-      if (!dateSelect) return;
-      dateSelect.value = columnMapping.date;
-      dateSelect.classList.toggle('date-colored', columnMapping.date !== '없음');
+      textTag.querySelector(".remove")?.addEventListener("click", () => {
+        textTag.style.display = "none";
+        textDropdown.style.display = "inline-block";
+      });
     }
 
     textSelect?.addEventListener("change", () => {
       columnMapping.text = textSelect.value;
+      updateTextTagUI();
       renderTable();
       setupHeaderClickHandlers();
-      scrollToColumn(columnMapping.text);
     });
 
+    // 날짜 컬럼 관련 요소
+    const dateTag = hasDateOptions ? popup.querySelector(".date-tag") : null;
+    const dateDropdown = hasDateOptions ? popup.querySelector(".date-column-select")?.parentElement : null;
+    const dateSelect = hasDateOptions ? popup.querySelector(".date-column-select") : null;
+
+    // 날짜 태그 업데이트 함수
+    function updateDateTagUI() {
+      if (!hasDateOptions || !dateTag) return;
+      if (columnMapping.date === "없음") {
+        dateTag.style.display = "none";
+        if (dateDropdown) dateDropdown.style.display = "inline-block";
+        if (dateSelect) dateSelect.value = "없음";
+      } else {
+        dateTag.innerHTML = columnMapping.date + '<span class="remove">×</span>';
+        dateTag.style.display = "inline-flex";
+        if (dateDropdown) dateDropdown.style.display = "none";
+        if (dateSelect) dateSelect.value = columnMapping.date;
+
+        dateTag.querySelector(".remove")?.addEventListener("click", () => {
+          columnMapping.date = "없음";
+          updateDateTagUI();
+          renderTable();
+          setupHeaderClickHandlers();
+        });
+      }
+    }
+
     if (hasDateOptions) {
+      dateTag?.querySelector(".remove")?.addEventListener("click", () => {
+        columnMapping.date = "없음";
+        updateDateTagUI();
+        renderTable();
+        setupHeaderClickHandlers();
+      });
+
       dateSelect?.addEventListener("change", () => {
         columnMapping.date = dateSelect.value;
         updateDateTagUI();
         renderTable();
         setupHeaderClickHandlers();
-        scrollToColumn(columnMapping.date);
       });
     }
 
+    // 사이즈 컬럼 관련 요소
+    const sizeTag = hasSizeOptions ? popup.querySelector(".size-tag") : null;
+    const sizeDropdown = hasSizeOptions ? popup.querySelector(".size-column-select")?.parentElement : null;
+    const sizeSelect = hasSizeOptions ? popup.querySelector(".size-column-select") : null;
+
+    // 사이즈 태그 업데이트 함수
+    function updateSizeTagUI() {
+      if (!hasSizeOptions || !sizeTag) return;
+      if (columnMapping.size === "없음") {
+        sizeTag.style.display = "none";
+        if (sizeDropdown) sizeDropdown.style.display = "inline-block";
+        if (sizeSelect) sizeSelect.value = "없음";
+      } else {
+        sizeTag.innerHTML = columnMapping.size + '<span class="remove">×</span>';
+        sizeTag.style.display = "inline-flex";
+        if (sizeDropdown) sizeDropdown.style.display = "none";
+        if (sizeSelect) sizeSelect.value = columnMapping.size;
+
+        sizeTag.querySelector(".remove")?.addEventListener("click", () => {
+          columnMapping.size = "없음";
+          updateSizeTagUI();
+          renderTable();
+          setupHeaderClickHandlers();
+        });
+      }
+    }
+
     if (hasSizeOptions) {
+      sizeTag?.querySelector(".remove")?.addEventListener("click", () => {
+        columnMapping.size = "없음";
+        updateSizeTagUI();
+        renderTable();
+        setupHeaderClickHandlers();
+      });
+
       sizeSelect?.addEventListener("change", () => {
         columnMapping.size = sizeSelect.value;
         updateSizeTagUI();
         renderTable();
         setupHeaderClickHandlers();
-        scrollToColumn(columnMapping.size);
       });
     }
 
