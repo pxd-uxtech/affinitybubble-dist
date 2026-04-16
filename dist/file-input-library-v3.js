@@ -848,7 +848,7 @@ function createFileInputUIv3(Papa, options = {}) {
 
     /* 미리보기 화면 */
     .file-input-v3 .preview-section {
-    width: 880px;
+      width: 100%;
       display: none;
     }
     .file-input-v3 .preview-section.active {
