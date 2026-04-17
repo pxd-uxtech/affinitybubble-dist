@@ -8986,23 +8986,43 @@ var HistoryManager = class {
    * @param {Object} results - 결과 데이터 (level1, level1Labels, level2)
    * @returns {Object} 저장된 스냅샷
    */
-  save(options, results) {
+  /**
+   * @param {Object} options - 사용된 옵션
+   * @param {Object} results - 결과 데이터
+   * @param {Object} [meta] - 추가 메타데이터
+   * @param {SVGElement|HTMLCanvasElement} [meta.thumbnailEl] - 썸네일 캡처할 DOM 요소
+   * @param {string} [meta.memo] - 사용자 메모
+   */
+  async save(options, results, { thumbnailEl, memo = "" } = {}) {
     const snapshot = {
       id: `snapshot_${Date.now()}`,
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       options: { ...options },
       results: this._cloneResults(results),
-      stats: this._calculateStats(results)
+      stats: this._calculateStats(results),
+      thumbnail: thumbnailEl ? this._captureThumbnail(thumbnailEl) : null,
+      memo
     };
     this.snapshots = [snapshot, ...this.snapshots.slice(0, this.options.maxSnapshots - 1)];
     this.currentIndex = -1;
-    this._persistToStorage();
+    await this._persistToStorage();
     return snapshot;
+  }
+  /**
+   * 메모 업데이트
+   */
+  async setMemo(snapshotId, memo) {
+    const snapshot = this.snapshots.find((s) => s.id === snapshotId);
+    if (snapshot) {
+      snapshot.memo = memo;
+      await this._persistToStorage();
+    }
+    return this;
   }
   /**
    * 스냅샷 복원
    * @param {string} snapshotId - 복원할 스냅샷 ID
-   * @returns {Object|null} 복원된 결과 데이터
+   * @returns {Object|null} 복원된 결과 데이터 (페이지 새로고침 후엔 null)
    */
   restore(snapshotId) {
     const idx = this.snapshots.findIndex((s) => s.id === snapshotId);
@@ -9028,6 +9048,8 @@ var HistoryManager = class {
       timestamp: s.timestamp,
       options: s.options,
       stats: s.stats,
+      thumbnail: s.thumbnail || null,
+      memo: s.memo || "",
       isCurrent: this.currentIndex === -1 ? idx === 0 : idx === this.currentIndex
     }));
   }
@@ -9070,25 +9092,25 @@ var HistoryManager = class {
   /**
    * 스냅샷 삭제
    */
-  delete(snapshotId) {
+  async delete(snapshotId) {
     const idx = this.snapshots.findIndex((s) => s.id === snapshotId);
     if (idx !== -1) {
       this.snapshots.splice(idx, 1);
       if (this.currentIndex >= idx) {
         this.currentIndex = Math.max(-1, this.currentIndex - 1);
       }
-      this._persistToStorage();
+      await this._persistToStorage();
     }
     return this;
   }
   /**
    * 전체 삭제
    */
-  clear() {
+  async clear() {
     this.snapshots = [];
     this.currentIndex = -1;
     this.compareTarget = null;
-    this._persistToStorage();
+    await this._persistToStorage();
     return this;
   }
   /**
@@ -9177,35 +9199,117 @@ var HistoryManager = class {
     return { added, removed, common, changed: added.length + removed.length };
   }
   /**
-   * 로컬 스토리지 저장
+   * IndexedDB 열기
    */
-  _persistToStorage() {
-    if (typeof localStorage !== "undefined") {
-      try {
-        localStorage.setItem(
-          this.options.storageKey,
-          JSON.stringify(this.snapshots)
-        );
-      } catch (e) {
-        console.warn("History \uC800\uC7A5 \uC2E4\uD328:", e);
+  _openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("affinitybubble_history", 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("snapshots")) {
+          db.createObjectStore("snapshots", { keyPath: "id" });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+  /**
+   * IndexedDB에 스냅샷 저장
+   * combined에서 chunk(원문)만 제외 — 용량 절감
+   */
+  async _persistToStorage() {
+    try {
+      const db = await this._openDB();
+      const tx = db.transaction("snapshots", "readwrite");
+      const store = tx.objectStore("snapshots");
+      store.clear();
+      for (const snapshot of this.snapshots) {
+        store.put({
+          ...snapshot,
+          results: snapshot.results ? this._slimResults(snapshot.results) : null
+        });
       }
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = (e) => reject(e.target.error);
+      });
+      db.close();
+    } catch (e) {
+      console.warn("History \uC800\uC7A5 \uC2E4\uD328:", e);
     }
   }
   /**
-   * 로컬 스토리지에서 복원
+   * IndexedDB에서 복원
    */
-  loadFromStorage() {
-    if (typeof localStorage !== "undefined") {
-      try {
-        const stored = localStorage.getItem(this.options.storageKey);
-        if (stored) {
-          this.snapshots = JSON.parse(stored);
-        }
-      } catch (e) {
-        console.warn("History \uBCF5\uC6D0 \uC2E4\uD328:", e);
+  async loadFromStorage() {
+    try {
+      const db = await this._openDB();
+      const tx = db.transaction("snapshots", "readonly");
+      const store = tx.objectStore("snapshots");
+      const snapshots = await new Promise((resolve, reject) => {
+        const req = store.getAll();
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+      db.close();
+      if (snapshots.length > 0) {
+        this.snapshots = snapshots.sort(
+          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        );
       }
+    } catch (e) {
+      console.warn("History \uBCF5\uC6D0 \uC2E4\uD328:", e);
     }
     return this;
+  }
+  /**
+   * SVG 또는 Canvas 요소를 JPEG data URL로 캡처 (300px 너비 썸네일)
+   */
+  _captureThumbnail(el) {
+    try {
+      const THUMB_W = 300;
+      if (el instanceof SVGElement || el.tagName?.toLowerCase() === "svg") {
+        const svg = el.cloneNode(true);
+        const bbox = el.getBoundingClientRect();
+        const ratio = bbox.height / (bbox.width || 1);
+        svg.setAttribute("width", THUMB_W);
+        svg.setAttribute("height", Math.round(THUMB_W * ratio));
+        const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" });
+        return URL.createObjectURL(blob);
+      }
+      if (el instanceof HTMLCanvasElement) {
+        const ratio = el.height / (el.width || 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = THUMB_W;
+        canvas.height = Math.round(THUMB_W * ratio);
+        canvas.getContext("2d").drawImage(el, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL("image/jpeg", 0.7);
+      }
+    } catch (e) {
+      console.warn("\uC378\uB124\uC77C \uCEA1\uCC98 \uC2E4\uD328:", e);
+    }
+    return null;
+  }
+  /**
+   * 저장용 결과 경량화 — combined에서 chunk 제외
+   */
+  _slimResults(results) {
+    const slim = (arr) => (arr || []).map(({ chunk, ...rest }) => rest);
+    return {
+      level1: {
+        wordClusters: slim(results.level1?.wordClusters)
+      },
+      level1Labels: {
+        labels: results.level1Labels?.labels || [],
+        labelClusters: slim(results.level1Labels?.labelClusters)
+      },
+      level2: {
+        bigLabels: results.level2?.bigLabels || [],
+        bigLabelClusters: slim(results.level2?.bigLabelClusters)
+      },
+      combined: slim(results.combined)
+    };
   }
 };
 
