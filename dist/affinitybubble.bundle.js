@@ -12183,7 +12183,20 @@ var AffinityBubblePipeline = class {
           bigLabel: c.bigLabel
         }));
         if (bigLabelEmbeds.length > 0) {
-          const bigLabelPos = makeEmbedPos(bigLabelEmbeds);
+          const mainPos = makeEmbedPos(bigLabelEmbeds);
+          const etcClusters = level2Result.bigLabelClusters.filter((c) => c.bigLabel === "\uAE30\uD0C0" && !(c.embed && c.embed.length > 0));
+          let bigLabelPos = mainPos;
+          if (etcClusters.length > 0) {
+            const xs = mainPos.map((p) => p.pos.x);
+            const ys = mainPos.map((p) => p.pos.y);
+            const xMax = Math.max(...xs);
+            const yMax = Math.max(...ys);
+            const etcPos = etcClusters.map((c) => ({
+              ...c,
+              pos: { x: xMax * 1.1, y: yMax * 1.1 }
+            }));
+            bigLabelPos = [...mainPos, ...etcPos];
+          }
           this.state.setBigLabelPos(bigLabelPos);
         }
       }
