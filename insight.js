@@ -299,6 +299,17 @@ async function saveAsImage(element, filename = "insight-report.png") {
   link.href = canvas.toDataURL();
   link.click();
 }
+function formatRelativeTime(timestamp) {
+  const diff = Date.now() - timestamp;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "방금 전";
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}일 전`;
+  return `${Math.floor(day / 30)}개월 전`;
+}
 function renderInsight(insights, options = {}) {
   const {
     editMode = false,
@@ -307,26 +318,35 @@ function renderInsight(insights, options = {}) {
     onSave = null,
     onEditToggle = null,
     containerId = null,
-    // null이면 항상 새 엘리먼트 생성
-    createNew = !options.containerId
-    // containerId 없으면 새로 생성
+    createNew = !options.containerId,
+    reportHistory = [],
+    onHistorySelect = null,
+    onHistoryDelete = null,
   } = options;
   const parser = markdownParser || simpleMarkdownParse;
   const parsedContent = parser(insights || "");
   const content = editMode ? `<div id="mdEditor" contentEditable="true" style="width:100%; line-height:1.5; font-size:1.2em; min-height:400px; white-space: pre-wrap; border:1px solid #ddd; padding:10px; border-radius:4px;">${insights || ""}</div>` : `<div class="parsed-content">${parsedContent.replace(/&quot;\n&quot;/g, '"<br>"')}</div>`;
-  const buttons = `
+  const historyBtnHtml = `
+    <div id="insightHistoryWrapper" style="position:relative;">
+      <button id="insightHistoryBtn" class="insight-btn" title="\uB9AC\uD3EC\uD2B8 \uD788\uC2A4\uD1A0\uB9AC" style="${reportHistory.length === 0 ? "visibility:hidden;" : ""}">
+        <i class="fi fi-rr-time-past"></i>
+      </button>
+    </div>
+  `;
+  const rightButtons = `
     <button id="copyBtn" class="insight-btn"><i class="fi fi-br-duplicate"></i> \uD14D\uC2A4\uD2B8 \uBCF5\uC0AC</button>
     <button id="saveBtn" class="insight-btn"><i class="fi fi-br-download"></i> \uC774\uBBF8\uC9C0 \uC800\uC7A5</button>
     <button id="editBtn" class="insight-btn ${editMode ? "edit" : "richtext"}" data-action="toggle-edit">
       ${editMode ? '<i class="fi fi-br-check"></i> \uC644\uB8CC' : '<i class="fi fi-br-pencil"></i> \uD3B8\uC9D1'}
     </button>
   `;
+  const buttonsInner = `${historyBtnHtml}<div style="display:flex; gap:8px;">${rightButtons}</div>`;
   let container;
   if (createNew || !containerId) {
     container = document.createElement("div");
     if (containerId) container.id = containerId;
     container.innerHTML = `
-      <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px;">${buttons}</div>
+      <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">${buttonsInner}</div>
       <div class="report" id="insightReport">${content}</div>
     `;
   } else {
@@ -334,13 +354,17 @@ function renderInsight(insights, options = {}) {
     if (container) {
       const buttonsDiv = container.querySelector("#insightButtons") || container.querySelector(".sub-buttons");
       const reportDiv = container.querySelector("#insightReport") || container.querySelector(".report");
-      if (buttonsDiv) buttonsDiv.innerHTML = buttons;
+      if (buttonsDiv) {
+        buttonsDiv.innerHTML = buttonsInner;
+        buttonsDiv.style.justifyContent = "space-between";
+        buttonsDiv.style.alignItems = "center";
+      }
       if (reportDiv) reportDiv.innerHTML = content;
     } else {
       container = document.createElement("div");
       container.id = containerId;
       container.innerHTML = `
-        <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px;">${buttons}</div>
+        <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">${buttonsInner}</div>
         <div class="report" id="insightReport">${content}</div>
       `;
     }
@@ -378,6 +402,70 @@ function renderInsight(insights, options = {}) {
         onEditToggle(true, insights);
       }
     };
+  }
+  const historyBtn = container.querySelector("#insightHistoryBtn");
+  const historyWrapper = container.querySelector("#insightHistoryWrapper");
+  if (historyBtn && historyWrapper) {
+    const oldPanel = historyWrapper.querySelector("#insightHistoryPanel");
+    if (oldPanel) oldPanel.remove();
+    const panel = document.createElement("div");
+    panel.id = "insightHistoryPanel";
+    panel.style.cssText = [
+      "display:none",
+      "position:absolute",
+      "top:calc(100% + 4px)",
+      "left:0",
+      "z-index:200",
+      "background:#fff",
+      "border:1px solid #e0e0e0",
+      "border-radius:12px",
+      "box-shadow:0 4px 16px rgba(0,0,0,0.12)",
+      "min-width:260px",
+      "max-width:360px",
+      "max-height:320px",
+      "overflow-y:auto",
+    ].join(";");
+    if (reportHistory.length === 0) {
+      panel.innerHTML = '<div style="padding:16px;color:#bbb;text-align:center;font-size:14px;">\uB9AC\uD3EC\uD2B8 \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.</div>';
+    } else {
+      [...reportHistory].reverse().forEach((item, i) => {
+        const realIdx = reportHistory.length - 1 - i;
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;";
+        row.innerHTML = `
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:500;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.title || "(\uC81C\uBAA9 \uC5C6\uC74C)"}</div>
+            <div style="font-size:12px;color:#999;margin-top:2px;">${formatRelativeTime(item.timestamp)}</div>
+          </div>
+          <button class="insight-history-delete-btn" style="background:none;border:none;cursor:pointer;color:#bbb;padding:4px;font-size:14px;display:flex;align-items:center;flex-shrink:0;">
+            <i class="fi fi-rr-trash"></i>
+          </button>
+        `;
+        row.addEventListener("click", (e) => {
+          if (!e.target.closest(".insight-history-delete-btn")) {
+            onHistorySelect && onHistorySelect(item);
+            panel.style.display = "none";
+          }
+        });
+        row.querySelector(".insight-history-delete-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          onHistoryDelete && onHistoryDelete(realIdx);
+        });
+        row.addEventListener("mouseenter", () => row.style.background = "#f8f8f8");
+        row.addEventListener("mouseleave", () => row.style.background = "");
+        panel.appendChild(row);
+      });
+    }
+    historyWrapper.appendChild(panel);
+    historyBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+    });
+    document.addEventListener("click", (e) => {
+      if (!historyWrapper.contains(e.target)) {
+        panel.style.display = "none";
+      }
+    });
   }
   return container;
 }
