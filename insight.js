@@ -435,7 +435,10 @@ function renderInsight(insights, options = {}) {
         row.innerHTML = `
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:500;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.title || "(\uC81C\uBAA9 \uC5C6\uC74C)"}</div>
-            <div style="font-size:12px;color:#999;margin-top:2px;">${formatRelativeTime(item.timestamp)}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+              ${item.reportType ? `<span style="font-size:11px;color:#fff;background:#00c9b8;padding:1px 7px;border-radius:20px;font-weight:600;">${item.reportType}</span>` : ""}
+              <span style="font-size:12px;color:#999;">${formatRelativeTime(item.timestamp)}</span>
+            </div>
           </div>
           <button class="insight-history-delete-btn" style="background:none;border:none;cursor:pointer;color:#bbb;padding:4px;font-size:14px;display:flex;align-items:center;flex-shrink:0;">
             <i class="fi fi-rr-trash"></i>
