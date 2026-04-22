@@ -299,6 +299,17 @@ async function saveAsImage(element, filename = "insight-report.png") {
   link.href = canvas.toDataURL();
   link.click();
 }
+function formatRelativeTime(timestamp) {
+  const diff = Date.now() - timestamp;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return '방금 전';
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}일 전`;
+  return `${Math.floor(day / 30)}개월 전`;
+}
 function renderInsight(insights, options = {}) {
   const {
     editMode = false,
@@ -306,79 +317,211 @@ function renderInsight(insights, options = {}) {
     onCopy = null,
     onSave = null,
     onEditToggle = null,
-    containerId = null,
-    // null이면 항상 새 엘리먼트 생성
-    createNew = !options.containerId
-    // containerId 없으면 새로 생성
+    containerId = null,  // null이면 항상 새 엘리먼트 생성
+    createNew = !options.containerId,  // containerId 없으면 새로 생성
+    reportHistory = [],
+    onHistorySelect = null,
+    onHistoryDelete = null,
   } = options;
+
+  // 마크다운 파싱
   const parser = markdownParser || simpleMarkdownParse;
-  const parsedContent = parser(insights || "");
-  const content = editMode ? `<div id="mdEditor" contentEditable="true" style="width:100%; line-height:1.5; font-size:1.2em; min-height:400px; white-space: pre-wrap; border:1px solid #ddd; padding:10px; border-radius:4px;">${insights || ""}</div>` : `<div class="parsed-content">${parsedContent.replace(/&quot;\n&quot;/g, '"<br>"')}</div>`;
-  const buttons = `
-    <button id="copyBtn" class="insight-btn"><i class="fi fi-br-duplicate"></i> \uD14D\uC2A4\uD2B8 \uBCF5\uC0AC</button>
-    <button id="saveBtn" class="insight-btn"><i class="fi fi-br-download"></i> \uC774\uBBF8\uC9C0 \uC800\uC7A5</button>
-    <button id="editBtn" class="insight-btn ${editMode ? "edit" : "richtext"}" data-action="toggle-edit">
-      ${editMode ? '<i class="fi fi-br-check"></i> \uC644\uB8CC' : '<i class="fi fi-br-pencil"></i> \uD3B8\uC9D1'}
+  const parsedContent = parser(insights || '');
+
+  // 콘텐츠 영역
+  const content = editMode
+    ? `<div id="mdEditor" contentEditable="true" style="width:100%; line-height:1.5; font-size:1.2em; min-height:400px; white-space: pre-wrap; border:1px solid #ddd; padding:10px; border-radius:4px;">${insights || ''}</div>`
+    : `<div class="parsed-content">${parsedContent.replace(/&quot;\n&quot;/g, '"<br>"')}</div>`;
+
+  // 히스토리 버튼
+  const hasHistory = reportHistory.length > 0;
+  const _historyBtnStyle = [
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'background:#fff', 'border:1px solid #e0e0e0', 'border-radius:8px',
+    'width:36px', 'height:36px', 'font-size:16px', 'color:#666',
+    'box-shadow:0 1px 4px rgba(0,0,0,0.08)', 'flex-shrink:0',
+    `opacity:${hasHistory ? '1' : '0.3'}`,
+    `cursor:${hasHistory ? 'pointer' : 'default'}`,
+    'transition:opacity 0.2s',
+  ].join(';');
+  const historyBtnHtml = `
+    <div id="insightHistoryWrapper" style="position:relative;">
+      <button id="insightHistoryBtn" title="리포트 히스토리" style="${_historyBtnStyle}">
+        <i class="fi fi-rr-time-past"></i>
+      </button>
+    </div>
+  `;
+
+  // 오른쪽 버튼 영역
+  const rightButtons = `
+    <button id="copyBtn" class="insight-btn"><i class="fi fi-br-duplicate"></i> 텍스트 복사</button>
+    <button id="saveBtn" class="insight-btn"><i class="fi fi-br-download"></i> 이미지 저장</button>
+    <button id="editBtn" class="insight-btn ${editMode ? 'edit' : 'richtext'}" data-action="toggle-edit">
+      ${editMode
+        ? '<i class="fi fi-br-check"></i> 완료'
+        : '<i class="fi fi-br-pencil"></i> 편집'}
     </button>
   `;
+
+  const buttonsInner = `${historyBtnHtml}<div style="display:flex; gap:8px;">${rightButtons}</div>`;
+
   let container;
+
+  // Observable 호환: 항상 새 엘리먼트 생성 (createNew가 true거나 containerId가 없을 때)
   if (createNew || !containerId) {
-    container = document.createElement("div");
+    container = document.createElement('div');
     if (containerId) container.id = containerId;
     container.innerHTML = `
-      <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px;">${buttons}</div>
+      <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">${buttonsInner}</div>
       <div class="report" id="insightReport">${content}</div>
     `;
   } else {
+    // 기존 컨테이너 찾기 또는 생성
     container = document.getElementById(containerId);
+
     if (container) {
-      const buttonsDiv = container.querySelector("#insightButtons") || container.querySelector(".sub-buttons");
-      const reportDiv = container.querySelector("#insightReport") || container.querySelector(".report");
-      if (buttonsDiv) buttonsDiv.innerHTML = buttons;
+      // 기존 컨테이너 업데이트
+      const buttonsDiv = container.querySelector('#insightButtons') || container.querySelector('.sub-buttons');
+      const reportDiv = container.querySelector('#insightReport') || container.querySelector('.report');
+
+      if (buttonsDiv) {
+        buttonsDiv.innerHTML = buttonsInner;
+        buttonsDiv.style.justifyContent = 'space-between';
+        buttonsDiv.style.alignItems = 'center';
+      }
       if (reportDiv) reportDiv.innerHTML = content;
     } else {
-      container = document.createElement("div");
+      // 새 컨테이너 생성
+      container = document.createElement('div');
       container.id = containerId;
       container.innerHTML = `
-        <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px;">${buttons}</div>
+        <div class="sub-buttons" id="insightButtons" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">${buttonsInner}</div>
         <div class="report" id="insightReport">${content}</div>
       `;
     }
   }
-  const copyBtn = container.querySelector("#copyBtn");
-  const saveBtn = container.querySelector("#saveBtn");
-  const editBtn = container.querySelector("#editBtn");
+
+  // 이벤트 바인딩
+  const copyBtn = container.querySelector('#copyBtn');
+  const saveBtn = container.querySelector('#saveBtn');
+  const editBtn = container.querySelector('#editBtn');
+
   if (copyBtn) {
     copyBtn.onclick = async () => {
       if (onCopy) {
         onCopy(insights);
       } else {
         await copyToClipboard(insights);
-        alert("\uD14D\uC2A4\uD2B8\uAC00 \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.");
+        alert('텍스트가 클립보드에 복사되었습니다.');
       }
     };
   }
+
   if (saveBtn) {
     saveBtn.onclick = async () => {
       if (onSave) {
-        onSave(container.querySelector("#insightReport"));
+        onSave(container.querySelector('#insightReport'));
       } else {
-        const reportEl = container.querySelector("#insightReport");
-        await saveAsImage(reportEl, "insight-report.png");
+        const reportEl = container.querySelector('#insightReport');
+        await saveAsImage(reportEl, 'insight-report.png');
       }
     };
   }
+
   if (editBtn && onEditToggle) {
     editBtn.onclick = () => {
       if (editMode) {
-        const editor = container.querySelector("#mdEditor");
+        // 편집 모드 종료 - 내용 가져오기
+        const editor = container.querySelector('#mdEditor');
         const newContent = editor ? editor.textContent : insights;
         onEditToggle(false, newContent);
       } else {
+        // 편집 모드 시작
         onEditToggle(true, insights);
       }
     };
   }
+
+  // 히스토리 버튼 & 드롭다운 패널
+  const historyBtn = container.querySelector('#insightHistoryBtn');
+  const historyWrapper = container.querySelector('#insightHistoryWrapper');
+
+  if (historyBtn && historyWrapper) {
+    // 기존 패널 제거 후 재생성
+    const oldPanel = historyWrapper.querySelector('#insightHistoryPanel');
+    if (oldPanel) oldPanel.remove();
+
+    const panel = document.createElement('div');
+    panel.id = 'insightHistoryPanel';
+    panel.style.cssText = [
+      'display:none',
+      'position:absolute',
+      'top:calc(100% + 4px)',
+      'left:0',
+      'z-index:200',
+      'background:#fff',
+      'border:1px solid #e0e0e0',
+      'border-radius:12px',
+      'box-shadow:0 4px 16px rgba(0,0,0,0.12)',
+      'min-width:260px',
+      'max-width:360px',
+      'max-height:320px',
+      'overflow-y:auto',
+    ].join(';');
+
+    if (reportHistory.length === 0) {
+      panel.innerHTML = '<div style="padding:16px;color:#bbb;text-align:center;font-size:14px;">리포트 기록이 없습니다.</div>';
+    } else {
+      [...reportHistory].reverse().forEach((item, i) => {
+        const realIdx = reportHistory.length - 1 - i;
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+        row.innerHTML = `
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:500;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.title || '(제목 없음)'}</div>
+            <div style="font-size:12px;color:#999;margin-top:2px;">${formatRelativeTime(item.timestamp)}</div>
+          </div>
+          <button class="insight-history-delete-btn" style="background:none;border:none;cursor:pointer;color:#bbb;padding:4px;font-size:14px;display:flex;align-items:center;flex-shrink:0;">
+            <i class="fi fi-rr-trash"></i>
+          </button>
+        `;
+
+        row.addEventListener('click', (e) => {
+          if (!e.target.closest('.insight-history-delete-btn')) {
+            onHistorySelect && onHistorySelect(item);
+            panel.style.display = 'none';
+          }
+        });
+
+        row.querySelector('.insight-history-delete-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          onHistoryDelete && onHistoryDelete(realIdx);
+        });
+
+        row.addEventListener('mouseenter', () => row.style.background = '#f8f8f8');
+        row.addEventListener('mouseleave', () => row.style.background = '');
+
+        panel.appendChild(row);
+      });
+    }
+
+    historyWrapper.appendChild(panel);
+
+    historyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!hasHistory) return;
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // 외부 클릭 시 패널 닫기
+    const outsideClick = (e) => {
+      if (!historyWrapper.contains(e.target)) {
+        panel.style.display = 'none';
+      }
+    };
+    document.addEventListener('click', outsideClick);
+  }
+
   return container;
 }
 function toggleInsightVisibility(containerId = "insightDiv", show = true) {
