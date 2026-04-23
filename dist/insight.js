@@ -322,6 +322,7 @@ function renderInsight(insights, options = {}) {
     reportHistory = [],
     onHistorySelect = null,
     onHistoryDelete = null,
+    isPaid = true,
   } = options;
 
   // 마크다운 파싱
@@ -335,13 +336,14 @@ function renderInsight(insights, options = {}) {
 
   // 히스토리 버튼
   const hasHistory = reportHistory.length > 0;
+  const _btnActive = hasHistory || !isPaid;
   const _historyBtnStyle = [
     'display:flex', 'align-items:center', 'justify-content:center',
     'background:#fff', 'border:1px solid #e0e0e0', 'border-radius:8px',
     'width:36px', 'height:36px', 'font-size:16px', 'color:#666',
     'box-shadow:0 1px 4px rgba(0,0,0,0.08)', 'flex-shrink:0',
-    `opacity:${hasHistory ? '1' : '0.3'}`,
-    `cursor:${hasHistory ? 'pointer' : 'default'}`,
+    `opacity:${_btnActive ? '1' : '0.3'}`,
+    `cursor:${_btnActive ? 'pointer' : 'default'}`,
     'transition:opacity 0.2s',
   ].join(';');
   const historyBtnHtml = `
@@ -505,12 +507,28 @@ function renderInsight(insights, options = {}) {
       });
     }
 
+    // 비유료 lock overlay
+    if (!isPaid) {
+      const lockDiv = document.createElement('div');
+      lockDiv.style.cssText = [
+        'position:absolute', 'inset:0', 'border-radius:12px',
+        'background:rgba(255,255,255,0.85)', 'backdrop-filter:blur(2px)',
+        'z-index:10', 'display:flex', 'flex-direction:column',
+        'align-items:center', 'justify-content:center', 'gap:10px',
+        'pointer-events:all',
+      ].join(';');
+      lockDiv.innerHTML = '<i class="fi fi-rr-lock" style="font-size:22px;color:#888;"></i><span style="font-size:13px;color:#555;font-weight:500;">유료 플랜에서 사용 가능한 기능입니다</span>';
+      panel.style.position = 'relative';
+      panel.appendChild(lockDiv);
+    }
+
     historyWrapper.appendChild(panel);
 
     historyBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!hasHistory) return;
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      if (!isPaid || hasHistory) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      }
     });
 
     // 외부 클릭 시 패널 닫기
