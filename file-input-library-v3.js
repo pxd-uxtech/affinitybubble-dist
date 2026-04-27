@@ -231,7 +231,6 @@ function reservoirSample(arr, k) {
  */
 function createFileInputUIv3(Papa, options = {}) {
   const {
-    maxSize = 1000,
     width = 800,
     showPreview = true,
     moment = null,
@@ -240,6 +239,8 @@ function createFileInputUIv3(Papa, options = {}) {
     isEduUser = false,        // EDU 사용자 여부
     hateSpeechFilter = null   // 혐오발언 필터. getPromptResult 함수를 그대로 전달. service_type: 'filter_hate_speech' 자동 사용
   } = options;
+  const originalMaxSize = options.maxSize ?? 1000;
+  let maxSize = originalMaxSize;
 
   // 외부 가이드 컨테이너 참조
   let guideContainer = null;
@@ -1144,6 +1145,7 @@ function createFileInputUIv3(Papa, options = {}) {
     `;
 
     filePreview.querySelector(".delete-btn").addEventListener("click", () => {
+      maxSize = originalMaxSize;
       attachedFile = null;
       inputContent = "";
       textarea.value = "";
@@ -1209,6 +1211,7 @@ function createFileInputUIv3(Papa, options = {}) {
   function readFile(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
+      maxSize = originalMaxSize;
       attachedFile = { name: file.name, content: e.target.result };
       inputContent = e.target.result;
       updateFilePreview();
@@ -1969,7 +1972,6 @@ function createFileInputUIv3(Papa, options = {}) {
   // 외부에서 샘플 데이터 추가
   container.addSampleData = function(fileData, overrideMaxSize) {
     if (!fileData?.content) return;
-    const prevMaxSize = maxSize;
     if (overrideMaxSize != null) maxSize = overrideMaxSize;
     attachedFile = {
       name: fileData.name || "Sample Data",
@@ -1978,11 +1980,11 @@ function createFileInputUIv3(Papa, options = {}) {
     inputContent = fileData.content;
     updateFilePreview();
     updateInputState();
-    maxSize = prevMaxSize;
   };
 
   // 초기화
   container.clear = function() {
+    maxSize = originalMaxSize;
     attachedFile = null;
     inputContent = "";
     rawText = [];
