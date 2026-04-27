@@ -8152,8 +8152,9 @@ var Level1Pipeline = class {
     this.options = {
       maxSet: 1200,
       sampleSize: 1e3,
-      assignThreshold: 0.82,
+      assignThreshold: 0.8,
       clusterSimValue: 45,
+      medoidK: 3,
       ...options
     };
   }
@@ -8274,10 +8275,10 @@ var Level1Pipeline = class {
       cluster: clusterMap.get(d.textid) ?? 999
     }));
     onProgress({ progress: 40, embeds: sampleWithEmbeds, message: "\uC784\uBCA0\uB529 \uC911... (40%)" });
-    const centroids = this._computeCentroids(sampleWithEmbeds);
+    const clusterMedoids = this._computeMedoids(sampleWithEmbeds, this.options.medoidK);
     const restResult = await this._embedAndAssignRest(
       rest,
-      centroids,
+      clusterMedoids,
       assignThreshold,
       (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds, message: p.message })
     );
@@ -8291,13 +8292,13 @@ var Level1Pipeline = class {
     };
   }
   /**
-   * 나머지 데이터 임베딩 및 센트로이드 기반 클러스터 배정
+   * 나머지 데이터 임베딩 및 medoid 기반 클러스터 배정
    * @param {Array} rest - 나머지 데이터
-   * @param {Array} centroids - 센트로이드 배열 [{cluster, mean, n}]
+   * @param {Array} clusterMedoids - [{cluster, medoids: [{embed, invNorm}, ...], n}]
    * @param {number} threshold - 배정 임계값 (코사인 유사도)
    * @param {Function} onProgress - 진행률 콜백
    */
-  async _embedAndAssignRest(rest, centroids, threshold, onProgress) {
+  async _embedAndAssignRest(rest, clusterMedoids, threshold, onProgress) {
     const batchSize = 300;
     const allEmbeds = [];
     for (let i = 0; i < rest.length; i += batchSize) {
@@ -8307,7 +8308,7 @@ var Level1Pipeline = class {
       for await (const e of stream) batchEmbeds.push(e);
       for (let j = 0; j < batch.length; j++) {
         const embed = batchEmbeds[j];
-        const best = this._findNearestCentroid(embed, centroids);
+        const best = this._findNearestMedoid(embed, clusterMedoids);
         const withEmbed = {
           ...batch[j],
           embed,
@@ -8371,9 +8372,16 @@ var Level1Pipeline = class {
     );
   }
   /**
-   * 중심점 계산 (norm 사전 계산 포함)
+   * 클러스터별 top-k medoid 계산 (far-point sampling)
+   * 1) centroid와 가장 가까운 점을 seed medoid로 선택 (클러스터 중심부 대표)
+   * 2) 이후 medoid는 이미 선택된 medoid들로부터 min-sim이 최소인 점 (= 가장 먼 점)
+   *
+   * 비구형/길쭉한 클러스터의 서로 다른 끝점을 함께 포착하여 배정 품질을 높임.
+   * @param {Array} embeds - embedding 배열 (cluster 필드 포함)
+   * @param {number} k - 클러스터당 medoid 개수
+   * @returns {Array} [{cluster, medoids: [{embed, invNorm}, ...], n}]
    */
-  _computeCentroids(embeds) {
+  _computeMedoids(embeds, k = 3) {
     const byCluster = /* @__PURE__ */ new Map();
     for (const item of embeds) {
       if (!byCluster.has(item.cluster)) {
@@ -8381,21 +8389,73 @@ var Level1Pipeline = class {
       }
       byCluster.get(item.cluster).push(item.embed);
     }
-    const centroids = [];
+    const result = [];
     for (const [cluster, vecs] of byCluster) {
       const dim = vecs[0].length;
+      const pool = vecs.map((v) => {
+        let normSq = 0;
+        for (let i = 0; i < dim; i++) normSq += v[i] * v[i];
+        return { embed: v, invNorm: normSq > 0 ? 1 / Math.sqrt(normSq) : 0 };
+      });
+      if (pool.length <= k) {
+        result.push({ cluster, medoids: pool, n: pool.length });
+        continue;
+      }
       const mean = new Array(dim).fill(0);
       for (const v of vecs) {
         for (let i = 0; i < dim; i++) mean[i] += v[i];
       }
-      let normSq = 0;
-      for (let i = 0; i < dim; i++) {
-        mean[i] /= vecs.length;
-        normSq += mean[i] * mean[i];
+      for (let i = 0; i < dim; i++) mean[i] /= vecs.length;
+      let meanNormSq = 0;
+      for (let i = 0; i < dim; i++) meanNormSq += mean[i] * mean[i];
+      const meanInvNorm = meanNormSq > 0 ? 1 / Math.sqrt(meanNormSq) : 0;
+      let seedIdx = 0;
+      let seedSim = -Infinity;
+      for (let idx = 0; idx < pool.length; idx++) {
+        const v = pool[idx];
+        if (v.invNorm === 0 || meanInvNorm === 0) continue;
+        let dot = 0;
+        for (let i = 0; i < dim; i++) dot += v.embed[i] * mean[i];
+        const sim = dot * v.invNorm * meanInvNorm;
+        if (sim > seedSim) {
+          seedSim = sim;
+          seedIdx = idx;
+        }
       }
-      centroids.push({ cluster, mean, n: vecs.length, invNorm: normSq > 0 ? 1 / Math.sqrt(normSq) : 0 });
+      const medoids = [pool[seedIdx]];
+      const used = /* @__PURE__ */ new Set([seedIdx]);
+      const minSim = new Array(pool.length).fill(Infinity);
+      const updateMinSim = (m) => {
+        if (m.invNorm === 0) return;
+        for (let idx = 0; idx < pool.length; idx++) {
+          if (used.has(idx)) continue;
+          const v = pool[idx];
+          if (v.invNorm === 0) continue;
+          let dot = 0;
+          for (let i = 0; i < dim; i++) dot += v.embed[i] * m.embed[i];
+          const sim = dot * v.invNorm * m.invNorm;
+          if (sim < minSim[idx]) minSim[idx] = sim;
+        }
+      };
+      updateMinSim(medoids[0]);
+      while (medoids.length < k) {
+        let farIdx = -1;
+        let farVal = Infinity;
+        for (let idx = 0; idx < pool.length; idx++) {
+          if (used.has(idx)) continue;
+          if (minSim[idx] < farVal) {
+            farVal = minSim[idx];
+            farIdx = idx;
+          }
+        }
+        if (farIdx === -1) break;
+        medoids.push(pool[farIdx]);
+        used.add(farIdx);
+        updateMinSim(pool[farIdx]);
+      }
+      result.push({ cluster, medoids, n: vecs.length });
     }
-    return centroids;
+    return result;
   }
   /**
    * 코사인 유사도 계산
@@ -8412,10 +8472,10 @@ var Level1Pipeline = class {
     return p / (ma ** 0.5 * mb ** 0.5);
   }
   /**
-   * 가장 가까운 센트로이드 찾기 (사전 계산된 norm 활용)
+   * 가장 가까운 medoid 찾기 (클러스터당 max-sim over medoids)
    * @returns {{ cluster, similarity }}
    */
-  _findNearestCentroid(embed, centroids) {
+  _findNearestMedoid(embed, clusterMedoids) {
     const len = embed.length;
     let embedNormSq = 0;
     for (let i = 0; i < len; i++) embedNormSq += embed[i] * embed[i];
@@ -8423,14 +8483,17 @@ var Level1Pipeline = class {
     const embedInvNorm = 1 / Math.sqrt(embedNormSq);
     let bestCluster = 999;
     let bestSim = -1;
-    for (const c of centroids) {
-      if (c.invNorm === 0) continue;
-      let dot = 0;
-      const mean = c.mean;
-      for (let i = 0; i < len; i++) dot += embed[i] * mean[i];
-      const sim = dot * embedInvNorm * c.invNorm;
-      if (sim > bestSim) {
-        bestSim = sim;
+    for (const c of clusterMedoids) {
+      let clusterMaxSim = -1;
+      for (const m of c.medoids) {
+        if (m.invNorm === 0) continue;
+        let dot = 0;
+        for (let i = 0; i < len; i++) dot += embed[i] * m.embed[i];
+        const sim = dot * embedInvNorm * m.invNorm;
+        if (sim > clusterMaxSim) clusterMaxSim = sim;
+      }
+      if (clusterMaxSim > bestSim) {
+        bestSim = clusterMaxSim;
         bestCluster = c.cluster;
       }
     }
@@ -12135,10 +12198,17 @@ var AffinityBubblePipeline = class {
           }
         );
         this.state.setProgress("labeling", 60, "Outlier \uC7AC\uBC30\uCE58 \uBC0F \uCD5C\uC885 \uADF8\uB8F9\uD654...");
+        onProgress(this.state.progress, this.state.snapshot());
         labelClusters = await this._rearrangeOutliers(
           labels,
           level1Result.interimClusters,
-          options
+          options,
+          (p, info) => {
+            const overall = 60 + Math.max(0, Math.min(1, p)) * 5;
+            const msg = info?.total ? `Outlier \uC7AC\uBD84\uB958 \uC911... (${info.done ?? 0}/${info.total})` : "Outlier \uC7AC\uBC30\uCE58 \uBC0F \uCD5C\uC885 \uADF8\uB8F9\uD654...";
+            this.state.setProgress("labeling", overall, msg);
+            onProgress(this.state.progress, this.state.snapshot());
+          }
         );
       } else {
         console.log("[Pipeline] Reusing labels and labelClusters...");
@@ -12385,7 +12455,8 @@ var AffinityBubblePipeline = class {
    * Outlier 재배치 및 최종 레이블 그룹화
    * @returns {Promise<Array>} labelClusters [{cluster, label, cellDatas}]
    */
-  async _rearrangeOutliers(labels, interimClusters, options) {
+  async _rearrangeOutliers(labels, interimClusters, options, onProgress = () => {
+  }) {
     const allCells = interimClusters.flatMap((c) => c.cellDatas);
     const wordClusterMap = new Map(allCells.map((d) => [d.textid, d]));
     const labelMap = new Map(labels.map((d) => [d.label, d.cluster]));
@@ -12452,30 +12523,99 @@ var AffinityBubblePipeline = class {
     const remappingMap = /* @__PURE__ */ new Map();
     if (outliers.length > 0) {
       console.log(`Re-classifying ${outliers.length} outliers...`);
-      const allLabelTexts = labels.map((d) => d.label);
-      try {
-        const result = await this.deps.classifyWithIdThreads(
-          allLabelTexts,
-          outliers.map((d) => `${d.textid} : ${d.text}`),
-          25,
-          3,
-          (p) => console.log(`Rearrange progress: ${(p * 100).toFixed(0)}%`)
-        );
-        if (result && result.length > 0) {
-          const outlierMap = new Map(outliers.map((d) => [d.textid, d]));
-          result.forEach((d) => {
-            const originalId = d.id;
-            const match = outlierMap.get(originalId);
-            if (match && d.category) {
-              const newClusterId = labelMap.get(d.category);
-              if (newClusterId !== void 0) {
-                remappingMap.set(originalId, newClusterId);
-              }
-            }
-          });
+      const totalOutliers = outliers.length;
+      onProgress(0, { phase: "classify", total: totalOutliers, done: 0 });
+      const EMBED_AUTO_THRESHOLD = 0.8;
+      const labelsWithEmbed = labels.filter((l) => l.embed && l.embed.length > 0);
+      const labelPool = labelsWithEmbed.map((l) => {
+        const e = l.embed;
+        let normSq = 0;
+        for (let i = 0; i < e.length; i++) normSq += e[i] * e[i];
+        return {
+          cluster: l.cluster,
+          label: l.label,
+          embed: e,
+          invNorm: normSq > 0 ? 1 / Math.sqrt(normSq) : 0
+        };
+      }).filter((l) => l.invNorm > 0);
+      const needsLLM = [];
+      let autoAssigned = 0;
+      for (const o of outliers) {
+        const itemEmbed = o.item?.embed;
+        if (!itemEmbed || itemEmbed.length === 0 || labelPool.length === 0) {
+          needsLLM.push(o);
+          continue;
         }
-      } catch (e) {
-        console.error("Error during _rearrangeOutliers:", e);
+        let embedNormSq = 0;
+        for (let i = 0; i < itemEmbed.length; i++) embedNormSq += itemEmbed[i] * itemEmbed[i];
+        if (embedNormSq === 0) {
+          needsLLM.push(o);
+          continue;
+        }
+        const itemInvNorm = 1 / Math.sqrt(embedNormSq);
+        let bestSim = -1;
+        let bestCluster = null;
+        for (const l of labelPool) {
+          let dot = 0;
+          for (let i = 0; i < itemEmbed.length; i++) dot += itemEmbed[i] * l.embed[i];
+          const sim = dot * itemInvNorm * l.invNorm;
+          if (sim > bestSim) {
+            bestSim = sim;
+            bestCluster = l.cluster;
+          }
+        }
+        if (bestSim >= EMBED_AUTO_THRESHOLD && bestCluster !== null) {
+          remappingMap.set(o.textid, bestCluster);
+          autoAssigned++;
+        } else {
+          needsLLM.push(o);
+        }
+      }
+      console.log(`Stage 1 (embed): auto-assigned ${autoAssigned}/${totalOutliers}`);
+      onProgress(autoAssigned / totalOutliers, {
+        phase: "classify",
+        total: totalOutliers,
+        done: autoAssigned
+      });
+      if (needsLLM.length > 0) {
+        const allLabelTexts = labels.map((d) => d.label);
+        try {
+          const result = await this.deps.classifyWithIdThreads(
+            allLabelTexts,
+            needsLLM.map((d) => `${d.textid} : ${d.text}`),
+            10,
+            // chunkSize: 25 → 10 (LLM 집중도 향상)
+            5,
+            // maxConcurrent: 3 → 5 (call 단축 이득 활용)
+            (p) => {
+              const clamped = Math.max(0, Math.min(1, p));
+              const llmDone = Math.round(clamped * needsLLM.length);
+              onProgress(
+                (autoAssigned + llmDone) / totalOutliers,
+                {
+                  phase: "classify",
+                  total: totalOutliers,
+                  done: autoAssigned + llmDone
+                }
+              );
+            }
+          );
+          if (result && result.length > 0) {
+            const outlierMap = new Map(needsLLM.map((d) => [d.textid, d]));
+            result.forEach((d) => {
+              const originalId = d.id;
+              const match = outlierMap.get(originalId);
+              if (match && d.category) {
+                const newClusterId = labelMap.get(d.category);
+                if (newClusterId !== void 0) {
+                  remappingMap.set(originalId, newClusterId);
+                }
+              }
+            });
+          }
+        } catch (e) {
+          console.error("Error during _rearrangeOutliers:", e);
+        }
       }
     }
     allCells.forEach((cell) => {
