@@ -1902,7 +1902,7 @@ function createFileInputUIv3(Papa, options = {}) {
     let noticeContent = '';
     if (user_subscript.match(/demo/i) && isOver) {
       noticeContent = `<span class="bodyTitle">데모용으로 한 번에 ${maxSize}개까지만 분석합니다.</span><br>
-<span class="bodytext">회원 가입 시 100개까지 분석 및 모든 기능 사용가능하며,<br> 유료 구독 시 1,000개~3,000개까지 가능합니다.</span>`;
+<span class="bodytext">회원 가입 시 80개까지 분석 및 모든 기능 사용가능하며,<br> 유료 구독 시 1,000개~3,000개까지 가능합니다.</span>`;
     } else if (user_subscript.match(/free|basic/i) && isOver && isEduUser) {
       noticeContent = `EDU 사용자는 ${activeCount}개중 처음 ${maxSize}개까지 분석할 수 있습니다.`;
     } else if (user_subscript.match(/free|basic/i) && isOver) {
