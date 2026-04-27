@@ -1967,8 +1967,10 @@ function createFileInputUIv3(Papa, options = {}) {
   });
 
   // 외부에서 샘플 데이터 추가
-  container.addSampleData = function(fileData) {
+  container.addSampleData = function(fileData, overrideMaxSize) {
     if (!fileData?.content) return;
+    const prevMaxSize = maxSize;
+    if (overrideMaxSize != null) maxSize = overrideMaxSize;
     attachedFile = {
       name: fileData.name || "Sample Data",
       content: fileData.content
@@ -1976,6 +1978,7 @@ function createFileInputUIv3(Papa, options = {}) {
     inputContent = fileData.content;
     updateFilePreview();
     updateInputState();
+    maxSize = prevMaxSize;
   };
 
   // 초기화
