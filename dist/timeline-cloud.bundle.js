@@ -168,6 +168,8 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
     // 클러스터 시간 순서 보존 강도 (0~1)
     dateXForceStrength = 0.45,
     // x축 목표 위치로 끌어당기는 힘 (0~1)
+    radiusScale = 1.0,
+    // 버블 반지름 배율 (0~1, 데이터 많을 때 밀도 조절)
     useTimeline,
     // true/false로 타임라인 모드 명시 (undefined면 자동 감지)
     onClick
@@ -352,7 +354,7 @@ function createTimelineCloud(container, clusterWithLabel, options = {}) {
   }
   data.forEach((d) => {
     if (d._targetX == null) d._targetX = hasDate && d._date ? xScale(d._date) : xScale(d._px);
-    d._radius = Math.max(5, d._text.length * fontSize * 0.28) * 1.5;
+    d._radius = Math.max(5, d._text.length * fontSize * 0.28) * 1.5 * radiusScale;
   });
   const labelGroups = d3Lib.groups(data, (d) => d.label);
   function forceCluster(strength) {
