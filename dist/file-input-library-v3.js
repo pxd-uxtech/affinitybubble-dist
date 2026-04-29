@@ -62,7 +62,8 @@ function detectFormat(Papa, input) {
     if (csvResult.data.length >= 2 && csvResult.data[0]?.length > 1) {
       const headerCount = csvResult.data[0].length;
       const matchingRows = csvResult.data.filter(r => r.length >= headerCount - 1 && r.length <= headerCount + 1).length;
-      if (matchingRows / csvResult.data.length >= 0.8 && headerCount <= 30) {
+      // headerCount 제한 제거 — 설문 wide format(50+ 컬럼)도 정상 CSV로 인식
+      if (matchingRows / csvResult.data.length >= 0.8) {
         return "csv";
       }
     }
@@ -231,6 +232,7 @@ function reservoirSample(arr, k) {
  */
 function createFileInputUIv3(Papa, options = {}) {
   const {
+    maxSize = 1000,
     width = 800,
     showPreview = true,
     moment = null,
@@ -239,8 +241,6 @@ function createFileInputUIv3(Papa, options = {}) {
     isEduUser = false,        // EDU 사용자 여부
     hateSpeechFilter = null   // 혐오발언 필터. getPromptResult 함수를 그대로 전달. service_type: 'filter_hate_speech' 자동 사용
   } = options;
-  const originalMaxSize = options.maxSize ?? 1000;
-  let maxSize = originalMaxSize;
 
   // 외부 가이드 컨테이너 참조
   let guideContainer = null;
@@ -257,7 +257,7 @@ function createFileInputUIv3(Papa, options = {}) {
   // 메인 컨테이너 생성
   const container = document.createElement("div");
   container.className = "file-input-v3";
-  container.style.cssText = `width: 100%; max-width: ${width}px; font-family: var(--sans-serif, system-ui);`;
+  container.style.cssText = `width: ${width}px; font-family: var(--sans-serif, system-ui);`;
 
   // 스타일 추가
   const style = document.createElement("style");
@@ -877,7 +877,7 @@ function createFileInputUIv3(Papa, options = {}) {
 
     /* 미리보기 화면 */
     .file-input-v3 .preview-section {
-      width: 100%;
+    width: 880px;
       display: none;
     }
     .file-input-v3 .preview-section.active {
@@ -885,7 +885,6 @@ function createFileInputUIv3(Papa, options = {}) {
       padding: 20px;
       background: #f9fafc;
       border-radius: 8px;
-      box-sizing: border-box;
     }
     /* 미리보기 활성화 시 메인 타이틀 숨김 */
     .file-input-v3 .preview-section.active ~ .main-title,
@@ -1152,7 +1151,6 @@ function createFileInputUIv3(Papa, options = {}) {
     `;
 
     filePreview.querySelector(".delete-btn").addEventListener("click", () => {
-      maxSize = originalMaxSize;
       attachedFile = null;
       inputContent = "";
       textarea.value = "";
@@ -1218,7 +1216,6 @@ function createFileInputUIv3(Papa, options = {}) {
   function readFile(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      maxSize = originalMaxSize;
       attachedFile = { name: file.name, content: e.target.result };
       inputContent = e.target.result;
       updateFilePreview();
@@ -1902,7 +1899,7 @@ function createFileInputUIv3(Papa, options = {}) {
     let noticeContent = '';
     if (user_subscript.match(/demo/i) && isOver) {
       noticeContent = `<span class="bodyTitle">데모용으로 한 번에 ${maxSize}개까지만 분석합니다.</span><br>
-<span class="bodytext">회원 가입 시 80개까지 분석 및 모든 기능 사용가능하며,<br> 유료 구독 시 1,000개~3,000개까지 가능합니다.</span>`;
+<span class="bodytext">회원 가입 시 100개까지 분석 및 모든 기능 사용가능하며,<br> 유료 구독 시 1,000개~3,000개까지 가능합니다.</span>`;
     } else if (user_subscript.match(/free|basic/i) && isOver && isEduUser) {
       noticeContent = `EDU 사용자는 ${activeCount}개중 처음 ${maxSize}개까지 분석할 수 있습니다.`;
     } else if (user_subscript.match(/free|basic/i) && isOver) {
@@ -2000,9 +1997,8 @@ function createFileInputUIv3(Papa, options = {}) {
   });
 
   // 외부에서 샘플 데이터 추가
-  container.addSampleData = function(fileData, overrideMaxSize) {
+  container.addSampleData = function(fileData) {
     if (!fileData?.content) return;
-    if (overrideMaxSize != null) maxSize = overrideMaxSize;
     attachedFile = {
       name: fileData.name || "Sample Data",
       content: fileData.content
@@ -2014,7 +2010,6 @@ function createFileInputUIv3(Papa, options = {}) {
 
   // 초기화
   container.clear = function() {
-    maxSize = originalMaxSize;
     attachedFile = null;
     inputContent = "";
     rawText = [];
