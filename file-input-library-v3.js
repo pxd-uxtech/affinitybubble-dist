@@ -62,7 +62,8 @@ function detectFormat(Papa, input) {
     if (csvResult.data.length >= 2 && csvResult.data[0]?.length > 1) {
       const headerCount = csvResult.data[0].length;
       const matchingRows = csvResult.data.filter(r => r.length >= headerCount - 1 && r.length <= headerCount + 1).length;
-      if (matchingRows / csvResult.data.length >= 0.8 && headerCount <= 30) {
+      // headerCount 제한 제거 — 설문 wide format(50+ 컬럼)도 정상 CSV로 인식
+      if (matchingRows / csvResult.data.length >= 0.8) {
         return "csv";
       }
     }
@@ -688,6 +689,9 @@ function createFileInputUIv3(Papa, options = {}) {
       max-width: 50px;
       text-align: center;
       cursor: default;
+      position: sticky;
+      left: 0;
+      z-index: 2;
     }
     .file-input-v3-popup-table td {
       padding: 12px 16px;
@@ -703,6 +707,9 @@ function createFileInputUIv3(Papa, options = {}) {
       color: #999;
       text-align: center;
       font-size: 12px;
+      position: sticky;
+      left: 0;
+      z-index: 1;
     }
     .file-input-v3-popup-table tr:hover td:not(.row-num) {
       background: #fafafa;
@@ -1514,6 +1521,9 @@ function createFileInputUIv3(Papa, options = {}) {
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
 
+    // 초기 선택 컬럼으로 스크롤 (레이아웃 완전히 잡힌 후)
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollToColumn(columnMapping.text)));
+
     // Transpose 버튼 이벤트
     const transposeBtn = popup.querySelector(".file-input-v3-transpose-btn");
     if (transposeBtn) {
@@ -1583,6 +1593,23 @@ function createFileInputUIv3(Papa, options = {}) {
       updateDateTagUI();
     }
 
+    // 선택된 컬럼이 가로 스크롤로 가려있을 때 보이도록 스크롤
+    function scrollToColumn(col) {
+      if (!col || col === "없음") return;
+      const body = popup.querySelector(".file-input-v3-popup-body");
+      const th = popup.querySelector(`.file-input-v3-popup-table th[data-col="${CSS.escape(col)}"]`);
+      if (!body || !th) return;
+      const bodyRect = body.getBoundingClientRect();
+      const thRect = th.getBoundingClientRect();
+      // sticky 체크박스 열 너비만큼 여유 확보
+      const stickyW = (popup.querySelector(".file-input-v3-popup-table th.row-num")?.offsetWidth || 0);
+      if (thRect.left < bodyRect.left + stickyW) {
+        body.scrollLeft += thRect.left - bodyRect.left - stickyW - 8;
+      } else if (thRect.right > bodyRect.right) {
+        body.scrollLeft += thRect.right - bodyRect.right + 8;
+      }
+    }
+
     // 팝업 이벤트 핸들러
     const textSelect = popup.querySelector(".text-column-select");
     const dateSelect = hasDateOptions ? popup.querySelector(".date-column-select") : null;
@@ -1614,6 +1641,7 @@ function createFileInputUIv3(Papa, options = {}) {
       columnMapping.text = textSelect.value;
       renderTable();
       setupHeaderClickHandlers();
+      scrollToColumn(columnMapping.text);
     });
 
     if (hasDateOptions) {
@@ -1622,6 +1650,7 @@ function createFileInputUIv3(Papa, options = {}) {
         updateDateTagUI();
         renderTable();
         setupHeaderClickHandlers();
+        scrollToColumn(columnMapping.date);
       });
     }
 
@@ -1631,6 +1660,7 @@ function createFileInputUIv3(Papa, options = {}) {
         updateSizeTagUI();
         renderTable();
         setupHeaderClickHandlers();
+        scrollToColumn(columnMapping.size);
       });
     }
 
