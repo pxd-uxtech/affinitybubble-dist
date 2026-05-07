@@ -68,8 +68,8 @@ var DEFAULTS = {
   // null → 폰트크기 기반 자동 (≈ fs*0.32+2 글자, floor 5)
   wordMaxLines: 2,
   // 기본 표시 라인 수
-  wordMaxExtraLines: 0,
-  // 줌인 시 base에 추가될 최대 라인 수 (0=비활성)
+  wordMaxExtraLines: 2,
+  // 줌인 시 base에 추가될 최대 라인 수 (k=1→+0, k=zoomFullThreshold→+maxExtra)
   wordEllipsis: "\u2026",
   wordZoomFullThreshold: 2,
   // 줌 k가 이 값에 도달하면 wordMaxExtraLines 까지 라인 늘어남
