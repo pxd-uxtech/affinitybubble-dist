@@ -65,14 +65,16 @@ var DEFAULTS = {
   autoAggregate: true,
   // ---- multi-line word wrapping + zoom-aware truncation ----
   wordCharsPerLine: null,
-  // null → 폰트크기 기반 자동 (≈ fs*0.32+2 글자)
+  // null → 폰트크기 기반 자동 (≈ fs*0.32+2 글자, floor 5)
   wordMaxLines: 2,
   // 기본 표시 라인 수
+  wordMaxExtraLines: 0,
+  // 줌인 시 base에 추가될 최대 라인 수 (0=비활성)
   wordEllipsis: "\u2026",
   wordZoomFullThreshold: 2,
-  // zoom k 이 이상이면 풀 텍스트 표시
+  // 줌 k가 이 값에 도달하면 wordMaxExtraLines 까지 라인 늘어남
   wordZoomRewrapEpsilon: 0.15,
-  // zoom k 변화량이 이보다 작으면 wrap 재계산 skip
+  // 줌 k 변화량이 이보다 작으면 wrap 재계산 skip
   wordOverflowMode: "break"
   // 'break' | 'truncate'
 };
@@ -192,12 +194,16 @@ function wrapAndTruncate(text, maxChars, maxLines, ellipsis, overflowMode) {
 function computeDisplayLines(d, k, opts) {
   const baseChars = d.maxCharsPerLine;
   const baseLines = d.maxLines;
-  const mc = baseChars;
-  let ml = baseLines;
-  if (k >= opts.wordZoomFullThreshold) {
-    ml = Math.max(baseLines, Math.ceil((d.text || "").length / Math.max(1, baseChars)) + 1);
+  const maxExtra = opts.wordMaxExtraLines | 0;
+  let extra = 0;
+  if (maxExtra > 0) {
+    const k0 = 1;
+    const k1 = Math.max(k0 + 1e-4, opts.wordZoomFullThreshold);
+    if (k >= k1) extra = maxExtra;
+    else if (k > k0) extra = Math.round((k - k0) / (k1 - k0) * maxExtra);
   }
-  return wrapAndTruncate(d.text, mc, ml, opts.wordEllipsis, opts.wordOverflowMode);
+  const ml = baseLines + extra;
+  return wrapAndTruncate(d.text, baseChars, ml, opts.wordEllipsis, opts.wordOverflowMode);
 }
 function rectCollide(padding, iterations) {
   let nodes;
