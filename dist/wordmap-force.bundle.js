@@ -70,6 +70,10 @@ var DEFAULTS = {
   // 기본 표시 라인 수
   wordMaxExtraLines: 2,
   // 줌인 시 base에 추가될 최대 라인 수 (k=1→+0, k=zoomFullThreshold→+maxExtra)
+  // c1 라벨 wrap (정적 — 줌 무관)
+  c1CharsPerLine: null,
+  // null → c1FontSize 기반 자동
+  c1MaxLines: 2,
   wordEllipsis: "\u2026",
   wordZoomFullThreshold: 2,
   // 줌 k가 이 값에 도달하면 wordMaxExtraLines 까지 라인 늘어남
@@ -87,16 +91,16 @@ function ensureStyle() {
 .wf-host svg { display: block; width: 100%; height: 100%; cursor: grab; background: transparent; }
 .wf-host svg:active { cursor: grabbing; }
 .wf-word { font-weight: 500; pointer-events: none; }
+.wf-c1-label-g { cursor: grab; user-select: none; }
+.wf-c1-label-g:active { cursor: grabbing; }
 .wf-c1-label {
   font-weight: 700;
-  cursor: grab;
   paint-order: stroke;
   stroke: rgba(255,255,255,0.9);
   stroke-width: 3px;
   stroke-linejoin: round;
-  user-select: none;
+  pointer-events: none;
 }
-.wf-c1-label:active { cursor: grabbing; }
 .wf-hull {
   fill-opacity: 0.32;
   stroke-opacity: 0.7;
@@ -477,8 +481,12 @@ var WordmapForce = class {
     c1Center.forEach((c, ci) => {
       const text = c1Set[ci];
       const fs = opts.c1FontSize;
-      const w = measure(text, fs, 700, FONT_KO) + 16;
-      const h = fs * 1.5;
+      const mcp = opts.c1CharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
+      const ml = opts.c1MaxLines;
+      const lines = wrapAndTruncate(text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode);
+      const lineWidths = lines.map((l) => measure(l, fs, 700, FONT_KO));
+      const w = Math.max(...lineWidths) + 16;
+      const h = lines.length * fs * 1.2 + 4;
       labelNodes.push({
         type: "label",
         text,
@@ -487,6 +495,7 @@ var WordmapForce = class {
         fs,
         w,
         h,
+        lines,
         x: c.x,
         y: c.y,
         cx: c.x,
@@ -580,7 +589,17 @@ var WordmapForce = class {
     const wordSel = this.gContent.selectAll("g.wf-word-g").data(wordNodes).join("g").attr("class", "wf-word-g").attr("transform", (d) => `translate(${d.x},${d.y})`);
     this._wordSel = wordSel;
     this._rerenderWordLines(this._lastZoomK || 1);
-    const c1Sel = this.gContent.selectAll("text.wf-c1-label").data(labelNodes, (d) => d.c1).join("text").attr("class", "wf-c1-label").attr("x", (d) => d.x).attr("y", (d) => d.y).attr("font-family", FONT_KO).attr("font-size", (d) => d.fs).attr("fill", (d) => c1LabelColor[d.c2 % c1LabelColor.length]).attr("text-anchor", "middle").attr("dominant-baseline", "central").text((d) => d.text);
+    const c1Sel = this.gContent.selectAll("g.wf-c1-label-g").data(labelNodes, (d) => d.c1).join("g").attr("class", "wf-c1-label-g").attr("transform", (d) => `translate(${d.x},${d.y})`);
+    c1Sel.each(function(d) {
+      const g = d3.select(this);
+      g.selectAll("text").remove();
+      const lineH = d.fs * 1.2;
+      const totalH = (d.lines.length - 1) * lineH;
+      const fill = c1LabelColor[d.c2 % c1LabelColor.length];
+      d.lines.forEach((line, i) => {
+        g.append("text").attr("class", "wf-c1-label").attr("x", 0).attr("y", i * lineH - totalH / 2).attr("font-family", FONT_KO).attr("font-size", d.fs).attr("fill", fill).attr("text-anchor", "middle").attr("dominant-baseline", "central").text(line);
+      });
+    });
     const c2Sel = this.gC2.selectAll("g.wf-c2-pill").data(c2Nodes, (d) => d.c2).join((enter) => {
       const g = enter.append("g").attr("class", "wf-c2-pill");
       g.append("rect").attr("x", (d) => -d.w / 2).attr("y", (d) => -d.h / 2).attr("width", (d) => d.w).attr("height", (d) => d.h).attr("rx", (d) => d.h / 2).attr("ry", (d) => d.h / 2).attr("fill", (d) => c2Pill[d.c2 % c2Pill.length]);
@@ -600,7 +619,7 @@ var WordmapForce = class {
     this._c2Sel = c2Sel;
     const ticked = () => {
       wordSel.attr("transform", (d) => `translate(${d.x},${d.y})`);
-      c1Sel.attr("x", (d) => d.x).attr("y", (d) => d.y);
+      c1Sel.attr("transform", (d) => `translate(${d.x},${d.y})`);
       c2Sel.attr("transform", (d) => `translate(${d.x},${d.y})`);
     };
     sim.on("tick", ticked);
