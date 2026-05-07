@@ -1,4 +1,4 @@
-// wordmap-force-library.js
+// ../../../../../Works/vibecoding/affinitybubble-library/wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -391,7 +391,7 @@ var WordmapForce = class {
     const c1Area = /* @__PURE__ */ new Map();
     for (const d of rows) {
       const fs = fontScale(d.size || 1);
-      const mcp = opts.wordCharsPerLine || Math.max(4, Math.round(fs * 0.32 + 2));
+      const mcp = opts.wordCharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
       const ml = opts.wordMaxLines;
       const baseLines = wrapAndTruncate(d.text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode);
       const lineWidths = baseLines.map((l) => measure(l, fs, 500, FONT_KO));
@@ -427,7 +427,7 @@ var WordmapForce = class {
     const wordNodes = rows.map((d) => {
       const ci = c1Index.get(d.c1);
       const fs = fontScale(d.size || 1);
-      const mcp = opts.wordCharsPerLine || Math.max(4, Math.round(fs * 0.32 + 2));
+      const mcp = opts.wordCharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
       const ml = opts.wordMaxLines;
       const baseLines = wrapAndTruncate(d.text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode);
       const lineWidths = baseLines.map((l) => measure(l, fs, 500, FONT_KO));
