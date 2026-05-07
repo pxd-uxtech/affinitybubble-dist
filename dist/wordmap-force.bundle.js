@@ -84,7 +84,7 @@ function ensureStyle() {
   if (document.getElementById(STYLE_ID)) return;
   const css = `
 .wf-host { position: relative; width: 100%; height: 100%; overflow: hidden; }
-.wf-host svg { display: block; width: 100%; height: 100%; cursor: grab; background: #fff; }
+.wf-host svg { display: block; width: 100%; height: 100%; cursor: grab; background: transparent; }
 .wf-host svg:active { cursor: grabbing; }
 .wf-word { font-weight: 500; pointer-events: none; }
 .wf-c1-label {
@@ -656,12 +656,18 @@ var WordmapForce = class {
     const bw = maxX - minX, bh = maxY - minY;
     if (bw <= 0 || bh <= 0) return;
     const W = this.opts.width, H = this.opts.height;
-    const k = Math.min(W / bw, H / bh, this.opts.zoomExtent[1]);
+    const fit = Math.min(W / bw, H / bh);
+    const [zMin, zMax] = this.opts.zoomExtent;
+    if (fit < zMin) {
+      this.zoomBehavior.scaleExtent([Math.min(zMin, fit), zMax]);
+    }
+    const k = Math.min(fit, zMax);
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
     const tx = W / 2 - cx * k;
     const ty = H / 2 - cy * k;
     const t = d3.zoomIdentity.translate(tx, ty).scale(k);
     this.svg.call(this.zoomBehavior.transform, t);
+    this._lastZoomK = k;
   }
   _computeAnchors(c1Set, c2Set, c1ToC2, positions) {
     const opts = this.opts;
