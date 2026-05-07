@@ -26,8 +26,7 @@ var DEFAULT_PALETTE = [
 ];
 var DEFAULTS = {
   width: 1600,
-  height: 1120,
-  // 10:7 비율
+  height: 1e3,
   margin: { top: 50, right: 60, bottom: 50, left: 60 },
   palette: DEFAULT_PALETTE,
   fontFamilyKo: "'KoddiUD OnGothic', -apple-system, sans-serif",
@@ -672,7 +671,12 @@ var WordmapForce = class {
   }
   _computeAnchors(c1Set, c2Set, c1ToC2, positions) {
     const opts = this.opts;
-    const { width: W, height: H, margin: M, clusterPad: PAD, clusterLocalScale } = opts;
+    const { width: W, height: H, margin: M, clusterLocalScale } = opts;
+    const rawPad = opts.clusterPad || { x: 0, y: 0 };
+    const PAD = {
+      x: rawPad.x > 0 && rawPad.x < 1 ? rawPad.x * W : rawPad.x,
+      y: rawPad.y > 0 && rawPad.y < 1 ? rawPad.y * H : rawPad.y
+    };
     const c2Pos = /* @__PURE__ */ new Map();
     const c1Pos = /* @__PURE__ */ new Map();
     if (positions) {
