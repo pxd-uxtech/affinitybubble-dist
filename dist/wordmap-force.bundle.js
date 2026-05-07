@@ -26,7 +26,8 @@ var DEFAULT_PALETTE = [
 ];
 var DEFAULTS = {
   width: 1600,
-  height: 1e3,
+  height: 1120,
+  // 10:7 비율
   margin: { top: 50, right: 60, bottom: 50, left: 60 },
   palette: DEFAULT_PALETTE,
   fontFamilyKo: "'KoddiUD OnGothic', -apple-system, sans-serif",
@@ -49,11 +50,15 @@ var DEFAULTS = {
   preTicks: 600,
   alphaDecay: 0.012,
   clusterPad: { x: 220, y: 180 },
-  clusterLocalScale: 38,
+  clusterLocalScale: 24,
+  // 같은 c2 내 자식 c1 좌표 스케일 — 작을수록 형제들이 가까이 모임
   clusterSemantic: 0.16,
-  clusterCohesion: 0.08,
+  clusterCohesion: 0.22,
+  // 같은 c2 자식들의 응집력 — 클수록 형제들이 c2 중심으로 끌림
   clusterCollidePad: 6,
   clusterPreTicks: 420,
+  fitToContent: true,
+  // render 후 컨텐츠가 viewBox에 맞게 자동 줌
   zoomable: true,
   draggable: true,
   zoomExtent: [0.4, 6],
@@ -621,7 +626,36 @@ var WordmapForce = class {
       c2Nodes,
       hullData
     };
+    if (opts.fitToContent) this.fitToContent();
     return this;
+  }
+  fitToContent(padding = 40) {
+    if (!this.zoomBehavior || !this.svg || !this.state) return;
+    const { wordNodes, labelNodes, c2Nodes } = this.state;
+    const all = [...wordNodes || [], ...labelNodes || [], ...c2Nodes || []];
+    if (!all.length) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of all) {
+      const halfW = (n.w || 0) / 2;
+      const halfH = (n.h || 0) / 2;
+      if (n.x - halfW < minX) minX = n.x - halfW;
+      if (n.y - halfH < minY) minY = n.y - halfH;
+      if (n.x + halfW > maxX) maxX = n.x + halfW;
+      if (n.y + halfH > maxY) maxY = n.y + halfH;
+    }
+    minX -= padding;
+    minY -= padding;
+    maxX += padding;
+    maxY += padding;
+    const bw = maxX - minX, bh = maxY - minY;
+    if (bw <= 0 || bh <= 0) return;
+    const W = this.opts.width, H = this.opts.height;
+    const k = Math.min(W / bw, H / bh, this.opts.zoomExtent[1]);
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    const tx = W / 2 - cx * k;
+    const ty = H / 2 - cy * k;
+    const t = d3.zoomIdentity.translate(tx, ty).scale(k);
+    this.svg.call(this.zoomBehavior.transform, t);
   }
   _computeAnchors(c1Set, c2Set, c1ToC2, positions) {
     const opts = this.opts;
