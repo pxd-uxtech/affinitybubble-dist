@@ -187,17 +187,10 @@ function wrapAndTruncate(text, maxChars, maxLines, ellipsis, overflowMode) {
 function computeDisplayLines(d, k, opts) {
   const baseChars = d.maxCharsPerLine;
   const baseLines = d.maxLines;
-  let mc, ml;
+  const mc = baseChars;
+  let ml = baseLines;
   if (k >= opts.wordZoomFullThreshold) {
-    mc = baseChars;
     ml = Math.max(baseLines, Math.ceil((d.text || "").length / Math.max(1, baseChars)) + 1);
-  } else if (k < 1) {
-    mc = Math.max(2, Math.floor(baseChars * Math.max(0.6, k)));
-    ml = Math.max(1, Math.floor(baseLines * Math.max(0.6, k)));
-  } else {
-    const t = (k - 1) / Math.max(1e-4, opts.wordZoomFullThreshold - 1);
-    mc = baseChars;
-    ml = Math.max(baseLines, Math.round(baseLines + t * baseLines));
   }
   return wrapAndTruncate(d.text, mc, ml, opts.wordEllipsis, opts.wordOverflowMode);
 }
