@@ -50,11 +50,12 @@ var DEFAULTS = {
   preTicks: 600,
   alphaDecay: 0.012,
   clusterPad: { x: 220, y: 180 },
-  clusterLocalScale: 24,
-  // 같은 c2 내 자식 c1 좌표 스케일 — 작을수록 형제들이 가까이 모임
+  clusterLocalScale: 38,
+  // 같은 c2 내 자식 c1 좌표 스케일 — UMAP 좌표 펼침 정도. 작을수록 형제들이 모임
   clusterSemantic: 0.16,
-  clusterCohesion: 0.22,
-  // 같은 c2 자식들의 응집력 — 클수록 형제들이 c2 중심으로 끌림
+  // anchor(UMAP 좌표)로 끌어당기는 힘 — 위치 신뢰도
+  clusterCohesion: 0.08,
+  // c2 절대중심으로 모으는 추가 힘 — 강하게 두면 anchor가 무시되고 인공적으로 모임
   clusterCollidePad: 6,
   clusterPreTicks: 420,
   fitToContent: true,
