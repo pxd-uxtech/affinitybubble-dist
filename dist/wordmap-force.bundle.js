@@ -32,7 +32,12 @@ var DEFAULTS = {
   fontFamilyKo: "'KoddiUD OnGothic', -apple-system, sans-serif",
   fontFamilyEmoji: "'Noto Color Emoji', 'KoddiUD OnGothic', -apple-system, sans-serif",
   wordFontRange: [9, 44],
-  c1FontSize: 18,
+  c1FontSize: null,
+  // null → cluster 내 max word fs * c1FontMultiplier (자동)
+  c1FontMultiplier: 1.2,
+  // c1 자동 폰트 = max(word fs in cluster) * 이 배수
+  c1FontMin: 14,
+  // c1 자동 모드의 최소 폰트
   c2FontRange: [24, 50],
   c2EmojiScale: 0.9,
   c2HorizPadMult: 1.4,
@@ -477,10 +482,19 @@ var WordmapForce = class {
         n.y = n.cy;
       });
     });
+    const c1FsByCi = /* @__PURE__ */ new Map();
     const labelNodes = [];
     c1Center.forEach((c, ci) => {
       const text = c1Set[ci];
-      const fs = opts.c1FontSize;
+      let fs;
+      if (opts.c1FontSize != null) {
+        fs = opts.c1FontSize;
+      } else {
+        const wordsInC1 = wordsByC1.get(ci) || [];
+        const maxWordFs = wordsInC1.length ? Math.max(...wordsInC1.map((w2) => w2.fs)) : opts.wordFontRange[0];
+        fs = Math.max(opts.c1FontMin || 14, Math.round(maxWordFs * (opts.c1FontMultiplier || 1.2)));
+      }
+      c1FsByCi.set(ci, fs);
       const mcp = opts.c1CharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
       const ml = opts.c1MaxLines;
       const lines = wrapAndTruncate(text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode);
@@ -532,7 +546,10 @@ var WordmapForce = class {
       if (sw === 0) return;
       const meta = c2Meta.get(ci);
       if (!meta) return;
-      const fs = c2FontScale(meta.areaScore);
+      let fs = c2FontScale(meta.areaScore);
+      const childC1Fs = children.map((ch) => c1FsByCi.get(ch.c1) || 0);
+      const maxC1Fs = childC1Fs.length ? Math.max(...childC1Fs) : 0;
+      if (maxC1Fs > 0) fs = Math.max(fs, Math.round(maxC1Fs * 1.3));
       const emojiW = meta.emoji ? measure(meta.emoji, fs * ESCALE, 800, FONT_EMOJI) : 0;
       const gap = meta.emoji ? fs * GMULT : 0;
       const restW = measure(meta.rest, fs, 800, FONT_EMOJI);
