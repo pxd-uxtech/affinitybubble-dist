@@ -1,4 +1,4 @@
-// ../../../../../Works/vibecoding/affinitybubble-library/wordmap-force-library.js
+// wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -77,6 +77,12 @@ var DEFAULTS = {
   // 기본 표시 라인 수
   wordMaxExtraLines: 2,
   // 줌인 시 base에 추가될 최대 라인 수 (k=1→+0, k=zoomFullThreshold→+maxExtra)
+  // ★ zoom counter-scale: k=2x에서 visual fs = 1.5x, 그 차이만큼 박스에 더 많은 글자
+  // visual fs multiplier = 1 + (k - 1) * wordZoomVisualGrowth
+  //   1.0 = 폰트 그대로 따라 커짐 (counter-scale 없음)
+  //   0.5 = 줌 2x에서 visual 1.5x, 글자수도 1/0.75 ≈ 1.33배
+  //   0.0 = 폰트 절대 크기 고정, 글자수만 줌에 비례 증가
+  wordZoomVisualGrowth: 0.5,
   // c1 라벨 wrap (정적 — 줌 무관)
   c1CharsPerLine: null,
   // null → c1FontSize 기반 자동
@@ -208,19 +214,29 @@ function wrapAndTruncate(text, maxChars, maxLines, ellipsis, overflowMode) {
   }
   return lines;
 }
-function computeDisplayLines(d, k, opts) {
+function computeWordDisplay(d, k, opts) {
+  const baseFs = d.fs;
   const baseChars = d.maxCharsPerLine;
   const baseLines = d.maxLines;
-  const maxExtra = opts.wordMaxExtraLines | 0;
-  let extra = 0;
-  if (maxExtra > 0) {
-    const k0 = 1;
-    const k1 = Math.max(k0 + 1e-4, opts.wordZoomFullThreshold);
-    if (k >= k1) extra = maxExtra;
-    else if (k > k0) extra = Math.round((k - k0) / (k1 - k0) * maxExtra);
+  const boxH = baseLines * baseFs * 1.2;
+  if (k <= 1) {
+    return {
+      fs: baseFs,
+      lines: wrapAndTruncate(d.text, baseChars, baseLines, opts.wordEllipsis, opts.wordOverflowMode)
+    };
   }
-  const ml = baseLines + extra;
-  return wrapAndTruncate(d.text, baseChars, ml, opts.wordEllipsis, opts.wordOverflowMode);
+  const visualGrowth = opts.wordZoomVisualGrowth != null ? opts.wordZoomVisualGrowth : 0.5;
+  const targetVisualMul = Math.max(0.1, 1 + (k - 1) * visualGrowth);
+  const displayFs = baseFs * targetVisualMul / k;
+  const charsRatio = baseFs / displayFs;
+  const mc = Math.max(baseChars, Math.round(baseChars * charsRatio));
+  const fitLines = Math.floor(boxH / (displayFs * 1.2));
+  const cap = baseLines + (opts.wordMaxExtraLines | 0);
+  const ml = Math.max(baseLines, Math.min(cap, fitLines));
+  return {
+    fs: displayFs,
+    lines: wrapAndTruncate(d.text, mc, ml, opts.wordEllipsis, opts.wordOverflowMode)
+  };
 }
 function rectCollide(padding, iterations) {
   let nodes;
@@ -358,13 +374,15 @@ var WordmapForce = class {
     const FONT_KO = opts.fontFamilyKo;
     const c2Text = this._c2Text;
     this._wordSel.each(function(d) {
-      d.lines = computeDisplayLines(d, k, opts);
+      const display = computeWordDisplay(d, k, opts);
+      d.lines = display.lines;
+      d._displayFs = display.fs;
       const g = d3.select(this);
       g.selectAll("text").remove();
-      const lineH = d.fs * 1.2;
+      const lineH = display.fs * 1.2;
       const totalH = (d.lines.length - 1) * lineH;
       d.lines.forEach((line, i) => {
-        g.append("text").attr("class", "wf-word").attr("x", 0).attr("y", i * lineH - totalH / 2).attr("font-family", FONT_KO).attr("font-size", d.fs).attr("fill", c2Text[d.c2 % c2Text.length]).attr("text-anchor", "middle").attr("dominant-baseline", "central").text(line);
+        g.append("text").attr("class", "wf-word").attr("x", 0).attr("y", i * lineH - totalH / 2).attr("font-family", FONT_KO).attr("font-size", display.fs).attr("fill", c2Text[d.c2 % c2Text.length]).attr("text-anchor", "middle").attr("dominant-baseline", "central").text(line);
       });
     });
   }
