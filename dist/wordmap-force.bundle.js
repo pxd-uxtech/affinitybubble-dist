@@ -74,8 +74,8 @@ var DEFAULTS = {
   clusterPreTicks: 420,
   clusterC2Confine: 0.3,
   // ★ c1이 자기 c2 disc 밖으로 나가지 못하게 안쪽으로 당기는 힘. 0=OFF. disc 안에서는 영향 없음 (soft clamp).
-  clusterC2ConfineMargin: 1,
-  // confine 경계 = discR × 이 값. 1.0=정확히 disc, 1.2=조금 여유.
+  clusterC2ConfineMargin: 1.15,
+  // confine 경계 = discR × 이 값. 1.0=정확히 disc, 1.15=15% 여유 (default), 1.3=많이 여유.
   fitToContent: true,
   // render 후 컨텐츠가 viewBox에 맞게 자동 줌
   zoomable: true,
