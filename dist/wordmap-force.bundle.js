@@ -83,6 +83,10 @@ var DEFAULTS = {
   // ★ c2 collide 후 모든 c2를 데이터셋 centroid 쪽으로 압축 — collide로 생긴 빈 공간을 줄여 한 덩어리 느낌 회복.
   // 0=OFF, 0.15=15% 압축, 1=centroid에 다 모음.
   clusterC2Compact: 0.15,
+  // ★ c2 collide+compact 후 캔버스 종횡비(W:H)에 맞춰 c2 분포를 stretch.
+  // collide+compact는 동그란 packing 경향이 있어 가로로 긴 캔버스에서 좌우 빈 공간이 큼.
+  // 0=OFF (원형 그대로), 1=캔버스 종횡비 일치(한 축만 늘림 — 면적 거의 보존).
+  clusterC2Stretch: 1,
   fitToContent: true,
   // render 후 컨텐츠가 viewBox에 맞게 자동 줌
   zoomable: true,
@@ -582,6 +586,27 @@ var WordmapForce = class {
           n.y -= (n.y - cy) * compact;
         }
       }
+      const stretch = +opts.clusterC2Stretch || 0;
+      if (stretch > 0 && c2Nodes2.length > 1) {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const n of c2Nodes2) {
+          if (n.x < minX) minX = n.x;
+          if (n.x > maxX) maxX = n.x;
+          if (n.y < minY) minY = n.y;
+          if (n.y > maxY) maxY = n.y;
+        }
+        const curW = Math.max(1, maxX - minX), curH = Math.max(1, maxY - minY);
+        const targetAspect = (W - M.left - M.right) / Math.max(1, H - M.top - M.bottom);
+        const curAspect = curW / curH;
+        const ratio = targetAspect / curAspect;
+        const sx = ratio > 1 ? 1 + (ratio - 1) * stretch : 1;
+        const sy = ratio < 1 ? 1 + (1 / ratio - 1) * stretch : 1;
+        const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+        for (const n of c2Nodes2) {
+          n.x = (n.x - cx) * sx + cx;
+          n.y = (n.y - cy) * sy + cy;
+        }
+      }
       for (const n of c2Nodes2) {
         const dx = n.x - n.tx, dy = n.y - n.ty;
         c1Anchor.c2Abs.set(n.cj, { x: n.x, y: n.y });
@@ -972,8 +997,8 @@ var WordmapForce = class {
       if (n.x + halfW > maxX) maxX = n.x + halfW;
       if (n.y + halfH > maxY) maxY = n.y + halfH;
     }
-    const W = this.opts.width, H = this.opts.height;
-    if (padding == null) padding = Math.max(60, Math.min(W, H) * 0.06);
+    const W2 = this.opts.width, H2 = this.opts.height;
+    if (padding == null) padding = Math.max(60, Math.min(W2, H2) * 0.06);
     const hullExtra = (this.opts.hullInflate || 0) + (this.opts.hullInnerPad || 0);
     const totalPad = padding + hullExtra;
     minX -= totalPad;
@@ -982,26 +1007,26 @@ var WordmapForce = class {
     maxY += totalPad;
     const bw = maxX - minX, bh = maxY - minY;
     if (bw <= 0 || bh <= 0) return;
-    const fit = Math.min(W / bw, H / bh);
+    const fit = Math.min(W2 / bw, H2 / bh);
     const [zMin, zMax] = this.opts.zoomExtent;
     if (fit < zMin) {
       this.zoomBehavior.scaleExtent([Math.min(zMin, fit), zMax]);
     }
     const k = Math.min(fit, zMax);
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    const tx = W / 2 - cx * k;
-    const ty = H / 2 - cy * k;
+    const tx = W2 / 2 - cx * k;
+    const ty = H2 / 2 - cy * k;
     const t = d3.zoomIdentity.translate(tx, ty).scale(k);
     this.svg.call(this.zoomBehavior.transform, t);
     this._lastZoomK = k;
   }
   _computeAnchors(c1Set, c2Set, c1ToC2, positions) {
     const opts = this.opts;
-    const { width: W, height: H, margin: M, clusterLocalScale } = opts;
+    const { width: W2, height: H2, margin: M2, clusterLocalScale } = opts;
     const rawPad = opts.clusterPad || { x: 0, y: 0 };
     const PAD = {
-      x: rawPad.x > 0 && rawPad.x < 1 ? rawPad.x * W : rawPad.x,
-      y: rawPad.y > 0 && rawPad.y < 1 ? rawPad.y * H : rawPad.y
+      x: rawPad.x > 0 && rawPad.x < 1 ? rawPad.x * W2 : rawPad.x,
+      y: rawPad.y > 0 && rawPad.y < 1 ? rawPad.y * H2 : rawPad.y
     };
     const c2Pos = /* @__PURE__ */ new Map();
     const c1Pos = /* @__PURE__ */ new Map();
@@ -1023,18 +1048,18 @@ var WordmapForce = class {
     if (c2Pos.size === c2Set.length) {
       const xs = [...c2Pos.values()].map((p) => p.x);
       const ys = [...c2Pos.values()].map((p) => p.y);
-      const sx = d3.scaleLinear().domain(d3.extent(xs)).range([M.left + PAD.x, W - M.right - PAD.x]);
-      const sy = d3.scaleLinear().domain(d3.extent(ys)).range([M.top + PAD.y, H - M.bottom - PAD.y]);
+      const sx = d3.scaleLinear().domain(d3.extent(xs)).range([M2.left + PAD.x, W2 - M2.right - PAD.x]);
+      const sy = d3.scaleLinear().domain(d3.extent(ys)).range([M2.top + PAD.y, H2 - M2.bottom - PAD.y]);
       c2Pos.forEach((p, i) => c2Abs.set(i, { x: sx(p.x), y: sy(p.y) }));
     } else {
       const N = c2Set.length;
-      const cols = Math.ceil(Math.sqrt(N * (W / H)));
+      const cols = Math.ceil(Math.sqrt(N * (W2 / H2)));
       const rows = Math.ceil(N / cols);
-      const cw = (W - M.left - M.right) / cols;
-      const ch = (H - M.top - M.bottom) / rows;
+      const cw = (W2 - M2.left - M2.right) / cols;
+      const ch = (H2 - M2.top - M2.bottom) / rows;
       c2Set.forEach((_, i) => {
         const r = Math.floor(i / cols), c = i % cols;
-        c2Abs.set(i, { x: M.left + cw * (c + 0.5), y: M.top + ch * (r + 0.5) });
+        c2Abs.set(i, { x: M2.left + cw * (c + 0.5), y: M2.top + ch * (r + 0.5) });
       });
     }
     const c1AnchorMap = /* @__PURE__ */ new Map();
@@ -1057,7 +1082,7 @@ var WordmapForce = class {
         const c2P = c2Abs.get(cj);
         const c2C = c2Centroid.get(cj);
         if (!c2P || !c2C) {
-          c1AnchorMap.set(ci, { x: W / 2, y: H / 2 });
+          c1AnchorMap.set(ci, { x: W2 / 2, y: H2 / 2 });
           return;
         }
         c1AnchorMap.set(ci, {
@@ -1076,7 +1101,7 @@ var WordmapForce = class {
         c2ChildIdx.set(cj, idx + 1);
         const ang = idx / N * Math.PI * 2;
         const rad = 80;
-        const c2P = c2Abs.get(cj) || { x: W / 2, y: H / 2 };
+        const c2P = c2Abs.get(cj) || { x: W2 / 2, y: H2 / 2 };
         c1AnchorMap.set(ci, {
           x: c2P.x + Math.cos(ang) * rad,
           y: c2P.y + Math.sin(ang) * rad
