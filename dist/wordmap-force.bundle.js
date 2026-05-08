@@ -55,11 +55,13 @@ var DEFAULTS = {
   alphaDecay: 0.012,
   clusterPad: { x: 220, y: 180 },
   clusterLocalScale: 38,
-  // 같은 c2 내 자식 c1 좌표 스케일 — UMAP 좌표 펼침 정도. 작을수록 형제들이 모임
+  // (clusterDiscFactor=0일 때만 사용) UMAP 좌표 직접 곱 — 옛 동작
+  clusterDiscFactor: 1,
+  // ★ c1 anchor를 c2 주변 disc로 정규화 (0=옛 방식, 1.0=자식 radius 합 기반 disc, >1=더 펼침)
   clusterSemantic: 0.16,
-  // anchor(UMAP 좌표)로 끌어당기는 힘 — 위치 신뢰도
+  // anchor로 끌어당기는 힘
   clusterCohesion: 0.08,
-  // c2 절대중심으로 모으는 추가 힘 — 강하게 두면 anchor가 무시되고 인공적으로 모임
+  // c2 절대중심으로 추가로 모으는 힘
   clusterCollidePad: 6,
   clusterPreTicks: 420,
   fitToContent: true,
@@ -79,6 +81,12 @@ var DEFAULTS = {
   c1CharsPerLine: null,
   // null → c1FontSize 기반 자동
   c1MaxLines: 2,
+  // c2 라벨 wrap (정적 — 줌 무관)
+  c2CharsPerLine: null,
+  // null → c2 폰트 기반 자동
+  c2MaxLines: 2,
+  c2FontFloorMul: 1.1,
+  // c2 폰트 floor = max(c1 fs in this c2) * 이 배수
   wordEllipsis: "\u2026",
   wordZoomFullThreshold: 2,
   // 줌 k가 이 값에 도달하면 wordMaxExtraLines 까지 라인 늘어남
@@ -415,6 +423,31 @@ var WordmapForce = class {
     }
     const c1Radius = /* @__PURE__ */ new Map();
     c1Area.forEach((a, ci) => c1Radius.set(ci, Math.sqrt(a / (Math.PI * 0.55)) + 8));
+    const discFactor = opts.clusterDiscFactor || 0;
+    if (discFactor > 0) {
+      const childByC2 = /* @__PURE__ */ new Map();
+      c1Anchor.c1Pos.forEach((p, ci) => {
+        const cj = c1ToC2.get(ci);
+        const c2P = c1Anchor.c2Abs.get(cj);
+        if (!c2P) return;
+        if (!childByC2.has(cj)) childByC2.set(cj, []);
+        childByC2.get(cj).push({ ci, dx: p.x - c2P.x, dy: p.y - c2P.y });
+      });
+      childByC2.forEach((list, cj) => {
+        const c2P = c1Anchor.c2Abs.get(cj);
+        if (!c2P) return;
+        const sumR = list.reduce((a, d) => a + (c1Radius.get(d.ci) || 30), 0);
+        const N = list.length;
+        const discR = Math.max(sumR * 0.55, Math.sqrt(N) * 30) * discFactor;
+        const maxDist = Math.max(1e-4, ...list.map((d) => Math.hypot(d.dx, d.dy)));
+        list.forEach((d) => {
+          const ratio = Math.hypot(d.dx, d.dy) / maxDist;
+          const newDx = d.dx / maxDist * discR * ratio + d.dx / maxDist * discR * (1 - ratio) * 0.6;
+          const newDy = d.dy / maxDist * discR * ratio + d.dy / maxDist * discR * (1 - ratio) * 0.6;
+          c1Anchor.c1Pos.set(d.ci, { x: c2P.x + newDx, y: c2P.y + newDy });
+        });
+      });
+    }
     const c2AbsX = /* @__PURE__ */ new Map();
     const c2AbsY = /* @__PURE__ */ new Map();
     c1Anchor.c2Abs.forEach((p, ci) => {
@@ -549,12 +582,22 @@ var WordmapForce = class {
       let fs = c2FontScale(meta.areaScore);
       const childC1Fs = children.map((ch) => c1FsByCi.get(ch.c1) || 0);
       const maxC1Fs = childC1Fs.length ? Math.max(...childC1Fs) : 0;
-      if (maxC1Fs > 0) fs = Math.max(fs, Math.round(maxC1Fs * 1.3));
-      const emojiW = meta.emoji ? measure(meta.emoji, fs * ESCALE, 800, FONT_EMOJI) : 0;
-      const gap = meta.emoji ? fs * GMULT : 0;
-      const restW = measure(meta.rest, fs, 800, FONT_EMOJI);
-      const w = emojiW + gap + restW + fs * HORIZ;
-      const h = fs * HMULT;
+      if (maxC1Fs > 0) fs = Math.max(fs, Math.round(maxC1Fs * (opts.c2FontFloorMul || 1.1)));
+      const mcp = opts.c2CharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
+      const ml = opts.c2MaxLines;
+      const lines = wrapAndTruncate(meta.rest, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode);
+      const lineWidths = lines.map((line, i) => {
+        const lw = measure(line, fs, 800, FONT_EMOJI);
+        if (i === 0 && meta.emoji) {
+          const eW = measure(meta.emoji, fs * ESCALE, 800, FONT_EMOJI);
+          return eW + fs * GMULT + lw;
+        }
+        return lw;
+      });
+      const innerW = Math.max(...lineWidths);
+      const w = innerW + fs * HORIZ;
+      const lineH = fs * 1.1;
+      const h = lines.length * lineH + fs * (HMULT - 1);
       const ax = sx / sw, ay = sy / sw;
       c2Nodes.push({
         type: "c2",
@@ -564,11 +607,10 @@ var WordmapForce = class {
         c2: ci,
         fs,
         emojiFs: fs * ESCALE,
-        emojiW,
-        gap,
-        restW,
         w,
         h,
+        lines,
+        lineH,
         x: ax,
         y: ay,
         cx: ax,
@@ -619,18 +661,29 @@ var WordmapForce = class {
     });
     const c2Sel = this.gC2.selectAll("g.wf-c2-pill").data(c2Nodes, (d) => d.c2).join((enter) => {
       const g = enter.append("g").attr("class", "wf-c2-pill");
-      g.append("rect").attr("x", (d) => -d.w / 2).attr("y", (d) => -d.h / 2).attr("width", (d) => d.w).attr("height", (d) => d.h).attr("rx", (d) => d.h / 2).attr("ry", (d) => d.h / 2).attr("fill", (d) => c2Pill[d.c2 % c2Pill.length]);
-      const txt = g.append("text").attr("y", 1).attr("font-family", FONT_EMOJI).attr("text-anchor", "middle").attr("dominant-baseline", "central");
-      txt.each(function(d) {
-        const t = d3.select(this);
-        const startX = -(d.emojiW + d.gap + d.restW) / 2;
-        if (d.emoji) {
-          t.append("tspan").attr("x", startX + d.emojiW / 2).attr("font-size", d.emojiFs).text(d.emoji);
-        }
-        t.append("tspan").attr("x", startX + d.emojiW + d.gap + d.restW / 2).attr("font-size", d.fs).text(d.rest);
-      });
+      g.append("rect").attr("x", (d) => -d.w / 2).attr("y", (d) => -d.h / 2).attr("width", (d) => d.w).attr("height", (d) => d.h).attr("rx", (d) => Math.min(d.h / 2, 28)).attr("ry", (d) => Math.min(d.h / 2, 28)).attr("fill", (d) => c2Pill[d.c2 % c2Pill.length]);
       return g;
     }).attr("transform", (d) => `translate(${d.x},${d.y})`);
+    c2Sel.each(function(d) {
+      const g = d3.select(this);
+      g.selectAll("text").remove();
+      const N = d.lines.length;
+      const totalH = (N - 1) * d.lineH;
+      d.lines.forEach((line, i) => {
+        const y = i * d.lineH - totalH / 2 + 1;
+        const t = g.append("text").attr("y", y).attr("font-family", FONT_EMOJI).attr("text-anchor", "middle").attr("dominant-baseline", "central");
+        if (i === 0 && d.emoji) {
+          const eW = measure(d.emoji, d.emojiFs, 800, FONT_EMOJI);
+          const gap = d.fs * 0.25;
+          const rW = measure(line, d.fs, 800, FONT_EMOJI);
+          const startX = -(eW + gap + rW) / 2;
+          t.append("tspan").attr("x", startX + eW / 2).attr("font-size", d.emojiFs).text(d.emoji);
+          t.append("tspan").attr("x", startX + eW + gap + rW / 2).attr("font-size", d.fs).text(line);
+        } else {
+          t.append("tspan").attr("x", 0).attr("font-size", d.fs).text(line);
+        }
+      });
+    });
     this._sim = sim;
     this._c1Sel = c1Sel;
     this._c2Sel = c2Sel;
