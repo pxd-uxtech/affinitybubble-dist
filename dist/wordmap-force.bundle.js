@@ -1,4 +1,4 @@
-// wordmap-force-library.js
+// ../affinitybubble-library/wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -83,6 +83,8 @@ var DEFAULTS = {
   //   0.5 = 줌 2x에서 visual 1.5x, 글자수도 1/0.75 ≈ 1.33배
   //   0.0 = 폰트 절대 크기 고정, 글자수만 줌에 비례 증가
   wordZoomVisualGrowth: 0.5,
+  // word 텍스트 색상: hull(c2) 색에서 chroma 1.4배 + 이 lightness로 변환 (낮을수록 어두움, 높을수록 hull과 비슷한 톤)
+  wordTextLightness: 45,
   // c1 라벨 wrap (정적 — 줌 무관)
   c1CharsPerLine: null,
   // null → c1FontSize 기반 자동
@@ -416,7 +418,7 @@ var WordmapForce = class {
     const c2Text = baseColors.map((c) => {
       const hcl = d3.hcl(c);
       hcl.c = Math.max(hcl.c, 30) * 1.4;
-      hcl.l = 36;
+      hcl.l = opts.wordTextLightness != null ? opts.wordTextLightness : 45;
       return hcl.formatHex();
     });
     const c1LabelColor = baseColors.map((c) => {
