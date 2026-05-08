@@ -75,11 +75,14 @@ var DEFAULTS = {
   // ★ c2 절대 위치를 disc 반경 기준으로 collide pre-sim — 인접 c2 disc끼리 안 겹치게 c2를 살짝 분리.
   // UMAP 비율은 살짝 깨지지만 hull 침범/외톨이 방지. 0=OFF.
   clusterC2Collide: 0.6,
-  clusterC2CollidePad: 4,
-  // c2 disc 반경에 더해지는 여유 (px).
+  clusterC2CollidePad: 0,
+  // c2 disc 반경에 더해지는 여유 (px). 음수 허용 — disc 반경의 일부 overlap 허용.
   clusterC2CollideTicks: 200,
   clusterC2CollideAnchor: 0.04,
   // c2가 원래 UMAP 위치로 돌아가려는 약한 anchor. 너무 강하면 collide가 효과 없음.
+  // ★ c2 collide 후 모든 c2를 데이터셋 centroid 쪽으로 압축 — collide로 생긴 빈 공간을 줄여 한 덩어리 느낌 회복.
+  // 0=OFF, 0.15=15% 압축, 1=centroid에 다 모음.
+  clusterC2Compact: 0.15,
   fitToContent: true,
   // render 후 컨텐츠가 viewBox에 맞게 자동 줌
   zoomable: true,
@@ -565,6 +568,20 @@ var WordmapForce = class {
       const c2AnchorStr = +opts.clusterC2CollideAnchor || 0;
       const c2Sim = d3.forceSimulation(c2Nodes2).force("anchorX", d3.forceX((d) => d.tx).strength(c2AnchorStr)).force("anchorY", d3.forceY((d) => d.ty).strength(c2AnchorStr)).force("collide", d3.forceCollide((d) => d.r + (opts.clusterC2CollidePad || 0)).iterations(4).strength(c2CollideStrength)).stop();
       for (let i = 0; i < (opts.clusterC2CollideTicks || 200); i++) c2Sim.tick();
+      const compact = +opts.clusterC2Compact || 0;
+      if (compact > 0 && c2Nodes2.length > 1) {
+        let cx = 0, cy = 0;
+        for (const n of c2Nodes2) {
+          cx += n.x;
+          cy += n.y;
+        }
+        cx /= c2Nodes2.length;
+        cy /= c2Nodes2.length;
+        for (const n of c2Nodes2) {
+          n.x -= (n.x - cx) * compact;
+          n.y -= (n.y - cy) * compact;
+        }
+      }
       for (const n of c2Nodes2) {
         const dx = n.x - n.tx, dy = n.y - n.ty;
         c1Anchor.c2Abs.set(n.cj, { x: n.x, y: n.y });
