@@ -33,11 +33,13 @@ var DEFAULTS = {
   fontFamilyEmoji: "'Noto Color Emoji', 'KoddiUD OnGothic', -apple-system, sans-serif",
   wordFontRange: [9, 44],
   c1FontSize: null,
-  // null → cluster 내 word fs 상위 30% percentile * c1FontMultiplier (자동)
-  c1FontMultiplier: 1.1,
-  // c1 자동 폰트 = ref word fs * 이 배수 (max 대신 percentile로 outlier 영향↓)
-  c1FontPercentile: 0.3,
+  // null → 자동 (median word fs × multiplier, 단 max word fs × 1.05 이상 보장)
+  c1FontMultiplier: 2,
+  // c1 자동 폰트 = ref word fs × 이 배수
+  c1FontPercentile: 0.5,
   // ref word fs 기준 — 상위 N% 지점 (0=max, 0.5=median)
+  c1FontMaxFloorMul: 1.05,
+  // 위계 보장: c1은 항상 max wordFs × 이 배수 이상
   c1FontMin: 14,
   // c1 자동 모드의 최소 폰트
   c1FontMax: null,
@@ -548,18 +550,21 @@ var WordmapForce = class {
         fs = opts.c1FontSize;
       } else {
         const wordsInC1 = wordsByC1.get(ci) || [];
-        let refFs;
+        let refFs, maxFs;
         if (!wordsInC1.length) {
-          refFs = opts.wordFontRange[0];
+          refFs = maxFs = opts.wordFontRange[0];
         } else {
           const sorted = wordsInC1.map((w2) => w2.fs).sort((a, b) => b - a);
-          const pct = Math.max(0, Math.min(0.99, opts.c1FontPercentile != null ? opts.c1FontPercentile : 0.3));
+          maxFs = sorted[0];
+          const pct = Math.max(0, Math.min(0.99, opts.c1FontPercentile != null ? opts.c1FontPercentile : 0.5));
           refFs = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * pct))];
         }
-        const auto = Math.round(refFs * (opts.c1FontMultiplier || 1.1));
+        const byRef = Math.round(refFs * (opts.c1FontMultiplier || 2));
+        const byMax = Math.round(maxFs * (opts.c1FontMaxFloorMul || 1.05));
+        const auto = Math.max(byRef, byMax);
         const min = opts.c1FontMin || 14;
-        const max = opts.c1FontMax != null ? opts.c1FontMax : Infinity;
-        fs = Math.min(max, Math.max(min, auto));
+        const cap = opts.c1FontMax != null ? opts.c1FontMax : Infinity;
+        fs = Math.min(cap, Math.max(min, auto));
       }
       c1FsByCi.set(ci, fs);
       const mcp = opts.c1CharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
