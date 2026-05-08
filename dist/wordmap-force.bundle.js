@@ -1,4 +1,4 @@
-// ../../../../../Works/vibecoding/affinitybubble-library/wordmap-force-library.js
+// ../../../../../claudecode/affinitybubble-library/wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -123,8 +123,10 @@ var DEFAULTS = {
   // 줌 k가 이 값에 도달하면 wordMaxExtraLines 까지 라인 늘어남
   wordZoomRewrapEpsilon: 0.15,
   // 줌 k 변화량이 이보다 작으면 wrap 재계산 skip
-  wordOverflowMode: "break"
+  wordOverflowMode: "break",
   // 'break' | 'truncate'
+  wordOverflowTolerance: 1.4
+  // 단어 보존 허용 비율 — 토큰 길이가 maxChars 초과여도 maxChars × 이 값 이내면 자르지 않음 (영문 단어 보호). 1.0이면 옛 동작.
 };
 var STYLE_ID = "wordmap-force-style";
 var EMOJI_FONT_LINK_ID = "wordmap-force-emoji-font";
@@ -187,10 +189,13 @@ function measure(text, fs, weight, family) {
   _measureCtx.font = `${weight} ${fs}px ${family}`;
   return _measureCtx.measureText(text).width;
 }
-function wrapAndTruncate(text, maxChars, maxLines, ellipsis, overflowMode) {
+function wrapAndTruncate(text, maxChars, maxLines, ellipsis, overflowMode, tolerance) {
   if (!text) return [""];
   const t = String(text);
   if (t.length <= maxChars) return [t];
+  const softMax = Math.max(maxChars, Math.ceil(maxChars * (tolerance || 1)));
+  const hasSpace = /\s/.test(t);
+  if (!hasSpace && t.length <= softMax) return [t];
   const tokens = t.split(/(\s+)/).filter((s) => s.length > 0);
   const lines = [];
   let cur = "";
@@ -204,7 +209,7 @@ function wrapAndTruncate(text, maxChars, maxLines, ellipsis, overflowMode) {
     const tok = tokens[i];
     if ((cur + tok).length <= maxChars) {
       cur += tok;
-    } else if (tok.length > maxChars && overflowMode === "break") {
+    } else if (tok.length > softMax && overflowMode === "break") {
       let rest = tok;
       if (cur.length) {
         const room = maxChars - cur.length;
@@ -230,7 +235,7 @@ function wrapAndTruncate(text, maxChars, maxLines, ellipsis, overflowMode) {
     } else {
       flush();
       if (/^\s+$/.test(tok)) continue;
-      if (tok.length <= maxChars) cur = tok;
+      if (tok.length <= softMax) cur = tok;
       else cur = tok.slice(0, maxChars);
     }
   }
@@ -255,7 +260,7 @@ function computeWordDisplay(d, k, opts) {
   if (k <= 1) {
     return {
       fs: baseFs,
-      lines: wrapAndTruncate(d.text, baseChars, baseLines, opts.wordEllipsis, opts.wordOverflowMode)
+      lines: wrapAndTruncate(d.text, baseChars, baseLines, opts.wordEllipsis, opts.wordOverflowMode, opts.wordOverflowTolerance)
     };
   }
   const visualGrowth = opts.wordZoomVisualGrowth != null ? opts.wordZoomVisualGrowth : 0.5;
@@ -268,7 +273,7 @@ function computeWordDisplay(d, k, opts) {
   const ml = Math.max(baseLines, Math.min(cap, fitLines));
   return {
     fs: displayFs,
-    lines: wrapAndTruncate(d.text, mc, ml, opts.wordEllipsis, opts.wordOverflowMode)
+    lines: wrapAndTruncate(d.text, mc, ml, opts.wordEllipsis, opts.wordOverflowMode, opts.wordOverflowTolerance)
   };
 }
 function rectCollide(padding, iterations) {
@@ -512,7 +517,7 @@ var WordmapForce = class {
       const fs = fontScale(d.size || 1);
       const mcp = opts.wordCharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
       const ml = opts.wordMaxLines;
-      const baseLines = wrapAndTruncate(d.text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode);
+      const baseLines = wrapAndTruncate(d.text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode, opts.wordOverflowTolerance);
       const lineWidths = baseLines.map((l) => measure(l, fs, 500, FONT_KO));
       const w = Math.max(...lineWidths) + 4;
       const h = baseLines.length * fs * 1.2;
@@ -573,7 +578,7 @@ var WordmapForce = class {
       const fs = fontScale(d.size || 1);
       const mcp = opts.wordCharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
       const ml = opts.wordMaxLines;
-      const baseLines = wrapAndTruncate(d.text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode);
+      const baseLines = wrapAndTruncate(d.text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode, opts.wordOverflowTolerance);
       const lineWidths = baseLines.map((l) => measure(l, fs, 500, FONT_KO));
       const w = Math.max(...lineWidths) + 4;
       const h = ml * fs * 1.2;
@@ -644,7 +649,7 @@ var WordmapForce = class {
       c1FsByCi.set(ci, fs);
       const mcp = opts.c1CharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
       const ml = opts.c1MaxLines;
-      const lines = wrapAndTruncate(text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode);
+      const lines = wrapAndTruncate(text, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode, opts.wordOverflowTolerance);
       const lineWidths = lines.map((l) => measure(l, fs, 700, FONT_KO));
       const w = Math.max(...lineWidths) + 16;
       const h = lines.length * fs * 1.2 + 4;
@@ -701,7 +706,7 @@ var WordmapForce = class {
       if (maxC1Fs > 0) fs = Math.max(fs, Math.round(maxC1Fs * (opts.c2FontFloorMul || 1.1)));
       const mcp = opts.c2CharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
       const ml = opts.c2MaxLines;
-      const lines = wrapAndTruncate(meta.rest, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode);
+      const lines = wrapAndTruncate(meta.rest, mcp, ml, opts.wordEllipsis, opts.wordOverflowMode, opts.wordOverflowTolerance);
       const lineWidths = lines.map((line, i) => {
         const lw = measure(line, fs, 800, FONT_EMOJI);
         if (i === 0 && meta.emoji) {
