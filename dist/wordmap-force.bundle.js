@@ -654,7 +654,7 @@ var WordmapForce = class {
     if (opts.fitToContent) this.fitToContent();
     return this;
   }
-  fitToContent(padding = 40) {
+  fitToContent(padding) {
     if (!this.zoomBehavior || !this.svg || !this.state) return;
     const { wordNodes, labelNodes, c2Nodes } = this.state;
     const all = [...wordNodes || [], ...labelNodes || [], ...c2Nodes || []];
@@ -668,13 +668,16 @@ var WordmapForce = class {
       if (n.x + halfW > maxX) maxX = n.x + halfW;
       if (n.y + halfH > maxY) maxY = n.y + halfH;
     }
-    minX -= padding;
-    minY -= padding;
-    maxX += padding;
-    maxY += padding;
+    const W = this.opts.width, H = this.opts.height;
+    if (padding == null) padding = Math.max(40, Math.min(W, H) * 0.04);
+    const hullExtra = (this.opts.hullInflate || 0) + (this.opts.hullInnerPad || 0);
+    const totalPad = padding + hullExtra;
+    minX -= totalPad;
+    minY -= totalPad;
+    maxX += totalPad;
+    maxY += totalPad;
     const bw = maxX - minX, bh = maxY - minY;
     if (bw <= 0 || bh <= 0) return;
-    const W = this.opts.width, H = this.opts.height;
     const fit = Math.min(W / bw, H / bh);
     const [zMin, zMax] = this.opts.zoomExtent;
     if (fit < zMin) {
