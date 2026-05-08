@@ -1,4 +1,4 @@
-// ../affinitybubble-library/wordmap-force-library.js
+// ../../../../../Works/vibecoding/affinitybubble-library/wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -33,11 +33,15 @@ var DEFAULTS = {
   fontFamilyEmoji: "'Noto Color Emoji', 'KoddiUD OnGothic', -apple-system, sans-serif",
   wordFontRange: [9, 44],
   c1FontSize: null,
-  // null → cluster 내 max word fs * c1FontMultiplier (자동)
-  c1FontMultiplier: 1.2,
-  // c1 자동 폰트 = max(word fs in cluster) * 이 배수
+  // null → cluster 내 word fs 상위 30% percentile * c1FontMultiplier (자동)
+  c1FontMultiplier: 1.1,
+  // c1 자동 폰트 = ref word fs * 이 배수 (max 대신 percentile로 outlier 영향↓)
+  c1FontPercentile: 0.3,
+  // ref word fs 기준 — 상위 N% 지점 (0=max, 0.5=median)
   c1FontMin: 14,
   // c1 자동 모드의 최소 폰트
+  c1FontMax: null,
+  // 자동 모드의 cap (null=제한 없음)
   c2FontRange: [24, 50],
   c2EmojiScale: 0.9,
   c2HorizPadMult: 1.4,
@@ -544,8 +548,18 @@ var WordmapForce = class {
         fs = opts.c1FontSize;
       } else {
         const wordsInC1 = wordsByC1.get(ci) || [];
-        const maxWordFs = wordsInC1.length ? Math.max(...wordsInC1.map((w2) => w2.fs)) : opts.wordFontRange[0];
-        fs = Math.max(opts.c1FontMin || 14, Math.round(maxWordFs * (opts.c1FontMultiplier || 1.2)));
+        let refFs;
+        if (!wordsInC1.length) {
+          refFs = opts.wordFontRange[0];
+        } else {
+          const sorted = wordsInC1.map((w2) => w2.fs).sort((a, b) => b - a);
+          const pct = Math.max(0, Math.min(0.99, opts.c1FontPercentile != null ? opts.c1FontPercentile : 0.3));
+          refFs = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * pct))];
+        }
+        const auto = Math.round(refFs * (opts.c1FontMultiplier || 1.1));
+        const min = opts.c1FontMin || 14;
+        const max = opts.c1FontMax != null ? opts.c1FontMax : Infinity;
+        fs = Math.min(max, Math.max(min, auto));
       }
       c1FsByCi.set(ci, fs);
       const mcp = opts.c1CharsPerLine || Math.max(5, Math.round(fs * 0.32 + 2));
@@ -676,7 +690,7 @@ var WordmapForce = class {
       const totalH = (d.lines.length - 1) * lineH;
       const fill = c1LabelColor[d.c2 % c1LabelColor.length];
       d.lines.forEach((line, i) => {
-        g.append("text").attr("class", "wf-c1-label").attr("x", 0).attr("y", i * lineH - totalH / 2).attr("font-family", FONT_KO).attr("font-size", d.fs).attr("fill", fill).attr("text-anchor", "middle").attr("dominant-baseline", "central").text(line);
+        g.append("text").attr("class", "wf-c1-label").attr("x", 0).attr("y", i * lineH - totalH / 2).attr("font-family", FONT_EMOJI).attr("font-size", d.fs).attr("fill", fill).attr("text-anchor", "middle").attr("dominant-baseline", "central").text(line);
       });
     });
     const c2Sel = this.gC2.selectAll("g.wf-c2-pill").data(c2Nodes, (d) => d.c2).join((enter) => {
