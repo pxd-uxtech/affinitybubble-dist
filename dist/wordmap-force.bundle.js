@@ -1,4 +1,4 @@
-// ../affinitybubble-library/wordmap-force-library.js
+// ../../../../../Works/vibecoding/affinitybubble-library/wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -98,11 +98,11 @@ var DEFAULTS = {
   c2CharsPerLine: null,
   // null → c2 폰트 기반 자동
   c2MaxLines: 2,
-  c2FontBase: 35,
-  // 자동 모드 base 폰트 (px) — c2는 c1보다 살짝 큼
-  c2OverC1Mul: 1.15,
+  c2FontBase: 28,
+  // 자동 모드 base 폰트 (px)
+  c2OverC1Mul: 1.05,
   // 어피니티버블식: c2 fs = base × fontScale × 이 배수
-  c2FontFloorMul: 1.1,
+  c2FontFloorMul: 1.05,
   // c2 floor = max(c1 fs in this c2) × 이 배수 (위계 보장)
   wordEllipsis: "\u2026",
   wordZoomFullThreshold: 2,
@@ -672,6 +672,40 @@ var WordmapForce = class {
     };
     const sim = d3.forceSimulation(allNodes).force("x", d3.forceX((d) => d.cx).strength((d) => ATTRACT[d.type] ?? 0.1)).force("y", d3.forceY((d) => d.cy).strength((d) => ATTRACT[d.type] ?? 0.1)).force("collide", rectCollide(opts.collidePadding, opts.collideIterations)).alpha(1).alphaDecay(opts.alphaDecay).stop();
     for (let i = 0; i < opts.preTicks; i++) sim.tick();
+    const labelByCi = new Map(labelNodes.map((n) => [n.c1, n]));
+    const c2NodeByCj = new Map(c2Nodes.map((n) => [n.c2, n]));
+    const wordsByC2 = /* @__PURE__ */ new Map();
+    for (const [ci, words] of wordsByC1.entries()) {
+      const cj = c1ToC2.get(ci);
+      if (cj == null) continue;
+      if (!wordsByC2.has(cj)) wordsByC2.set(cj, []);
+      const arr = wordsByC2.get(cj);
+      for (const w of words) arr.push(w);
+    }
+    for (const [ci, words] of wordsByC1.entries()) {
+      if (!words.length) continue;
+      const label = labelByCi.get(ci);
+      if (!label) continue;
+      let sx = 0, sy = 0;
+      for (const w of words) {
+        sx += w.x;
+        sy += w.y;
+      }
+      label.x = sx / words.length;
+      label.y = sy / words.length;
+    }
+    for (const [cj, words] of wordsByC2.entries()) {
+      if (!words.length) continue;
+      const c2node = c2NodeByCj.get(cj);
+      if (!c2node) continue;
+      let sx = 0, sy = 0;
+      for (const w of words) {
+        sx += w.x;
+        sy += w.y;
+      }
+      c2node.x = sx / words.length;
+      c2node.y = sy / words.length;
+    }
     labelNodes.forEach((n) => {
       n.cx = n.x;
       n.cy = n.y;
@@ -735,6 +769,30 @@ var WordmapForce = class {
     this._c1Sel = c1Sel;
     this._c2Sel = c2Sel;
     const ticked = () => {
+      for (const [ci, words] of wordsByC1.entries()) {
+        if (!words.length) continue;
+        const label = labelByCi.get(ci);
+        if (!label || label.fx != null) continue;
+        let sx = 0, sy = 0;
+        for (const w of words) {
+          sx += w.x;
+          sy += w.y;
+        }
+        label.x = sx / words.length;
+        label.y = sy / words.length;
+      }
+      for (const [cj, words] of wordsByC2.entries()) {
+        if (!words.length) continue;
+        const c2node = c2NodeByCj.get(cj);
+        if (!c2node || c2node.fx != null) continue;
+        let sx = 0, sy = 0;
+        for (const w of words) {
+          sx += w.x;
+          sy += w.y;
+        }
+        c2node.x = sx / words.length;
+        c2node.y = sy / words.length;
+      }
       wordSel.attr("transform", (d) => `translate(${d.x},${d.y})`);
       c1Sel.attr("transform", (d) => `translate(${d.x},${d.y})`);
       c2Sel.attr("transform", (d) => `translate(${d.x},${d.y})`);
