@@ -35,9 +35,11 @@ var DEFAULTS = {
   // ★ 어피니티버블 voronoi-treemap 방식: cluster 비율(value/total)을 log scale로 폰트에 매핑
   c1FontSize: null,
   // null → 자동 (어피니티버블식)
-  c1FontBase: 30,
-  // 자동 모드 base 폰트 (px) — fontScale [0.3~1.5] 와 곱
-  c1FontMaxFloorMul: 1.05,
+  c1FontBase: 28,
+  // 자동 모드 base 폰트 (px)
+  c1FontScaleRange: [0.7, 1.3],
+  // log scale 출력 범위 — 좁을수록 c1 폰트 분산 작음 (어피니티버블 원본 [0.3, 1.5])
+  c1FontMaxFloorMul: 1,
   // 위계 보장: c1 ≥ max wordFs × 이 배수
   c1FontMin: 14,
   // 최소 폰트
@@ -557,7 +559,7 @@ var WordmapForce = class {
         n.y = n.cy;
       });
     });
-    const labelScale = d3.scaleLog().domain([0.1, 20]).range([0.3, 1.5]).clamp(true);
+    const labelScale = d3.scaleLog().domain([0.1, 20]).range(opts.c1FontScaleRange || [0.7, 1.3]).clamp(true);
     const c1Value = /* @__PURE__ */ new Map();
     let totalValue = 0;
     wordsByC1.forEach((words, ci) => {
@@ -738,18 +740,25 @@ var WordmapForce = class {
     updateAnchors();
     sim.alpha(0.3);
     for (let i = 0; i < phase3; i++) sim.tick();
-    const hullData = [];
-    for (const [ci, items] of wordsByC1.entries()) {
-      const cj = c1ToC2.get(ci);
-      hullData.push({
-        c1: ci,
-        c2: cj,
-        fill: c2Fill[cj % c2Fill.length],
-        ...buildHullPath(items, { innerPad: opts.hullInnerPad, inflate: opts.hullInflate, minR: opts.hullMinR }),
-        count: items.length
-      });
-    }
-    this.gHull.selectAll("path").data(hullData, (d) => d.c1).join("path").attr("class", "wf-hull").attr("d", (d) => d.d).attr("fill", (d) => d.fill).attr("stroke", (d) => d.fill);
+    const drawHulls = () => {
+      const hullData2 = [];
+      for (const [ci, items] of wordsByC1.entries()) {
+        const cj = c1ToC2.get(ci);
+        const all = items.slice();
+        const lbl = labelByCi.get(ci);
+        if (lbl) all.push(lbl);
+        hullData2.push({
+          c1: ci,
+          c2: cj,
+          fill: c2Fill[cj % c2Fill.length],
+          ...buildHullPath(all, { innerPad: opts.hullInnerPad, inflate: opts.hullInflate, minR: opts.hullMinR }),
+          count: items.length
+        });
+      }
+      this.gHull.selectAll("path").data(hullData2, (d) => d.c1).join("path").attr("class", "wf-hull").attr("d", (d) => d.d).attr("fill", (d) => d.fill).attr("stroke", (d) => d.fill);
+    };
+    drawHulls();
+    this._drawHulls = drawHulls;
     const wordSel = this.gContent.selectAll("g.wf-word-g").data(wordNodes).join("g").attr("class", "wf-word-g").attr("transform", (d) => `translate(${d.x},${d.y})`);
     this._wordSel = wordSel;
     this._rerenderWordLines(this._lastZoomK || 1);
@@ -797,6 +806,7 @@ var WordmapForce = class {
       wordSel.attr("transform", (d) => `translate(${d.x},${d.y})`);
       c1Sel.attr("transform", (d) => `translate(${d.x},${d.y})`);
       c2Sel.attr("transform", (d) => `translate(${d.x},${d.y})`);
+      if (sim.alpha() > 0.05) drawHulls();
     };
     sim.on("tick", ticked);
     sim.alpha(0).restart();
