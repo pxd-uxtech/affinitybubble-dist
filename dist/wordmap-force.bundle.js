@@ -70,7 +70,8 @@ var DEFAULTS = {
   // anchor로 끌어당기는 힘
   clusterCohesion: 0.08,
   // c2 절대중심으로 추가로 모으는 힘
-  clusterCollidePad: 6,
+  clusterCollidePad: 14,
+  // c1 cluster 끼리 안 겹치게 띄우는 여유. ↑하면 c1 hull 사이 간격 더 넓어짐.
   clusterPreTicks: 420,
   // ★ c2 절대 위치를 disc 반경 기준으로 collide pre-sim — 인접 c2 disc끼리 안 겹치게 c2를 살짝 분리.
   // UMAP 비율은 살짝 깨지지만 hull 침범/외톨이 방지. 0=OFF.
