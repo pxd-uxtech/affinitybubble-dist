@@ -97,6 +97,9 @@ var DEFAULTS = {
   wordZoomVisualGrowth: 0.5,
   // word 텍스트 색상: hull(c2) 색에서 chroma 1.4배 + 이 lightness로 변환 (낮을수록 어두움, 높을수록 hull과 비슷한 톤)
   wordTextLightness: 45,
+  // c1 라벨(소분류 제목) 색상. word보다 어둡게 가독성 확보. 너무 검은게 싫으면 lightness ↑.
+  c1LabelLightness: 30,
+  c1LabelChroma: 32,
   // ★ sentiment(긍부정) 색상 모드.
   // null이면 기존 팔레트 기반 (c2 index → palette[idx % len]).
   // 객체로 주면 d3.scaleLinear(domain, range)를 만들어 cluster별 점수 → 색으로 매핑.
@@ -508,7 +511,9 @@ var WordmapForce = class {
     };
     const toC1LabelColor = (c) => {
       const hcl = d3.hcl(c);
-      return d3.hcl(hcl.h, 32, 22).formatHex();
+      const ch = opts.c1LabelChroma != null ? opts.c1LabelChroma : 32;
+      const li = opts.c1LabelLightness != null ? opts.c1LabelLightness : 30;
+      return d3.hcl(hcl.h, ch, li).formatHex();
     };
     const wordTextByCi = c1FillByCi.map(toWordColor);
     const c1LabelByCi = c1FillByCi.map(toC1LabelColor);
