@@ -1,4 +1,4 @@
-// ../../../../../Works/vibecoding/affinitybubble-library/wordmap-force-library.js
+// ../affinitybubble-library/wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -32,18 +32,17 @@ var DEFAULTS = {
   fontFamilyKo: "'KoddiUD OnGothic', -apple-system, sans-serif",
   fontFamilyEmoji: "'Noto Color Emoji', 'KoddiUD OnGothic', -apple-system, sans-serif",
   wordFontRange: [9, 44],
+  // ★ 어피니티버블 voronoi-treemap 방식: cluster 비율(value/total)을 log scale로 폰트에 매핑
   c1FontSize: null,
-  // null → 자동 (median word fs × multiplier, 단 max word fs × 1.05 이상 보장)
-  c1FontMultiplier: 2,
-  // c1 자동 폰트 = ref word fs × 이 배수
-  c1FontPercentile: 0.5,
-  // ref word fs 기준 — 상위 N% 지점 (0=max, 0.5=median)
+  // null → 자동 (어피니티버블식)
+  c1FontBase: 30,
+  // 자동 모드 base 폰트 (px) — fontScale [0.3~1.5] 와 곱
   c1FontMaxFloorMul: 1.05,
-  // 위계 보장: c1은 항상 max wordFs × 이 배수 이상
+  // 위계 보장: c1 ≥ max wordFs × 이 배수
   c1FontMin: 14,
-  // c1 자동 모드의 최소 폰트
+  // 최소 폰트
   c1FontMax: null,
-  // 자동 모드의 cap (null=제한 없음)
+  // 상한 (null=제한 없음)
   c2FontRange: [24, 50],
   c2EmojiScale: 0.9,
   c2HorizPadMult: 1.4,
@@ -99,8 +98,12 @@ var DEFAULTS = {
   c2CharsPerLine: null,
   // null → c2 폰트 기반 자동
   c2MaxLines: 2,
+  c2FontBase: 35,
+  // 자동 모드 base 폰트 (px) — c2는 c1보다 살짝 큼
+  c2OverC1Mul: 1.15,
+  // 어피니티버블식: c2 fs = base × fontScale × 이 배수
   c2FontFloorMul: 1.1,
-  // c2 폰트 floor = max(c1 fs in this c2) * 이 배수
+  // c2 floor = max(c1 fs in this c2) × 이 배수 (위계 보장)
   wordEllipsis: "\u2026",
   wordZoomFullThreshold: 2,
   // 줌 k가 이 값에 도달하면 wordMaxExtraLines 까지 라인 늘어남
@@ -541,6 +544,15 @@ var WordmapForce = class {
         n.y = n.cy;
       });
     });
+    const labelScale = d3.scaleLog().domain([0.1, 20]).range([0.3, 1.5]).clamp(true);
+    const c1Value = /* @__PURE__ */ new Map();
+    let totalValue = 0;
+    wordsByC1.forEach((words, ci) => {
+      const v = words.reduce((s, w) => s + (w.size || 1), 0);
+      c1Value.set(ci, v);
+      totalValue += v;
+    });
+    if (totalValue <= 0) totalValue = 1;
     const c1FsByCi = /* @__PURE__ */ new Map();
     const labelNodes = [];
     c1Center.forEach((c, ci) => {
@@ -550,18 +562,12 @@ var WordmapForce = class {
         fs = opts.c1FontSize;
       } else {
         const wordsInC1 = wordsByC1.get(ci) || [];
-        let refFs, maxFs;
-        if (!wordsInC1.length) {
-          refFs = maxFs = opts.wordFontRange[0];
-        } else {
-          const sorted = wordsInC1.map((w2) => w2.fs).sort((a, b) => b - a);
-          maxFs = sorted[0];
-          const pct = Math.max(0, Math.min(0.99, opts.c1FontPercentile != null ? opts.c1FontPercentile : 0.5));
-          refFs = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * pct))];
-        }
-        const byRef = Math.round(refFs * (opts.c1FontMultiplier || 2));
+        const value = c1Value.get(ci) || 0;
+        const ratio = Math.max(0.2, Math.min(30, value / totalValue * 100));
+        const byRatio = Math.round((opts.c1FontBase || 30) * labelScale(ratio));
+        const maxFs = wordsInC1.length ? Math.max(...wordsInC1.map((w2) => w2.fs)) : 0;
         const byMax = Math.round(maxFs * (opts.c1FontMaxFloorMul || 1.05));
-        const auto = Math.max(byRef, byMax);
+        const auto = Math.max(byRatio, byMax);
         const min = opts.c1FontMin || 14;
         const cap = opts.c1FontMax != null ? opts.c1FontMax : Infinity;
         fs = Math.min(cap, Math.max(min, auto));
@@ -618,7 +624,9 @@ var WordmapForce = class {
       if (sw === 0) return;
       const meta = c2Meta.get(ci);
       if (!meta) return;
-      let fs = c2FontScale(meta.areaScore);
+      const c2value = children.reduce((a, ch) => a + (c1Value.get(ch.c1) || 0), 0);
+      const c2ratio = Math.max(0.2, Math.min(30, c2value / totalValue * 100));
+      let fs = Math.round((opts.c2FontBase || 35) * labelScale(c2ratio) * (opts.c2OverC1Mul || 1.15));
       const childC1Fs = children.map((ch) => c1FsByCi.get(ch.c1) || 0);
       const maxC1Fs = childC1Fs.length ? Math.max(...childC1Fs) : 0;
       if (maxC1Fs > 0) fs = Math.max(fs, Math.round(maxC1Fs * (opts.c2FontFloorMul || 1.1)));
