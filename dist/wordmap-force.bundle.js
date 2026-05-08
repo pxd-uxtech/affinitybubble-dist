@@ -107,6 +107,8 @@ var DEFAULTS = {
   // c2 floor = max(c1 fs in this c2) × 이 배수 (위계 보장)
   c2PillOpacity: 0.85,
   // c2 pill rect 투명도 — 1.0=불투명, 0.7=word 비침
+  c2Position: "top",
+  // c2 pill 위치 — 'top'(cluster 상단) | 'center'(centroid)
   wordEllipsis: "\u2026",
   wordZoomFullThreshold: 2,
   // 줌 k가 이 값에 도달하면 wordMaxExtraLines 까지 라인 늘어남
@@ -704,17 +706,24 @@ var WordmapForce = class {
         label.cx = sx / words.length;
         label.cy = sy / words.length;
       }
+      const c2Pos = opts.c2Position || "top";
       for (const [cj, words] of wordsByC2.entries()) {
         if (!words.length) continue;
         const c2node = c2NodeByCj.get(cj);
         if (!c2node || c2node.fx != null) continue;
-        let sx = 0, sy = 0;
+        let sx = 0, sy = 0, minY = Infinity;
         for (const w of words) {
           sx += w.x;
           sy += w.y;
+          const wy = w.y - (w.h || 0) / 2;
+          if (wy < minY) minY = wy;
         }
         c2node.cx = sx / words.length;
-        c2node.cy = sy / words.length;
+        if (c2Pos === "top") {
+          c2node.cy = minY + c2node.h * 0.2;
+        } else {
+          c2node.cy = sy / words.length;
+        }
       }
     };
     const sim = d3.forceSimulation(allNodes).force("x", d3.forceX((d) => d.cx).strength((d) => ATTRACT[d.type] ?? 0.1)).force("y", d3.forceY((d) => d.cy).strength((d) => ATTRACT[d.type] ?? 0.1)).force("collide", rectCollide(opts.collidePadding, opts.collideIterations)).alpha(1).alphaDecay(opts.alphaDecay).stop();
