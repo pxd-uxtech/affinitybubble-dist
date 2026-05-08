@@ -741,13 +741,13 @@ var WordmapForce = class {
     sim.alpha(0.3);
     for (let i = 0; i < phase3; i++) sim.tick();
     const drawHulls = () => {
-      const hullData2 = [];
+      const hullData = [];
       for (const [ci, items] of wordsByC1.entries()) {
         const cj = c1ToC2.get(ci);
         const all = items.slice();
         const lbl = labelByCi.get(ci);
         if (lbl) all.push(lbl);
-        hullData2.push({
+        hullData.push({
           c1: ci,
           c2: cj,
           fill: c2Fill[cj % c2Fill.length],
@@ -755,7 +755,7 @@ var WordmapForce = class {
           count: items.length
         });
       }
-      this.gHull.selectAll("path").data(hullData2, (d) => d.c1).join("path").attr("class", "wf-hull").attr("d", (d) => d.d).attr("fill", (d) => d.fill).attr("stroke", (d) => d.fill);
+      this.gHull.selectAll("path").data(hullData, (d) => d.c1).join("path").attr("class", "wf-hull").attr("d", (d) => d.d).attr("fill", (d) => d.fill).attr("stroke", (d) => d.fill);
     };
     drawHulls();
     this._drawHulls = drawHulls;
@@ -834,8 +834,7 @@ var WordmapForce = class {
       c1Center,
       wordNodes,
       labelNodes,
-      c2Nodes,
-      hullData
+      c2Nodes
     };
     if (opts.fitToContent) this.fitToContent();
     return this;
