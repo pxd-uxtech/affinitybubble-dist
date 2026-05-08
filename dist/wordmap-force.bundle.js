@@ -854,7 +854,7 @@ var WordmapForce = class {
       if (n.y + halfH > maxY) maxY = n.y + halfH;
     }
     const W = this.opts.width, H = this.opts.height;
-    if (padding == null) padding = Math.max(40, Math.min(W, H) * 0.04);
+    if (padding == null) padding = Math.max(60, Math.min(W, H) * 0.06);
     const hullExtra = (this.opts.hullInflate || 0) + (this.opts.hullInnerPad || 0);
     const totalPad = padding + hullExtra;
     minX -= totalPad;
