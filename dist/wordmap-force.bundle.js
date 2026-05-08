@@ -72,10 +72,14 @@ var DEFAULTS = {
   // c2 절대중심으로 추가로 모으는 힘
   clusterCollidePad: 6,
   clusterPreTicks: 420,
-  clusterC2Confine: 0.3,
-  // ★ c1이 자기 c2 disc 밖으로 나가지 못하게 안쪽으로 당기는 힘. 0=OFF. disc 안에서는 영향 없음 (soft clamp).
-  clusterC2ConfineMargin: 1.15,
-  // confine 경계 = discR × 이 값. 1.0=정확히 disc, 1.15=15% 여유 (default), 1.3=많이 여유.
+  // ★ c2 절대 위치를 disc 반경 기준으로 collide pre-sim — 인접 c2 disc끼리 안 겹치게 c2를 살짝 분리.
+  // UMAP 비율은 살짝 깨지지만 hull 침범/외톨이 방지. 0=OFF.
+  clusterC2Collide: 0.6,
+  clusterC2CollidePad: 4,
+  // c2 disc 반경에 더해지는 여유 (px).
+  clusterC2CollideTicks: 200,
+  clusterC2CollideAnchor: 0.04,
+  // c2가 원래 UMAP 위치로 돌아가려는 약한 anchor. 너무 강하면 collide가 효과 없음.
   fitToContent: true,
   // render 후 컨텐츠가 viewBox에 맞게 자동 줌
   zoomable: true,
@@ -535,26 +539,54 @@ var WordmapForce = class {
     }
     const c1Radius = /* @__PURE__ */ new Map();
     c1Area.forEach((a, ci) => c1Radius.set(ci, Math.sqrt(a / (Math.PI * 0.55)) + 8));
-    const c2DiscR = /* @__PURE__ */ new Map();
     const discFactor = opts.clusterDiscFactor || 0;
-    if (discFactor > 0) {
-      const childByC2 = /* @__PURE__ */ new Map();
-      c1Anchor.c1Pos.forEach((p, ci) => {
-        const cj = c1ToC2.get(ci);
-        const c2P = c1Anchor.c2Abs.get(cj);
-        if (!c2P) return;
-        if (!childByC2.has(cj)) childByC2.set(cj, []);
-        childByC2.get(cj).push({ ci, dx: p.x - c2P.x, dy: p.y - c2P.y });
+    const c2DiscR = /* @__PURE__ */ new Map();
+    const childByC2 = /* @__PURE__ */ new Map();
+    c1Anchor.c1Pos.forEach((p, ci) => {
+      const cj = c1ToC2.get(ci);
+      const c2P = c1Anchor.c2Abs.get(cj);
+      if (!c2P) return;
+      if (!childByC2.has(cj)) childByC2.set(cj, []);
+      childByC2.get(cj).push({ ci, dx: p.x - c2P.x, dy: p.y - c2P.y });
+    });
+    childByC2.forEach((list, cj) => {
+      const sumR = list.reduce((a, d) => a + (c1Radius.get(d.ci) || 30), 0);
+      const N = list.length;
+      const factor = discFactor > 0 ? discFactor : 1;
+      const discR = Math.max(sumR * 0.55, Math.sqrt(N) * 30) * factor;
+      c2DiscR.set(cj, discR);
+    });
+    const c2CollideStrength = +opts.clusterC2Collide || 0;
+    if (c2CollideStrength > 0) {
+      const c2Nodes2 = [];
+      c1Anchor.c2Abs.forEach((p, cj) => {
+        c2Nodes2.push({ cj, x: p.x, y: p.y, tx: p.x, ty: p.y, r: c2DiscR.get(cj) || 30 });
       });
+      const c2AnchorStr = +opts.clusterC2CollideAnchor || 0;
+      const c2Sim = d3.forceSimulation(c2Nodes2).force("anchorX", d3.forceX((d) => d.tx).strength(c2AnchorStr)).force("anchorY", d3.forceY((d) => d.ty).strength(c2AnchorStr)).force("collide", d3.forceCollide((d) => d.r + (opts.clusterC2CollidePad || 0)).iterations(4).strength(c2CollideStrength)).stop();
+      for (let i = 0; i < (opts.clusterC2CollideTicks || 200); i++) c2Sim.tick();
+      for (const n of c2Nodes2) {
+        const dx = n.x - n.tx, dy = n.y - n.ty;
+        c1Anchor.c2Abs.set(n.cj, { x: n.x, y: n.y });
+        const list = childByC2.get(n.cj);
+        if (!list) continue;
+        for (const ch of list) {
+          const cur = c1Anchor.c1Pos.get(ch.ci);
+          if (cur) c1Anchor.c1Pos.set(ch.ci, { x: cur.x + dx, y: cur.y + dy });
+        }
+      }
+    }
+    if (discFactor > 0) {
       childByC2.forEach((list, cj) => {
         const c2P = c1Anchor.c2Abs.get(cj);
         if (!c2P) return;
-        const sumR = list.reduce((a, d) => a + (c1Radius.get(d.ci) || 30), 0);
-        const N = list.length;
-        const discR = Math.max(sumR * 0.55, Math.sqrt(N) * 30) * discFactor;
-        c2DiscR.set(cj, discR);
-        const maxDist = Math.max(1e-4, ...list.map((d) => Math.hypot(d.dx, d.dy)));
-        list.forEach((d) => {
+        const discR = c2DiscR.get(cj);
+        const recalc = list.map((d) => {
+          const cur = c1Anchor.c1Pos.get(d.ci);
+          return { ci: d.ci, dx: (cur?.x || c2P.x) - c2P.x, dy: (cur?.y || c2P.y) - c2P.y };
+        });
+        const maxDist = Math.max(1e-4, ...recalc.map((d) => Math.hypot(d.dx, d.dy)));
+        recalc.forEach((d) => {
           const ratio = Math.hypot(d.dx, d.dy) / maxDist;
           const newDx = d.dx / maxDist * discR * ratio + d.dx / maxDist * discR * (1 - ratio) * 0.6;
           const newDy = d.dy / maxDist * discR * ratio + d.dy / maxDist * discR * (1 - ratio) * 0.6;
@@ -580,26 +612,7 @@ var WordmapForce = class {
         r: c1Radius.get(ci) || 30
       });
     });
-    const confineStrength = +opts.clusterC2Confine || 0;
-    const confineMargin = +opts.clusterC2ConfineMargin || 1;
-    const confineForce = (alpha) => {
-      if (confineStrength <= 0) return;
-      for (const n of clusterNodes) {
-        const cx = c2AbsX.get(n.c2);
-        const cy = c2AbsY.get(n.c2);
-        const dr = c2DiscR.get(n.c2);
-        if (cx == null || cy == null || dr == null) continue;
-        const maxR = dr * confineMargin + n.r * 0.5;
-        const dx = n.x - cx, dy = n.y - cy;
-        const d = Math.hypot(dx, dy);
-        if (d <= maxR || d < 1e-6) continue;
-        const over = (d - maxR) / d;
-        const k = confineStrength * alpha;
-        n.vx -= dx * over * k;
-        n.vy -= dy * over * k;
-      }
-    };
-    const clusterSim = d3.forceSimulation(clusterNodes).force("semantic", d3.forceX((d) => d.tx).strength(opts.clusterSemantic)).force("semanticY", d3.forceY((d) => d.ty).strength(opts.clusterSemantic)).force("cohesion", d3.forceX((d) => c2AbsX.get(d.c2) ?? d.tx).strength(opts.clusterCohesion)).force("cohesionY", d3.forceY((d) => c2AbsY.get(d.c2) ?? d.ty).strength(opts.clusterCohesion)).force("confine", confineForce).force("collide", d3.forceCollide((d) => d.r + opts.clusterCollidePad).iterations(4)).stop();
+    const clusterSim = d3.forceSimulation(clusterNodes).force("semantic", d3.forceX((d) => d.tx).strength(opts.clusterSemantic)).force("semanticY", d3.forceY((d) => d.ty).strength(opts.clusterSemantic)).force("cohesion", d3.forceX((d) => c2AbsX.get(d.c2) ?? d.tx).strength(opts.clusterCohesion)).force("cohesionY", d3.forceY((d) => c2AbsY.get(d.c2) ?? d.ty).strength(opts.clusterCohesion)).force("collide", d3.forceCollide((d) => d.r + opts.clusterCollidePad).iterations(4)).stop();
     for (let i = 0; i < opts.clusterPreTicks; i++) clusterSim.tick();
     const c1Center = /* @__PURE__ */ new Map();
     for (const n of clusterNodes) c1Center.set(n.c1, { x: n.x, y: n.y, r: n.r });
