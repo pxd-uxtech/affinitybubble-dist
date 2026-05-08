@@ -113,8 +113,16 @@ var DEFAULTS = {
   // 'break' | 'truncate'
 };
 var STYLE_ID = "wordmap-force-style";
+var EMOJI_FONT_LINK_ID = "wordmap-force-emoji-font";
 function ensureStyle() {
   if (typeof document === "undefined") return;
+  if (!document.getElementById(EMOJI_FONT_LINK_ID)) {
+    const link = document.createElement("link");
+    link.id = EMOJI_FONT_LINK_ID;
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap";
+    document.head.appendChild(link);
+  }
   if (document.getElementById(STYLE_ID)) return;
   const css = `
 .wf-host { position: relative; width: 100%; height: 100%; overflow: hidden; }
