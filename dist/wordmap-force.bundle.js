@@ -52,9 +52,9 @@ var DEFAULTS = {
   hullInflate: 10,
   hullMinR: 48,
   forceWordAttract: 0.16,
-  forceLabelAttract: 0.9,
-  // 라벨이 anchor에 강하게 끌림 — collide로 너무 밀려나지 않게
-  forceC2Attract: 0.9,
+  forceLabelAttract: 0.5,
+  // hull 중심 가까이 유지 + word 과도하게 밀지 않게 균형 (원본 0.3, 강제 0.9 사이)
+  forceC2Attract: 0.5,
   collidePadding: 2,
   collideIterations: 2,
   preTicks: 600,
