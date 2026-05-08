@@ -98,12 +98,14 @@ var DEFAULTS = {
   c2CharsPerLine: null,
   // null → c2 폰트 기반 자동
   c2MaxLines: 2,
-  c2FontBase: 28,
+  c2FontBase: 24,
   // 자동 모드 base 폰트 (px)
-  c2OverC1Mul: 1.05,
+  c2OverC1Mul: 1,
   // 어피니티버블식: c2 fs = base × fontScale × 이 배수
-  c2FontFloorMul: 1.05,
+  c2FontFloorMul: 1,
   // c2 floor = max(c1 fs in this c2) × 이 배수 (위계 보장)
+  c2PillOpacity: 0.85,
+  // c2 pill rect 투명도 — 1.0=불투명, 0.7=word 비침
   wordEllipsis: "\u2026",
   wordZoomFullThreshold: 2,
   // 줌 k가 이 값에 도달하면 wordMaxExtraLines 까지 라인 늘어남
@@ -261,8 +263,9 @@ function rectCollide(padding, iterations) {
   let nodes;
   function force() {
     for (let it = 0; it < iterations; it++) {
-      const tree = d3.quadtree(nodes, (d) => d.x, (d) => d.y);
-      for (const a of nodes) {
+      const wordOnly = nodes.filter((n) => n.type === "word");
+      const tree = d3.quadtree(wordOnly, (d) => d.x, (d) => d.y);
+      for (const a of wordOnly) {
         if (a.fx != null) continue;
         const ar = Math.max(a.w, a.h) / 2 + padding + 60;
         tree.visit((node, x0, y0, x1, y1) => {
@@ -750,7 +753,7 @@ var WordmapForce = class {
     });
     const c2Sel = this.gC2.selectAll("g.wf-c2-pill").data(c2Nodes, (d) => d.c2).join((enter) => {
       const g = enter.append("g").attr("class", "wf-c2-pill");
-      g.append("rect").attr("x", (d) => -d.w / 2).attr("y", (d) => -d.h / 2).attr("width", (d) => d.w).attr("height", (d) => d.h).attr("rx", (d) => Math.min(d.h / 2, 28)).attr("ry", (d) => Math.min(d.h / 2, 28)).attr("fill", (d) => c2Pill[d.c2 % c2Pill.length]);
+      g.append("rect").attr("x", (d) => -d.w / 2).attr("y", (d) => -d.h / 2).attr("width", (d) => d.w).attr("height", (d) => d.h).attr("rx", (d) => Math.min(d.h / 2, 28)).attr("ry", (d) => Math.min(d.h / 2, 28)).attr("fill", (d) => c2Pill[d.c2 % c2Pill.length]).attr("fill-opacity", opts.c2PillOpacity != null ? opts.c2PillOpacity : 0.85);
       return g;
     }).attr("transform", (d) => `translate(${d.x},${d.y})`);
     c2Sel.each(function(d) {
