@@ -79,6 +79,7 @@ type WordmapRow = {
 | `extras.positions` | `{ c1?: Record<string,{x,y}>, c2?: Record<string,{x,y}> }` | UMAP 좌표 |
 | `extras.c1Order` / `extras.c2Order` | `string[]` | 라벨 순서 고정 |
 | `extras.scores` | `{ c1?: Record<string,number>, c2?: Record<string,number> }` | 긍부정 점수 (sentiment 모드) |
+| `extras.colors` | `{ c1?: Map\|Fn, c2?: Map\|Fn }` | cluster별 커스텀 색 (sentiment·팔레트보다 우선) |
 
 ### `controller.resetZoom()` / `controller.destroy()` / `controller.fitToContent()`
 
@@ -162,6 +163,33 @@ type WordmapRow = {
 | `hullInnerPad` | `4` | 노드 박스에 더할 inner padding |
 | `hullInflate` | `10` | 외곽 inflate (centroid에서 방향) |
 | `hullMinR` | `48` | centroid에서 최소 반지름 (1~2개 노드 cluster용) |
+
+### 커스텀 색상 (`extras.colors`)
+
+cluster의 의미와 무관하게 외부에서 색을 직접 지정하고 싶을 때 사용합니다. **sentiment·팔레트보다 우선**하므로 동시에 줘도 colors가 이깁니다.
+
+```js
+chart.render(data, {
+  colors: {
+    // 객체: 라벨 → 색
+    c1: {
+      '한강 인프라':   '#3b82f6',
+      '복잡한 삭막함': '#ef4444',
+    },
+    // 또는 함수: (label, idx) => color  (값이 null이면 다음 우선순위로 fallback)
+    c2: (label, cj) => myBrand[label] ?? null,
+  },
+});
+```
+
+색 결정 우선순위 (cluster별 base color):
+1. `extras.colors.c1[label]` (또는 함수 결과)
+2. `extras.colors.c2[c2Label]` (c1에 c1 색이 없으면 c2 색을 빌려옴)
+3. `opts.sentiment` + `extras.scores` 매핑
+4. `opts.palette` (c2 인덱스 기반)
+
+word·hull·c1 라벨 색은 c1 base color에서 자동 파생됩니다 (`wordTextLightness` 등).
+c2 pill만 c2 base color에서 별도 파생됩니다.
 
 ### Sentiment(긍부정) 색상 모드
 

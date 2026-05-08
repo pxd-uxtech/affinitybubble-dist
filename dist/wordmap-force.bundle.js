@@ -1,4 +1,4 @@
-// ../affinitybubble-library/wordmap-force-library.js
+// ../../../../../Works/vibecoding/affinitybubble-library/wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -451,20 +451,39 @@ var WordmapForce = class {
     const scoreC2 = extras.scores?.c2 || null;
     const sentScale = sentOpt && (scoreC1 || scoreC2) ? d3.scaleLinear().domain(sentOpt.domain || [1, 3, 5]).range(sentOpt.range || ["#f69f8f", "#ffe9a9", "#88CD8B"]).clamp(true) : null;
     const sentFallback = sentOpt?.scoreFallback;
+    const customC1 = extras.colors?.c1 ?? null;
+    const customC2 = extras.colors?.c2 ?? null;
+    const customLookup = (src, key, idx) => {
+      if (src == null) return null;
+      if (typeof src === "function") {
+        const v = src(key, idx);
+        return v == null ? null : v;
+      }
+      if (typeof src === "object") {
+        const v = src[key];
+        return v == null ? null : v;
+      }
+      return null;
+    };
     const c1FillByCi = c1Set.map((label, ci) => {
+      const cj = c1ToC2.get(ci);
+      const cu1 = customLookup(customC1, label, ci);
+      if (cu1 != null) return cu1;
+      if (cj != null) {
+        const cu2 = customLookup(customC2, c2Set[cj], cj);
+        if (cu2 != null) return cu2;
+      }
       if (sentScale) {
         let s = scoreC1 ? scoreC1[label] : null;
-        if (s == null) {
-          const cj2 = c1ToC2.get(ci);
-          if (cj2 != null && scoreC2) s = scoreC2[c2Set[cj2]];
-        }
+        if (s == null && cj != null && scoreC2) s = scoreC2[c2Set[cj]];
         if (s == null && sentFallback != null) s = sentFallback;
         if (s != null) return sentScale(s);
       }
-      const cj = c1ToC2.get(ci);
       return baseColors[((cj ?? ci) % baseColors.length + baseColors.length) % baseColors.length];
     });
     const c2FillByCj = c2Set.map((label, cj) => {
+      const cu2 = customLookup(customC2, label, cj);
+      if (cu2 != null) return cu2;
       if (sentScale) {
         let s = scoreC2 ? scoreC2[label] : null;
         if (s == null && sentFallback != null) s = sentFallback;
