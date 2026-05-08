@@ -52,8 +52,9 @@ var DEFAULTS = {
   hullInflate: 10,
   hullMinR: 48,
   forceWordAttract: 0.16,
-  forceLabelAttract: 0.3,
-  forceC2Attract: 0.4,
+  forceLabelAttract: 0.9,
+  // 라벨이 anchor에 강하게 끌림 — collide로 너무 밀려나지 않게
+  forceC2Attract: 0.9,
   collidePadding: 2,
   collideIterations: 2,
   preTicks: 600,
@@ -263,9 +264,8 @@ function rectCollide(padding, iterations) {
   let nodes;
   function force() {
     for (let it = 0; it < iterations; it++) {
-      const wordOnly = nodes.filter((n) => n.type === "word");
-      const tree = d3.quadtree(wordOnly, (d) => d.x, (d) => d.y);
-      for (const a of wordOnly) {
+      const tree = d3.quadtree(nodes, (d) => d.x, (d) => d.y);
+      for (const a of nodes) {
         if (a.fx != null) continue;
         const ar = Math.max(a.w, a.h) / 2 + padding + 60;
         tree.visit((node, x0, y0, x1, y1) => {
@@ -702,8 +702,8 @@ var WordmapForce = class {
         sx += w.x;
         sy += w.y;
       }
-      label.x = sx / words.length;
-      label.y = sy / words.length;
+      label.cx = sx / words.length;
+      label.cy = sy / words.length;
     }
     for (const [cj, words] of wordsByC2.entries()) {
       if (!words.length) continue;
@@ -714,17 +714,9 @@ var WordmapForce = class {
         sx += w.x;
         sy += w.y;
       }
-      c2node.x = sx / words.length;
-      c2node.y = sy / words.length;
+      c2node.cx = sx / words.length;
+      c2node.cy = sy / words.length;
     }
-    labelNodes.forEach((n) => {
-      n.cx = n.x;
-      n.cy = n.y;
-    });
-    c2Nodes.forEach((n) => {
-      n.cx = n.x;
-      n.cy = n.y;
-    });
     const hullData = [];
     for (const [ci, items] of wordsByC1.entries()) {
       const cj = c1ToC2.get(ci);
@@ -789,8 +781,8 @@ var WordmapForce = class {
           sx += w.x;
           sy += w.y;
         }
-        label.x = sx / words.length;
-        label.y = sy / words.length;
+        label.cx = sx / words.length;
+        label.cy = sy / words.length;
       }
       for (const [cj, words] of wordsByC2.entries()) {
         if (!words.length) continue;
@@ -801,8 +793,8 @@ var WordmapForce = class {
           sx += w.x;
           sy += w.y;
         }
-        c2node.x = sx / words.length;
-        c2node.y = sy / words.length;
+        c2node.cx = sx / words.length;
+        c2node.cy = sy / words.length;
       }
       wordSel.attr("transform", (d) => `translate(${d.x},${d.y})`);
       c1Sel.attr("transform", (d) => `translate(${d.x},${d.y})`);
