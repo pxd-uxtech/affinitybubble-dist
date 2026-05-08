@@ -1,4 +1,4 @@
-// ../../../../../Works/vibecoding/affinitybubble-library/wordmap-force-library.js
+// ../affinitybubble-library/wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -93,6 +93,13 @@ var DEFAULTS = {
   wordZoomVisualGrowth: 0.5,
   // word 텍스트 색상: hull(c2) 색에서 chroma 1.4배 + 이 lightness로 변환 (낮을수록 어두움, 높을수록 hull과 비슷한 톤)
   wordTextLightness: 45,
+  // ★ sentiment(긍부정) 색상 모드.
+  // null이면 기존 팔레트 기반 (c2 index → palette[idx % len]).
+  // 객체로 주면 d3.scaleLinear(domain, range)를 만들어 cluster별 점수 → 색으로 매핑.
+  // 점수는 render 시 extras.scores ({ c1: {label: score}, c2: {bigLabel: score} })로 전달.
+  // 우선순위: c1 점수 → 그 c1의 c2 점수 → scoreFallback → 팔레트.
+  // 예) sentiment: { domain: [1, 3, 5], range: ['#f69f8f', '#ffe9a9', '#88CD8B'], scoreFallback: 3 }
+  sentiment: null,
   // c1 라벨 wrap (정적 — 줌 무관)
   c1CharsPerLine: null,
   // null → c1FontSize 기반 자동
@@ -398,7 +405,7 @@ var WordmapForce = class {
   _rerenderWordLines(k) {
     const opts = this.opts;
     const FONT_KO = opts.fontFamilyKo;
-    const c2Text = this._c2Text;
+    const wordTextByCi = this._wordTextByCi;
     this._wordSel.each(function(d) {
       const display = computeWordDisplay(d, k, opts);
       d.lines = display.lines;
@@ -407,8 +414,9 @@ var WordmapForce = class {
       g.selectAll("text").remove();
       const lineH = display.fs * 1.2;
       const totalH = (d.lines.length - 1) * lineH;
+      const fill = wordTextByCi[d.c1];
       d.lines.forEach((line, i) => {
-        g.append("text").attr("class", "wf-word").attr("x", 0).attr("y", i * lineH - totalH / 2).attr("font-family", FONT_KO).attr("font-size", display.fs).attr("fill", c2Text[d.c2 % c2Text.length]).attr("text-anchor", "middle").attr("dominant-baseline", "central").text(line);
+        g.append("text").attr("class", "wf-word").attr("x", 0).attr("y", i * lineH - totalH / 2).attr("font-family", FONT_KO).attr("font-size", display.fs).attr("fill", fill).attr("text-anchor", "middle").attr("dominant-baseline", "central").text(line);
       });
     });
   }
@@ -438,19 +446,46 @@ var WordmapForce = class {
     }
     const c1Anchor = this._computeAnchors(c1Set, c2Set, c1ToC2, extras.positions);
     const baseColors = opts.palette;
-    const c2Fill = baseColors;
-    const c2Text = baseColors.map((c) => {
+    const sentOpt = opts.sentiment;
+    const scoreC1 = extras.scores?.c1 || null;
+    const scoreC2 = extras.scores?.c2 || null;
+    const sentScale = sentOpt && (scoreC1 || scoreC2) ? d3.scaleLinear().domain(sentOpt.domain || [1, 3, 5]).range(sentOpt.range || ["#f69f8f", "#ffe9a9", "#88CD8B"]).clamp(true) : null;
+    const sentFallback = sentOpt?.scoreFallback;
+    const c1FillByCi = c1Set.map((label, ci) => {
+      if (sentScale) {
+        let s = scoreC1 ? scoreC1[label] : null;
+        if (s == null) {
+          const cj2 = c1ToC2.get(ci);
+          if (cj2 != null && scoreC2) s = scoreC2[c2Set[cj2]];
+        }
+        if (s == null && sentFallback != null) s = sentFallback;
+        if (s != null) return sentScale(s);
+      }
+      const cj = c1ToC2.get(ci);
+      return baseColors[((cj ?? ci) % baseColors.length + baseColors.length) % baseColors.length];
+    });
+    const c2FillByCj = c2Set.map((label, cj) => {
+      if (sentScale) {
+        let s = scoreC2 ? scoreC2[label] : null;
+        if (s == null && sentFallback != null) s = sentFallback;
+        if (s != null) return sentScale(s);
+      }
+      return baseColors[(cj % baseColors.length + baseColors.length) % baseColors.length];
+    });
+    const toWordColor = (c) => {
       const hcl = d3.hcl(c);
       hcl.c = Math.max(hcl.c, 30) * 1.4;
       hcl.l = opts.wordTextLightness != null ? opts.wordTextLightness : 45;
       return hcl.formatHex();
-    });
-    const c1LabelColor = baseColors.map((c) => {
+    };
+    const toC1LabelColor = (c) => {
       const hcl = d3.hcl(c);
       return d3.hcl(hcl.h, 32, 22).formatHex();
-    });
-    const c2Pill = baseColors.map((c, i) => d3.interpolateRgb(c, c2Text[i])(0.22));
-    this._c2Text = c2Text;
+    };
+    const wordTextByCi = c1FillByCi.map(toWordColor);
+    const c1LabelByCi = c1FillByCi.map(toC1LabelColor);
+    const c2PillByCj = c2FillByCj.map((c) => d3.interpolateRgb(c, toWordColor(c))(0.22));
+    this._wordTextByCi = wordTextByCi;
     const sizeExt = d3.extent(rows, (d) => d.size || 1);
     const fontScale = d3.scaleSqrt().domain(sizeExt[0] === sizeExt[1] ? [1, sizeExt[1] || 2] : sizeExt).range(opts.wordFontRange);
     const c1Area = /* @__PURE__ */ new Map();
@@ -750,7 +785,7 @@ var WordmapForce = class {
         hullData.push({
           c1: ci,
           c2: cj,
-          fill: c2Fill[cj % c2Fill.length],
+          fill: c1FillByCi[ci],
           ...buildHullPath(all, { innerPad: opts.hullInnerPad, inflate: opts.hullInflate, minR: opts.hullMinR }),
           count: items.length
         });
@@ -768,14 +803,14 @@ var WordmapForce = class {
       g.selectAll("text").remove();
       const lineH = d.fs * 1.2;
       const totalH = (d.lines.length - 1) * lineH;
-      const fill = c1LabelColor[d.c2 % c1LabelColor.length];
+      const fill = c1LabelByCi[d.c1];
       d.lines.forEach((line, i) => {
         g.append("text").attr("class", "wf-c1-label").attr("x", 0).attr("y", i * lineH - totalH / 2).attr("font-family", FONT_EMOJI).attr("font-size", d.fs).attr("fill", fill).attr("text-anchor", "middle").attr("dominant-baseline", "central").text(line);
       });
     });
     const c2Sel = this.gC2.selectAll("g.wf-c2-pill").data(c2Nodes, (d) => d.c2).join((enter) => {
       const g = enter.append("g").attr("class", "wf-c2-pill");
-      g.append("rect").attr("x", (d) => -d.w / 2).attr("y", (d) => -d.h / 2).attr("width", (d) => d.w).attr("height", (d) => d.h).attr("rx", (d) => Math.min(d.h / 2, 28)).attr("ry", (d) => Math.min(d.h / 2, 28)).attr("fill", (d) => c2Pill[d.c2 % c2Pill.length]).attr("fill-opacity", opts.c2PillOpacity != null ? opts.c2PillOpacity : 0.85);
+      g.append("rect").attr("x", (d) => -d.w / 2).attr("y", (d) => -d.h / 2).attr("width", (d) => d.w).attr("height", (d) => d.h).attr("rx", (d) => Math.min(d.h / 2, 28)).attr("ry", (d) => Math.min(d.h / 2, 28)).attr("fill", (d) => c2PillByCj[d.c2]).attr("fill-opacity", opts.c2PillOpacity != null ? opts.c2PillOpacity : 0.85);
       return g;
     }).attr("transform", (d) => `translate(${d.x},${d.y})`);
     c2Sel.each(function(d) {
