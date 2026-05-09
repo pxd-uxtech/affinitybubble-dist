@@ -1371,9 +1371,9 @@ function createFileInputUIv3(Papa, options = {}) {
             </div>
             <div class="file-input-v3-dropdown size-transform-wrapper" style="${columnMapping.size === '없음' ? 'display:none;' : ''}">
               <select class="size-transform-select">
-                <option value="none" ${columnMapping.sizeTransform === 'none' ? 'selected' : ''}>차이 그대로 (선형)</option>
-                <option value="sqrt" ${columnMapping.sizeTransform === 'sqrt' ? 'selected' : ''}>차이 줄임 (제곱근)</option>
-                <option value="log" ${columnMapping.sizeTransform === 'log' ? 'selected' : ''}>차이 크게 줄임 (로그)</option>
+                <option value="none" ${columnMapping.sizeTransform === 'none' ? 'selected' : ''}>선형 (그대로)</option>
+                <option value="sqrt" ${columnMapping.sizeTransform === 'sqrt' ? 'selected' : ''}>제곱근 (댓글, 북마크 등)</option>
+                <option value="log" ${columnMapping.sizeTransform === 'log' ? 'selected' : ''}>로그 (좋아요, 조회수 등)</option>
               </select>
             </div>
           </div>
