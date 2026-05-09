@@ -1,4 +1,4 @@
-// ../../../../../claudecode/affinitybubble-library/wordmap-force-library.js
+// ../affinitybubble-library/wordmap-force-library.js
 var d3;
 var DEFAULT_PALETTE = [
   "#afc7dd",
@@ -187,6 +187,26 @@ function ensureStyle() {
   fill: #ffffff;
   letter-spacing: -0.02em;
   pointer-events: none;
+}
+.wf-host .wf-word-g.wf-clickable,
+.wf-host .wf-c1-label-g.wf-clickable,
+.wf-host .wf-c2-pill.wf-clickable,
+.wf-host .wf-hull.wf-clickable {
+  pointer-events: all;
+  cursor: pointer;
+}
+.wf-host .wf-word-g.wf-clickable .wf-word { pointer-events: all; }
+.wf-host.wf-has-highlight .wf-word-g,
+.wf-host.wf-has-highlight .wf-c1-label-g,
+.wf-host.wf-has-highlight .wf-c2-pill,
+.wf-host.wf-has-highlight .wf-hull {
+  opacity: 0.15;
+}
+.wf-host.wf-has-highlight .wf-word-g.wf-active,
+.wf-host.wf-has-highlight .wf-c1-label-g.wf-active,
+.wf-host.wf-has-highlight .wf-c2-pill.wf-active,
+.wf-host.wf-has-highlight .wf-hull.wf-active {
+  opacity: 1;
 }
 `;
   const tag = document.createElement("style");
@@ -455,7 +475,7 @@ var WordmapForce = class {
         const k = d.c1 + "" + d.text;
         const e = agg.get(k);
         if (e) e.size += d.size || 1;
-        else agg.set(k, { text: d.text, size: d.size || 1, c1: d.c1, c2: d.c2 });
+        else agg.set(k, { ...d, size: d.size || 1 });
       }
       rows = [...agg.values()];
     }
@@ -687,7 +707,8 @@ var WordmapForce = class {
         x: c.x,
         y: c.y,
         cx: c.x,
-        cy: c.y
+        cy: c.y,
+        _orig: d
       };
     });
     const c1Count = d3.rollup(wordNodes, (v) => v.length, (d) => d.c1);
@@ -903,7 +924,15 @@ var WordmapForce = class {
           count: items.length
         });
       }
-      this.gHull.selectAll("path").data(hullData, (d) => d.c1).join("path").attr("class", "wf-hull").attr("d", (d) => d.d).attr("fill", (d) => d.fill).attr("stroke", (d) => d.fill);
+      const sel = this.gHull.selectAll("path").data(hullData, (d) => d.c1).join("path").classed("wf-hull", true).attr("d", (d) => d.d).attr("fill", (d) => d.fill).attr("stroke", (d) => d.fill);
+      if (typeof opts.onC1Click === "function") {
+        sel.classed("wf-clickable", true).on("click", (event, d) => {
+          event.stopPropagation();
+          opts.onC1Click(c1Set[d.c1], event);
+        });
+      }
+      const activeC1 = this._highlightedC1Idx;
+      if (activeC1) sel.classed("wf-active", (d) => activeC1.has(d.c1));
     };
     drawHulls();
     this._drawHulls = drawHulls;
@@ -963,9 +992,11 @@ var WordmapForce = class {
         if (!event.active) sim.alphaTarget(0.4).restart();
         d.fx = d.x;
         d.fy = d.y;
+        d.__dragMoved = false;
       }).on("drag", (event, d) => {
         d.fx = event.x;
         d.fy = event.y;
+        d.__dragMoved = true;
       }).on("end", (event, d) => {
         if (!event.active) sim.alphaTarget(0);
         d.fx = null;
@@ -973,6 +1004,26 @@ var WordmapForce = class {
       });
       c1Sel.call(drag);
       c2Sel.call(drag);
+    }
+    if (typeof opts.onWordClick === "function") {
+      wordSel.classed("wf-clickable", true).on("click", (event, d) => {
+        event.stopPropagation();
+        opts.onWordClick(d._orig, event);
+      });
+    }
+    if (typeof opts.onC1Click === "function") {
+      c1Sel.classed("wf-clickable", true).on("click", (event, d) => {
+        if (d.__dragMoved) return;
+        event.stopPropagation();
+        opts.onC1Click(c1Set[d.c1], event);
+      });
+    }
+    if (typeof opts.onC2Click === "function") {
+      c2Sel.classed("wf-clickable", true).on("click", (event, d) => {
+        if (d.__dragMoved) return;
+        event.stopPropagation();
+        opts.onC2Click(c2Set[d.c2], event);
+      });
     }
     this.state = {
       rows,
@@ -1118,6 +1169,36 @@ var WordmapForce = class {
     if (this.zoomBehavior) {
       this.svg.transition().duration(400).call(this.zoomBehavior.transform, d3.zoomIdentity);
     }
+    return this;
+  }
+  highlight(c1Labels) {
+    if (!this._wordSel || !this.state) return this;
+    const labels = c1Labels == null ? [] : Array.isArray(c1Labels) ? c1Labels : [c1Labels];
+    if (labels.length === 0) return this.clearHighlight();
+    const set = new Set(labels);
+    const c1Idx = /* @__PURE__ */ new Set();
+    this.state.c1Set.forEach((label, idx) => {
+      if (set.has(label)) c1Idx.add(idx);
+    });
+    const c2Idx = /* @__PURE__ */ new Set();
+    this.state.c1ToC2.forEach((cj, ci) => {
+      if (c1Idx.has(ci)) c2Idx.add(cj);
+    });
+    this._highlightedC1Idx = c1Idx;
+    this.container.classList.add("wf-has-highlight");
+    this._wordSel.classed("wf-active", (d) => c1Idx.has(d.c1));
+    this._c1Sel.classed("wf-active", (d) => c1Idx.has(d.c1));
+    this._c2Sel.classed("wf-active", (d) => c2Idx.has(d.c2));
+    this.gHull.selectAll(".wf-hull").classed("wf-active", (d) => c1Idx.has(d.c1));
+    return this;
+  }
+  clearHighlight() {
+    this._highlightedC1Idx = null;
+    if (this.container) this.container.classList.remove("wf-has-highlight");
+    if (this._wordSel) this._wordSel.classed("wf-active", false);
+    if (this._c1Sel) this._c1Sel.classed("wf-active", false);
+    if (this._c2Sel) this._c2Sel.classed("wf-active", false);
+    if (this.gHull) this.gHull.selectAll(".wf-hull").classed("wf-active", false);
     return this;
   }
   destroy() {
