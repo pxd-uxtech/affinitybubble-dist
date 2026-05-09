@@ -248,7 +248,7 @@ function createFileInputUIv3(Papa, options = {}) {
   // 상태 관리
   let rawText = [];
   let rawCols = [];
-  let columnMapping = { text: "", size: "없음", date: "없음" };
+  let columnMapping = { text: "", size: "없음", date: "없음", sizeTransform: "none" };
   let chunks = [];
   let inputContent = "";
   let excludedRows = new Set();
@@ -1369,6 +1369,13 @@ function createFileInputUIv3(Papa, options = {}) {
                 ${sizeCandidates.map(col => `<option value="${col}" ${col === columnMapping.size ? 'selected' : ''}>${col}</option>`).join('')}
               </select>
             </div>
+            <div class="file-input-v3-dropdown size-transform-wrapper" style="${columnMapping.size === '없음' ? 'display:none;' : ''}">
+              <select class="size-transform-select">
+                <option value="none" ${columnMapping.sizeTransform === 'none' ? 'selected' : ''}>그대로</option>
+                <option value="log" ${columnMapping.sizeTransform === 'log' ? 'selected' : ''}>로그</option>
+                <option value="sqrt" ${columnMapping.sizeTransform === 'sqrt' ? 'selected' : ''}>제곱근</option>
+              </select>
+            </div>
           </div>
           ` : ''}
           ${hasDateOptions ? `
@@ -1611,6 +1618,8 @@ function createFileInputUIv3(Papa, options = {}) {
     const textSelect = popup.querySelector(".text-column-select");
     const dateSelect = hasDateOptions ? popup.querySelector(".date-column-select") : null;
     const sizeSelect = hasSizeOptions ? popup.querySelector(".size-column-select") : null;
+    const sizeTransformSelect = hasSizeOptions ? popup.querySelector(".size-transform-select") : null;
+    const sizeTransformWrapper = hasSizeOptions ? popup.querySelector(".size-transform-wrapper") : null;
 
     // 텍스트 컬럼 select 업데이트 (옵션 갱신 + 현재 값 반영)
     function updateTextTagUI() {
@@ -1626,6 +1635,10 @@ function createFileInputUIv3(Papa, options = {}) {
       if (!sizeSelect) return;
       sizeSelect.value = columnMapping.size;
       sizeSelect.classList.toggle('size-colored', columnMapping.size !== '없음');
+      if (sizeTransformWrapper) {
+        sizeTransformWrapper.style.display = columnMapping.size === '없음' ? 'none' : '';
+      }
+      if (sizeTransformSelect) sizeTransformSelect.value = columnMapping.sizeTransform || 'none';
     }
 
     function updateDateTagUI() {
@@ -1658,6 +1671,10 @@ function createFileInputUIv3(Papa, options = {}) {
         renderTable();
         setupHeaderClickHandlers();
         scrollToColumn(columnMapping.size);
+      });
+      sizeTransformSelect?.addEventListener("change", () => {
+        columnMapping.sizeTransform = sizeTransformSelect.value;
+        renderTable();
       });
     }
 
@@ -1794,6 +1811,7 @@ function createFileInputUIv3(Papa, options = {}) {
       columnMapping.text = savedMapping.text;
       columnMapping.size = savedMapping.size;
       columnMapping.date = savedMapping.date;
+      columnMapping.sizeTransform = savedMapping.sizeTransform || "none";
       overlay.remove();
       if (fromEdit) {
         updatePreview();
@@ -1821,11 +1839,20 @@ function createFileInputUIv3(Papa, options = {}) {
     });
   }
 
+  // 가중치 변환: 0/NaN/음수는 0으로 보정 후 변환, 결과가 0/NaN이면 1로 보정 (size=0인 row가 사라지지 않도록)
+  function applySizeTransform(raw, transform) {
+    const x = Math.max(0, +raw || 0);
+    if (transform === "log")  return Math.log1p(x) || 1;
+    if (transform === "sqrt") return Math.sqrt(x + 1);
+    return x || 1;
+  }
+
   // 데이터 최종화 및 미리보기 표시
   function finalizeData() {
     const textKey = columnMapping.text;
     const sizeKey = columnMapping.size === "없음" ? null : columnMapping.size;
     const dateKey = columnMapping.date === "없음" ? null : columnMapping.date;
+    const sizeTransform = columnMapping.sizeTransform || "none";
 
     const activeData = rawText.filter((_, idx) => !excludedRows.has(idx));
     const filtered = activeData.filter(d => {
@@ -1840,7 +1867,7 @@ function createFileInputUIv3(Papa, options = {}) {
       textid: i + 1,
       text: String(d[textKey] || "").replace(/\\n/g, "\n"),
       chunk: String(d[textKey] || "").replace(/\\n/g, "\n"),
-      size: sizeKey ? +d[sizeKey] || 1 : 1,
+      size: sizeKey ? applySizeTransform(d[sizeKey], sizeTransform) : 1,
       ...(dateKey ? { date: d[dateKey] } : {})
     }));
 
