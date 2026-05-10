@@ -8209,6 +8209,12 @@ var Level1Pipeline = class {
     const d = this.options.embeddingDimensions;
     return d ? { dimensions: d } : {};
   }
+  // SDK가 dimensions 옵션을 무시해도 client에서 잘라 hclust 비용을 줄임.
+  // text-embedding-3-small은 Matryoshka 학습이라 앞 N차원만 사용해도 의미 보존됨.
+  _truncEmbed(e) {
+    const d = this.options.embeddingDimensions;
+    return d && e && e.length > d ? e.slice(0, d) : e;
+  }
   async _embedAll(chunkData, onProgress) {
     const embeddings = [];
     const batchSize = 200;
@@ -8221,11 +8227,12 @@ var Level1Pipeline = class {
         this._embedOpts()
       );
       for await (const embedding of stream) {
+        const e = this._truncEmbed(embedding);
         if (!this._embedDimReported) {
           this._embedDimReported = true;
-          console.log(`[embedding] dim=${embedding.length} (\uC694\uCCAD dimensions=${this.options.embeddingDimensions ?? "default"})`);
+          console.log(`[embedding] SDK \uC751\uB2F5 raw dim=${embedding.length}, hclust \uC0AC\uC6A9 dim=${e.length} (\uC694\uCCAD dimensions=${this.options.embeddingDimensions ?? "default"})`);
         }
-        embeddings.push(embedding);
+        embeddings.push(e);
         const pct = Math.round(embeddings.length / total * 100);
         if (pct >= lastReportedPct + 5 || embeddings.length === total) {
           lastReportedPct = pct;
@@ -8262,7 +8269,12 @@ var Level1Pipeline = class {
       const batch = sample.slice(i, Math.min(i + batchSize, sample.length));
       const sampleStream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)), this._embedOpts());
       for await (const e of sampleStream) {
-        sampleEmbeds.push(e);
+        const trimmed = this._truncEmbed(e);
+        if (!this._embedDimReported) {
+          this._embedDimReported = true;
+          console.log(`[embedding] SDK \uC751\uB2F5 raw dim=${e.length}, hclust \uC0AC\uC6A9 dim=${trimmed.length} (\uC694\uCCAD dimensions=${this.options.embeddingDimensions ?? "default"})`);
+        }
+        sampleEmbeds.push(trimmed);
         const pct = Math.round(sampleEmbeds.length / sample.length * 30);
         if (pct >= lastReportedPct + 3 || sampleEmbeds.length === sample.length) {
           lastReportedPct = pct;
@@ -8327,7 +8339,7 @@ var Level1Pipeline = class {
       const batch = rest.slice(i, Math.min(i + batchSize, rest.length));
       const stream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)), this._embedOpts());
       const batchEmbeds = [];
-      for await (const e of stream) batchEmbeds.push(e);
+      for await (const e of stream) batchEmbeds.push(this._truncEmbed(e));
       for (let j = 0; j < batch.length; j++) {
         const embed = batchEmbeds[j];
         const text = batch[j].text;
@@ -12413,7 +12425,8 @@ var AffinityBubblePipeline = class {
     if (labels.length && this.api.getEmbeddings) {
       const dim = this.level1?.options?.embeddingDimensions;
       const embeddings = await this.api.getEmbeddings(labels.map((d) => d.label), dim ? { dimensions: dim } : {});
-      return labels.map((d, i) => ({ ...d, embed: embeddings[i] }));
+      const trimmed = dim ? embeddings.map((e) => e && e.length > dim ? e.slice(0, dim) : e) : embeddings;
+      return labels.map((d, i) => ({ ...d, embed: trimmed[i] }));
     }
     return labels;
   }
