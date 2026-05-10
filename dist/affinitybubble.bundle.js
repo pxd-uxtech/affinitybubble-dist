@@ -8330,11 +8330,13 @@ var Level1Pipeline = class {
   async doClustering(embeds, onProgress = () => {
   }) {
     const { clusterSimValue } = this.options;
-    const threshold = embeds.length >= 300 ? 45 : clusterSimValue / 100;
+    const N = embeds.length;
+    const sim = (clusterSimValue ?? 70) / 100;
+    const Kmax = Math.min(50, Math.max(15, Math.round(15 + 35 * Math.log10(Math.max(N, 100) / 100))));
     if (!this.makeCluster) {
       throw new Error("makeCluster function not provided");
     }
-    const clusterRaw = await this.makeCluster(embeds, threshold);
+    const clusterRaw = await this.makeCluster(embeds, { sim, Kmax });
     const clusters = clusterRaw.map(
       (c) => c.data.map((d) => ({ ...d, region: c.data[0].chunk }))
     );
@@ -11746,14 +11748,28 @@ function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc
       distanceFunction: distFunc === "cossim" ? (a, b) => 1 - cossim(a, b) : (a, b) => euclidean(a, b)
     }
   );
-  const subtrees = nCluster < 1 ? tree.cut(nCluster) : tree.group(nCluster).children;
+  let subtrees;
+  let isHybridSim = false;
+  if (nCluster && typeof nCluster === "object") {
+    const { sim = 0.7, Kmax = 50 } = nCluster;
+    subtrees = tree.cut(sim);
+    if (subtrees.length > Kmax) {
+      subtrees = tree.group(Kmax).children;
+      isHybridSim = false;
+    } else {
+      isHybridSim = true;
+    }
+  } else {
+    subtrees = nCluster < 1 ? tree.cut(nCluster) : tree.group(nCluster).children;
+  }
   const totalItems = arrayWithEmbed.length;
   const threshold = totalItems * 0.2;
   const finalClusters = [];
   let nextClusterId = 0;
+  const breakBigActive = isHybridSim || typeof nCluster === "number" && nCluster < 1;
   subtrees.forEach((subtree) => {
     const leafCount = countLeaves(subtree);
-    if (nCluster < 1 && leafCount > threshold && leafCount >= 8) {
+    if (breakBigActive && leafCount > threshold && leafCount >= 8) {
       const numSubClusters = Math.ceil(leafCount / threshold);
       subtree.group(numSubClusters).children.forEach((sub) => {
         const data = [];
