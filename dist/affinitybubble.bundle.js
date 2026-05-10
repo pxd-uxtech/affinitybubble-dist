@@ -8330,9 +8330,8 @@ var Level1Pipeline = class {
   async doClustering(embeds, onProgress = () => {
   }) {
     const { clusterSimValue } = this.options;
-    const N = embeds.length;
     const sim = (clusterSimValue ?? 70) / 100;
-    const Kmax = Math.min(50, Math.max(15, Math.round(15 + 35 * Math.log10(Math.max(N, 100) / 100))));
+    const Kmax = 50;
     if (!this.makeCluster) {
       throw new Error("makeCluster function not provided");
     }
