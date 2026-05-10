@@ -8329,6 +8329,9 @@ var Level1Pipeline = class {
           const best = this._findNearestMedoid(embed, clusterMedoids);
           cluster = best.similarity >= threshold ? best.cluster : 999;
           if (cluster !== 999) restTextMap.set(text, cluster);
+          if (best.similarity >= 0.7 && best.similarity < 0.9) {
+            console.log(`[debug-rest] "${(text || "").slice(0, 30)}" \u2192 c${cluster} sim=${best.similarity.toFixed(3)}`);
+          }
         }
         const withEmbed = { ...batch[j], embed, cluster };
         allEmbeds.push(withEmbed);
@@ -12606,6 +12609,10 @@ var AffinityBubblePipeline = class {
           autoAssigned++;
         } else {
           needsLLM.push(o);
+        }
+        if (bestSim >= 0.7 && bestSim < 0.9) {
+          const matchedLabel = labelPool.find((l) => l.cluster === bestCluster)?.label;
+          console.log(`[debug-stage1] "${(o.text || "").slice(0, 30)}" (\uC774\uC804 c${o.cluster} "${o.label}") \u2192 \uB9E4\uCE6D "${matchedLabel}" sim=${bestSim.toFixed(3)} \u2192 ${bestSim >= EMBED_AUTO_THRESHOLD ? "\uD761\uC218" : "Stage2"}`);
         }
       }
       console.log(`Stage 1 (embed): auto-assigned ${autoAssigned}/${totalOutliers}`);
