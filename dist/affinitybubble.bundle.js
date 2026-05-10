@@ -12615,10 +12615,29 @@ var AffinityBubblePipeline = class {
         done: autoAssigned
       });
       if (needsLLM.length > 0) {
-        const allLabelTexts = labels.map((d) => d.label);
+        const TOP_K_PER_CLUSTER = 5;
+        const labelTopWords = /* @__PURE__ */ new Map();
+        for (const c of interimClusters) {
+          const sorted = [...c.cellDatas || []].sort((a, b) => (b.size || 1) - (a.size || 1));
+          const seen = /* @__PURE__ */ new Set();
+          const top = [];
+          for (const item of sorted) {
+            const t = (item.text || "").trim();
+            if (!t || seen.has(t)) continue;
+            seen.add(t);
+            top.push(t);
+            if (top.length >= TOP_K_PER_CLUSTER) break;
+          }
+          labelTopWords.set(c.cluster, top);
+        }
+        const augmentedCategories = labels.map((l) => {
+          const top = labelTopWords.get(l.cluster) || [];
+          return top.length ? `${l.label} (\uC608: ${top.join(", ")})` : l.label;
+        });
+        const augToLabel = new Map(augmentedCategories.map((c, i) => [c, labels[i]]));
         try {
           const result = await this.deps.classifyWithIdThreads(
-            allLabelTexts,
+            augmentedCategories,
             needsLLM.map((d) => `${d.textid} : ${d.text}`),
             10,
             // chunkSize: 25 → 10 (LLM 집중도 향상)
@@ -12637,18 +12656,41 @@ var AffinityBubblePipeline = class {
               );
             }
           );
+          const norm = (s) => (s || "").replace(/\s+/g, "");
+          const findLabel = (cat) => {
+            const c = (cat || "").trim();
+            if (!c) return null;
+            if (augToLabel.has(c)) return augToLabel.get(c);
+            let m = labels.find((l) => l.label === c);
+            if (m) return m;
+            m = labels.find((l) => c.startsWith(l.label));
+            if (m) return m;
+            const ncat = norm(c);
+            m = labels.find((l) => ncat.startsWith(norm(l.label)));
+            if (m) return m;
+            m = labels.find((l) => l.label.includes(c) && c.length >= 4);
+            if (m) return m;
+            return null;
+          };
           if (result && result.length > 0) {
             const outlierMap = new Map(needsLLM.map((d) => [d.textid, d]));
+            let unmatched = 0;
             result.forEach((d) => {
               const originalId = d.id;
               const match = outlierMap.get(originalId);
               if (match && d.category) {
-                const newClusterId = labelMap.get(d.category);
-                if (newClusterId !== void 0) {
-                  remappingMap.set(originalId, newClusterId);
+                const matchedLabel = findLabel(d.category);
+                if (matchedLabel) {
+                  remappingMap.set(originalId, matchedLabel.cluster);
+                } else {
+                  unmatched++;
+                  console.warn(`[cluster] LLM \uBD84\uB958 \uB9E4\uCE6D \uC2E4\uD328: "${d.category}" (id ${originalId})`);
                 }
               }
             });
+            if (unmatched > 0) {
+              console.warn(`[cluster] Stage 2 LLM \uACB0\uACFC \uB9E4\uCE6D \uC2E4\uD328 ${unmatched}/${result.length}\uAC74 \u2014 cluster 999\uB85C fallback`);
+            }
           }
         } catch (e) {
           console.error("Error during _rearrangeOutliers:", e);
