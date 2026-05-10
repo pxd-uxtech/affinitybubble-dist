@@ -8155,8 +8155,12 @@ var Level1Pipeline = class {
       assignThreshold: 0.8,
       clusterSimValue: 45,
       medoidK: 3,
+      // 임베딩 차원 — null이면 모델 기본값(예: text-embedding-3-small=1536)
+      // 768로 설정 시 distance 계산 ~2배 빨라짐 (정확도 거의 동일)
+      embeddingDimensions: null,
       ...options
     };
+    this._embedDimReported = false;
   }
   /**
    * 1차 파이프라인 전체 실행
@@ -8201,6 +8205,10 @@ var Level1Pipeline = class {
   /**
    * 전체 임베딩 (배치 분할)
    */
+  _embedOpts() {
+    const d = this.options.embeddingDimensions;
+    return d ? { dimensions: d } : {};
+  }
   async _embedAll(chunkData, onProgress) {
     const embeddings = [];
     const batchSize = 200;
@@ -8209,9 +8217,14 @@ var Level1Pipeline = class {
     for (let i = 0; i < total; i += batchSize) {
       const batch = chunkData.slice(i, Math.min(i + batchSize, total));
       const stream = this.api.streamEmbeddings(
-        batch.map((d) => this._sanitizeText(d.text))
+        batch.map((d) => this._sanitizeText(d.text)),
+        this._embedOpts()
       );
       for await (const embedding of stream) {
+        if (!this._embedDimReported) {
+          this._embedDimReported = true;
+          console.log(`[embedding] dim=${embedding.length} (\uC694\uCCAD dimensions=${this.options.embeddingDimensions ?? "default"})`);
+        }
         embeddings.push(embedding);
         const pct = Math.round(embeddings.length / total * 100);
         if (pct >= lastReportedPct + 5 || embeddings.length === total) {
@@ -8247,7 +8260,7 @@ var Level1Pipeline = class {
     let lastReportedPct = -1;
     for (let i = 0; i < sample.length; i += batchSize) {
       const batch = sample.slice(i, Math.min(i + batchSize, sample.length));
-      const sampleStream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)));
+      const sampleStream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)), this._embedOpts());
       for await (const e of sampleStream) {
         sampleEmbeds.push(e);
         const pct = Math.round(sampleEmbeds.length / sample.length * 30);
@@ -8312,7 +8325,7 @@ var Level1Pipeline = class {
     let textLockedCount = 0;
     for (let i = 0; i < rest.length; i += batchSize) {
       const batch = rest.slice(i, Math.min(i + batchSize, rest.length));
-      const stream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)));
+      const stream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)), this._embedOpts());
       const batchEmbeds = [];
       for await (const e of stream) batchEmbeds.push(e);
       for (let j = 0; j < batch.length; j++) {
@@ -12177,8 +12190,12 @@ var AffinityBubblePipeline = class {
       selUsecase,
       selLabelLanguage,
       clusterSimValue,
-      clusterSimValue2
+      clusterSimValue2,
+      embeddingDimensions
     } = options;
+    if (embeddingDimensions !== void 0) {
+      this.level1.options.embeddingDimensions = embeddingDimensions;
+    }
     const startStage = this._determineStartStage(chunkData, options);
     console.log(`[Pipeline] Starting from stage: ${startStage}`);
     this.state.reset();
@@ -12394,7 +12411,8 @@ var AffinityBubblePipeline = class {
       }
     );
     if (labels.length && this.api.getEmbeddings) {
-      const embeddings = await this.api.getEmbeddings(labels.map((d) => d.label));
+      const dim = this.level1?.options?.embeddingDimensions;
+      const embeddings = await this.api.getEmbeddings(labels.map((d) => d.label), dim ? { dimensions: dim } : {});
       return labels.map((d, i) => ({ ...d, embed: embeddings[i] }));
     }
     return labels;
