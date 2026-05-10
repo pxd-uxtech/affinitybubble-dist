@@ -8150,13 +8150,15 @@ var Level1Pipeline = class {
   constructor(api, options = {}) {
     this.api = api;
     this.options = {
-      maxSet: 1200,
-      sampleSize: 1e3,
+      // N>maxSet이면 샘플링 경로. N≤maxSet은 전체 hclust.
+      // sampleSize와 같이 두면: N≤1500 전체, N>1500은 1500 sample
+      maxSet: 1500,
+      sampleSize: 1500,
       assignThreshold: 0.8,
       clusterSimValue: 45,
       medoidK: 3,
       // 임베딩 차원 — null이면 모델 기본값(예: text-embedding-3-small=1536)
-      // 768로 설정 시 distance 계산 ~2배 빨라짐 (정확도 거의 동일)
+      // 768로 설정 시 distance 계산 ~2배 빨라짐 (정확도 거의 동일, Matryoshka)
       embeddingDimensions: null,
       ...options
     };
@@ -12203,11 +12205,15 @@ var AffinityBubblePipeline = class {
       selLabelLanguage,
       clusterSimValue,
       clusterSimValue2,
-      embeddingDimensions
+      embeddingDimensions,
+      maxSet,
+      sampleSize
     } = options;
     if (embeddingDimensions !== void 0) {
       this.level1.options.embeddingDimensions = embeddingDimensions;
     }
+    if (maxSet !== void 0) this.level1.options.maxSet = maxSet;
+    if (sampleSize !== void 0) this.level1.options.sampleSize = sampleSize;
     const startStage = this._determineStartStage(chunkData, options);
     console.log(`[Pipeline] Starting from stage: ${startStage}`);
     this.state.reset();
