@@ -8276,11 +8276,18 @@ var Level1Pipeline = class {
     }));
     onProgress({ progress: 40, embeds: sampleWithEmbeds, message: "\uC784\uBCA0\uB529 \uC911... (40%)" });
     const clusterMedoids = this._computeMedoids(sampleWithEmbeds, this.options.medoidK);
+    const sampleTextMap = /* @__PURE__ */ new Map();
+    for (const d of sampleWithEmbeds) {
+      if (d.cluster !== 999 && !sampleTextMap.has(d.text)) {
+        sampleTextMap.set(d.text, d.cluster);
+      }
+    }
     const restResult = await this._embedAndAssignRest(
       rest,
       clusterMedoids,
       assignThreshold,
-      (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds, message: p.message })
+      (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds, message: p.message }),
+      sampleTextMap
     );
     const mergedClusters = this._mergeClusters(
       sampleClusterResult.interimClusters,
@@ -8298,9 +8305,11 @@ var Level1Pipeline = class {
    * @param {number} threshold - 배정 임계값 (코사인 유사도)
    * @param {Function} onProgress - 진행률 콜백
    */
-  async _embedAndAssignRest(rest, clusterMedoids, threshold, onProgress) {
+  async _embedAndAssignRest(rest, clusterMedoids, threshold, onProgress, sampleTextMap = /* @__PURE__ */ new Map()) {
     const batchSize = 300;
     const allEmbeds = [];
+    const restTextMap = /* @__PURE__ */ new Map();
+    let textLockedCount = 0;
     for (let i = 0; i < rest.length; i += batchSize) {
       const batch = rest.slice(i, Math.min(i + batchSize, rest.length));
       const stream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)));
@@ -8308,12 +8317,20 @@ var Level1Pipeline = class {
       for await (const e of stream) batchEmbeds.push(e);
       for (let j = 0; j < batch.length; j++) {
         const embed = batchEmbeds[j];
-        const best = this._findNearestMedoid(embed, clusterMedoids);
-        const withEmbed = {
-          ...batch[j],
-          embed,
-          cluster: best.similarity >= threshold ? best.cluster : 999
-        };
+        const text = batch[j].text;
+        let cluster;
+        if (sampleTextMap.has(text)) {
+          cluster = sampleTextMap.get(text);
+          textLockedCount++;
+        } else if (restTextMap.has(text)) {
+          cluster = restTextMap.get(text);
+          textLockedCount++;
+        } else {
+          const best = this._findNearestMedoid(embed, clusterMedoids);
+          cluster = best.similarity >= threshold ? best.cluster : 999;
+          if (cluster !== 999) restTextMap.set(text, cluster);
+        }
+        const withEmbed = { ...batch[j], embed, cluster };
         allEmbeds.push(withEmbed);
       }
       onProgress({
@@ -8321,6 +8338,9 @@ var Level1Pipeline = class {
         allEmbeds,
         message: `\uB098\uBA38\uC9C0 \uC784\uBCA0\uB529 \uC911... (${allEmbeds.length}/${rest.length})`
       });
+    }
+    if (textLockedCount > 0) {
+      console.log(`[cluster] rest \uBC30\uC815 \uC911 \uB3D9\uC77C \uD14D\uC2A4\uD2B8 ${textLockedCount}\uAC74\uC740 sample/rest \uC77C\uAD00 cluster\uB85C \uACE0\uC815`);
     }
     return { allEmbeds };
   }
