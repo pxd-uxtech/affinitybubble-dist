@@ -11752,12 +11752,14 @@ function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc
   if (nCluster && typeof nCluster === "object") {
     const { sim = 0.7, Kmax = 50 } = nCluster;
     subtrees = tree.cut(sim);
-    if (subtrees.length > Kmax) {
+    const simBased = subtrees.length;
+    if (simBased > Kmax) {
       subtrees = tree.group(Kmax).children;
       isHybridSim = false;
     } else {
       isHybridSim = true;
     }
+    console.log(`[cluster] \uC720\uC0AC\uB3C4 ${sim} \uAE30\uC900 ${simBased}\uAC1C \u2192 \uCD5C\uC885 ${subtrees.length}\uAC1C (Kmax=${Kmax})`);
   } else {
     subtrees = nCluster < 1 ? tree.cut(nCluster) : tree.group(nCluster).children;
   }
