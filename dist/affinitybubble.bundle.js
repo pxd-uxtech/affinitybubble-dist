@@ -11760,6 +11760,10 @@ function countLeaves(node) {
 function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc = "cossim", hclust) {
   if (arrayWithEmbed.length === 0) return [];
   if (!hclust) throw new Error("hclust (ml-hclust) is required for clustering");
+  const N = arrayWithEmbed.length;
+  const D = arrayWithEmbed[0]?.embed?.length || 0;
+  console.time(`[hclust] total (N=${N}, D=${D})`);
+  console.time(`[hclust] agnes (distance+merge)`);
   const tree = hclust.agnes(
     arrayWithEmbed.map((e) => e.embed),
     {
@@ -11767,6 +11771,8 @@ function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc
       distanceFunction: distFunc === "cossim" ? (a, b) => 1 - cossim(a, b) : (a, b) => euclidean(a, b)
     }
   );
+  console.timeEnd(`[hclust] agnes (distance+merge)`);
+  console.time(`[hclust] cut`);
   let subtrees;
   let isHybridSim = false;
   if (nCluster && typeof nCluster === "object") {
@@ -11783,6 +11789,8 @@ function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc
   } else {
     subtrees = nCluster < 1 ? tree.cut(nCluster) : tree.group(nCluster).children;
   }
+  console.timeEnd(`[hclust] cut`);
+  console.time(`[hclust] post-process (break-big + traverse)`);
   const totalItems = arrayWithEmbed.length;
   const threshold = totalItems * 0.2;
   const finalClusters = [];
@@ -11809,6 +11817,8 @@ function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc
       if (data.length) finalClusters.push({ cid: nextClusterId++, data });
     }
   });
+  console.timeEnd(`[hclust] post-process (break-big + traverse)`);
+  console.timeEnd(`[hclust] total (N=${N}, D=${D})`);
   return finalClusters.sort((a, b) => b.data.length - a.data.length).map((d, i) => ({
     cid: i + 1,
     data: d.data.map((t) => ({ ...t, cluster: i + 1 }))
