@@ -8159,7 +8159,7 @@ var Level1Pipeline = class {
       // 0.40으로 낮춰 sim 부족한 rest도 일단 best cluster에 배정.
       // 잘못 배정된 케이스는 4단계 LLM 레이블링이 outlier로 지목 → _rearrangeOutliers가 재분류.
       // 즉 sim 임계값 단계와 LLM outlier 지목 단계가 중복이라 sim 단계를 느슨하게.
-      assignThreshold: 0.4,
+      assignThreshold: 0.5,
       clusterSimValue: 45,
       medoidK: 3,
       // 임베딩 차원 — null이면 모델 기본값(예: text-embedding-3-small=1536)
