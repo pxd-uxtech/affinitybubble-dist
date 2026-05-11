@@ -119,6 +119,37 @@ function _mergeTsvQuotedNewlines(text) {
   return merged.join("\n");
 }
 
+/**
+ * 따옴표 활성/비활성 두 모드로 파싱해 유효 행 수가 많은 결과를 채택.
+ * TSV 데이터(특히 한국어)는 셀 내부에 짝지어진 인용부호("…")가 들어가는 경우가 흔한데,
+ * Papa의 RFC 4180식 quote 모드("로 셀 시작)는 셀 내부 인용부호의 닫는 따옴표를
+ * 행 종결로 오해해 그 이후 데이터를 통째로 잘라낸다.
+ * TSV는 비활성('\0')을 먼저, CSV는 활성('"')을 먼저 시도한다.
+ */
+function _parseBestQuote(Papa, content, baseOptions, format) {
+  // 동점/우열 판정: 에러 적은 쪽이 우선 → 그래도 동률이면 유효 행 많은 쪽.
+  // 행 수만으로 비교하면 셀 내 줄바꿈이 있는 quoted 데이터에서 따옴표 비활성('\0')이
+  // 한 셀을 두 행으로 쪼개 행 수가 더 많아져 잘못 채택될 수 있음.
+  const order = format === "tsv" ? ["\0", '"'] : ['"', "\0"];
+  let best = null;
+  for (const q of order) {
+    const result = Papa.parse(content, { ...baseOptions, quoteChar: q });
+    const validRows = result.data.filter((d) => {
+      if (Array.isArray(d)) return d.some((v) => v && String(v).trim());
+      return Object.values(d).some((v) => v && String(v).trim());
+    }).length;
+    const errors = result.errors?.length || 0;
+    const isBetter =
+      !best ||
+      errors < best.errors ||
+      (errors === best.errors && validRows > best.validRows);
+    if (isBetter) {
+      best = { result, validRows, errors };
+    }
+  }
+  return best.result;
+}
+
 function guessTextKey(rawCols, rawText) {
   if (rawCols?.includes("text")) return "text";
   if (rawCols?.includes("텍스트")) return "텍스트";
@@ -766,6 +797,25 @@ function createFileInputUIv3(Papa, options = {}) {
       gap: 12px;
       flex-shrink: 0;
     }
+    .file-input-v3-filter-bar .filter-counts {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #555;
+      margin-right: auto;
+    }
+    .file-input-v3-filter-bar .filter-counts .count-sep {
+      color: #d0d0d0;
+    }
+    .file-input-v3-filter-bar .filter-counts .count-num {
+      color: #222;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .file-input-v3-filter-bar .filter-counts .count-selected .count-num {
+      color: var(--Color-Button-CTA-Background-Default, #3b82f6);
+    }
     .file-input-v3-filter-bar .filter-btn {
       background: #fff;
       border: 1px solid #ddd;
@@ -1261,14 +1311,12 @@ function createFileInputUIv3(Papa, options = {}) {
       delimiter: format === "tsv" ? "\t" : ",",
       transformHeader: (h) => h.trim().replace(/^["']|["']$/g, '')
     };
-    // TSV/CSV 모두 quoteChar: '"' 사용 — PapaParse가 따옴표 처리(셀 내 줄바꿈 포함)를 네이티브로 처리
-    if (format === "csv" || format === "tsv") {
-      parseOptions.quoteChar = '"';
-    }
 
     let contentToParse = format === "text" ? "text\n" + inputContent : inputContent;
 
-    const parsed = Papa.parse(contentToParse, parseOptions);
+    const parsed = format === "text"
+      ? Papa.parse(contentToParse, parseOptions)
+      : _parseBestQuote(Papa, contentToParse, parseOptions, format);
 
     rawText = parsed.data.filter(d => Object.values(d).some(v => v && String(v).trim()));
 
@@ -1397,16 +1445,21 @@ function createFileInputUIv3(Papa, options = {}) {
           <tbody></tbody>
         </table>
       </div>
-      ${hateSpeechFilter ? `
       <div class="file-input-v3-filter-bar">
+        <div class="filter-counts">
+          <span class="count-total">전체 <span class="count-num count-total-num">0</span>건</span>
+          <span class="count-sep">·</span>
+          <span class="count-selected">선택 <span class="count-num count-selected-num">0</span>건</span>
+        </div>
+        ${hateSpeechFilter ? `
         <button class="filter-btn">
           <i class="fi fi-rr-shield-exclamation"></i>
           욕설·혐오 제거
         </button>
         <span class="filter-progress" style="display:none;">처리 중... <span class="fp-current">0</span> / <span class="fp-total">0</span></span>
         <span class="filter-result" style="display:none;"><span class="fp-removed">0</span>건 제거됨</span>
+        ` : ''}
       </div>
-      ` : ''}
       <div class="file-input-v3-popup-footer">
         <button class="cancel-btn">취소</button>
         <button class="complete-btn">완료</button>
@@ -1470,6 +1523,21 @@ function createFileInputUIv3(Papa, options = {}) {
 
       // 체크박스 이벤트 설정
       setupCheckboxHandlers();
+      updateCounts();
+    }
+
+    // 전체/선택 카운터 갱신 (filter-bar 좌측 표시)
+    function updateCounts() {
+      const totalNumEl = popup.querySelector(".count-total-num");
+      const selectedNumEl = popup.querySelector(".count-selected-num");
+      if (!totalNumEl || !selectedNumEl) return;
+      const displayedRows = rawText.slice(0, maxSize);
+      const selected = displayedRows.reduce(
+        (acc, _, idx) => acc + (excludedRows.has(idx) ? 0 : 1),
+        0
+      );
+      totalNumEl.textContent = rawText.length.toLocaleString();
+      selectedNumEl.textContent = selected.toLocaleString();
     }
 
     // 체크박스 핸들러
@@ -1495,6 +1563,7 @@ function createFileInputUIv3(Papa, options = {}) {
               if (cb) cb.checked = false;
             }
           });
+          updateCounts();
         });
       }
 
@@ -1515,6 +1584,7 @@ function createFileInputUIv3(Papa, options = {}) {
             const allChecked = displayedRows.every((_, i) => !excludedRows.has(i));
             selectAllCheckbox.checked = allChecked;
           }
+          updateCounts();
         });
       });
     }
@@ -1794,6 +1864,7 @@ function createFileInputUIv3(Papa, options = {}) {
           fpCurrent.textContent = processed;
           renderTable();
           setupCheckboxHandlers();
+          updateCounts();
         }
 
         // UI 상태: 완료
