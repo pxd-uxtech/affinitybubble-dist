@@ -8155,9 +8155,11 @@ var Level1Pipeline = class {
       // quality(medoid 견고함, outlier 비율↓) 우선
       maxSet: 1500,
       sampleSize: 1500,
-      // rest medoid sim 임계값 — 한국어 키워드 sim 분포가 좁아서 0.80은 통과 거의 불가능
-      // 0.70으로 낮춰 outlier 비율 감소 + Stage2 LLM 부담↓
-      assignThreshold: 0.7,
+      // rest medoid sim 임계값 — 한국어 키워드 sim 분포 폭이 좁아 빡빡한 임계값은 대다수를 outlier로 빠뜨림
+      // 0.40으로 낮춰 sim 부족한 rest도 일단 best cluster에 배정.
+      // 잘못 배정된 케이스는 4단계 LLM 레이블링이 outlier로 지목 → _rearrangeOutliers가 재분류.
+      // 즉 sim 임계값 단계와 LLM outlier 지목 단계가 중복이라 sim 단계를 느슨하게.
+      assignThreshold: 0.4,
       clusterSimValue: 45,
       medoidK: 3,
       // 임베딩 차원 — null이면 모델 기본값(예: text-embedding-3-small=1536)
