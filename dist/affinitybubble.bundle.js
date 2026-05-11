@@ -12721,9 +12721,9 @@ var AffinityBubblePipeline = class {
             augmentedCategories,
             needsLLM.map((d) => `${d.textid} : ${d.text}`),
             20,
-            // chunkSize: 10 → 20 (대량 outlier에서 LLM 호출 횟수↓)
-            10,
-            // maxConcurrent: 5 → 10 (병렬도↑, 대량 outlier 처리 속도)
+            // chunkSize: 10 → 20 (LLM 호출 횟수 절반)
+            5,
+            // maxConcurrent: 5 유지 (rate limit 안전)
             (p) => {
               const clamped = Math.max(0, Math.min(1, p));
               const llmDone = Math.round(clamped * needsLLM.length);
