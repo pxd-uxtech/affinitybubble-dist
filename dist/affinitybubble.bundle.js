@@ -8151,10 +8151,10 @@ var Level1Pipeline = class {
     this.api = api;
     this.options = {
       // N>maxSet이면 샘플링 경로. N≤maxSet은 전체 hclust.
-      // sampleSize와 같이 두면: N≤1300 전체, N>1300은 1300 sample
-      // quality(medoid 견고함) vs hclust 시간(~3.7s @ N=1300) 균형점
-      maxSet: 1300,
-      sampleSize: 1300,
+      // sampleSize와 같이 두면: N≤1500 전체, N>1500은 1500 sample
+      // quality(medoid 견고함, outlier 비율↓) 우선
+      maxSet: 1500,
+      sampleSize: 1500,
       // rest medoid sim 임계값 — 한국어 키워드 sim 분포가 좁아서 0.80은 통과 거의 불가능
       // 0.70으로 낮춰 outlier 비율 감소 + Stage2 LLM 부담↓
       assignThreshold: 0.7,
@@ -8306,6 +8306,9 @@ var Level1Pipeline = class {
     }));
     onProgress({ progress: 40, embeds: sampleWithEmbeds, message: "\uC784\uBCA0\uB529 \uC911... (40%)" });
     const clusterMedoids = this._computeMedoids(sampleWithEmbeds, this.options.medoidK);
+    const _sampleDim = sampleWithEmbeds[0]?.embed?.length;
+    const _medoidDim = clusterMedoids[0]?.medoids?.[0]?.embed?.length;
+    console.log(`[debug-dim] sample embed=${_sampleDim}, medoid=${_medoidDim}, medoid clusters=${clusterMedoids.length}`);
     const sampleTextMap = /* @__PURE__ */ new Map();
     for (const d of sampleWithEmbeds) {
       if (d.cluster !== 999 && !sampleTextMap.has(d.text)) {
@@ -12604,6 +12607,10 @@ var AffinityBubblePipeline = class {
     const llmFlaggedCount = outliers.length;
     const restEtcCount = etcCells.length;
     console.log(`[outlier] LLM \uC9C0\uBAA9 ${llmFlaggedCount}, rest 999 (sim \uBBF8\uB2EC) ${restEtcCount}`);
+    const _outlierSample = outliers[0]?.item?.embed?.length;
+    const _labelSample = labels[0]?.embed?.length;
+    const _interimSample = interimClusters[0]?.cellDatas?.[0]?.embed?.length;
+    console.log(`[debug-dim] outlier=${_outlierSample}, label=${_labelSample}, interim cellData=${_interimSample}`);
     outliers = [...outliers, ...etcCells.map((c) => ({
       textid: c.textid,
       text: c.text,
