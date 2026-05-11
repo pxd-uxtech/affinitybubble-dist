@@ -8151,9 +8151,10 @@ var Level1Pipeline = class {
     this.api = api;
     this.options = {
       // N>maxSet이면 샘플링 경로. N≤maxSet은 전체 hclust.
-      // sampleSize와 같이 두면: N≤1500 전체, N>1500은 1500 sample
-      maxSet: 1500,
-      sampleSize: 1500,
+      // sampleSize와 같이 두면: N≤1300 전체, N>1300은 1300 sample
+      // quality(medoid 견고함) vs hclust 시간(~3.7s @ N=1300) 균형점
+      maxSet: 1300,
+      sampleSize: 1300,
       assignThreshold: 0.8,
       clusterSimValue: 45,
       medoidK: 3,
