@@ -8386,7 +8386,7 @@ var Level1Pipeline = class {
   }) {
     const { clusterSimValue } = this.options;
     const sim = (clusterSimValue ?? 70) / 100;
-    const Kmax = 50;
+    const Kmax = 60;
     if (!this.makeCluster) {
       throw new Error("makeCluster function not provided");
     }
@@ -12067,7 +12067,7 @@ async function getLabels(clusters, language, { datasetInfo, text_id, labelOption
   const cluster_data = clusters.map(
     (cluster) => `
 Cluster ${cluster.clusterId}:
-${cluster.sentences.slice(0, 20).map((d, i) => `${cluster.textids[i]}: ${d.slice(0, 256)}`).join("\n")}
+${cluster.sentences.slice(0, 40).map((d, i) => `${cluster.textids[i]}: ${d.slice(0, 256)}`).join("\n")}
 `
   ).join("\n");
   const option = datasetInfo?.data_type?.match(/키워드/) ? " \uBD80\uC815 \uC758\uBBF8\uC778 \uACBD\uC6B0 \uC774\uC720\uB97C \uC124\uBA85\uD558\uB294 \uD0A4\uC6CC\uB4DC\uB3C4 \uCD94\uAC00\uD574\uC918." : " \uBD80\uC815 \uC758\uBBF8\uC778 \uACBD\uC6B0 \uC774\uC720\uB97C \uC124\uBA85\uD558\uB294 \uD0A4\uC6CC\uB4DC\uB3C4 \uCD94\uAC00\uD574\uC918. \uC758\uBBF8\uB97C \uAD6C\uCCB4\uC801\uC73C\uB85C \uB4DC\uB7EC\uB0B4\uB294 \uC9E7\uC740 \uBB38\uC7A5\uC73C\uB85C.";
@@ -12271,11 +12271,27 @@ var AffinityBubblePipeline = class {
       if (startStage === "embedding" || startStage === "clustering" || startStage === "labeling") {
         this.state.setProgress("labeling", 30, "\uB808\uC774\uBE14 \uC0DD\uC131...");
         onProgress(this.state.progress, this.state.snapshot());
-        const clustersForLabeling = level1Result.interimClusters.map((c) => ({
-          clusterId: c.cluster,
-          sentences: c.cellDatas.map((d) => d.text),
-          textids: c.cellDatas.map((d) => d.textid)
-        }));
+        const interleaveCellDatas = (cellDatas) => {
+          if (!cellDatas || cellDatas.length === 0) return [];
+          const sorted = [...cellDatas].sort((a, b) => (b.size || 1) - (a.size || 1));
+          const half = Math.ceil(sorted.length / 2);
+          const top = sorted.slice(0, half);
+          const bottom = sorted.slice(half).reverse();
+          const out = [];
+          for (let i = 0; i < Math.max(top.length, bottom.length); i++) {
+            if (i < top.length) out.push(top[i]);
+            if (i < bottom.length) out.push(bottom[i]);
+          }
+          return out;
+        };
+        const clustersForLabeling = level1Result.interimClusters.map((c) => {
+          const ordered = interleaveCellDatas(c.cellDatas);
+          return {
+            clusterId: c.cluster,
+            sentences: ordered.map((d) => d.text),
+            textids: ordered.map((d) => d.textid)
+          };
+        });
         labels = await this._doLabeling(
           clustersForLabeling,
           { labelOption, selLabelLanguage },
