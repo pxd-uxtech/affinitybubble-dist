@@ -8155,7 +8155,9 @@ var Level1Pipeline = class {
       // quality(medoid 견고함) vs hclust 시간(~3.7s @ N=1300) 균형점
       maxSet: 1300,
       sampleSize: 1300,
-      assignThreshold: 0.8,
+      // rest medoid sim 임계값 — 한국어 키워드 sim 분포가 좁아서 0.80은 통과 거의 불가능
+      // 0.70으로 낮춰 outlier 비율 감소 + Stage2 LLM 부담↓
+      assignThreshold: 0.7,
       clusterSimValue: 45,
       medoidK: 3,
       // 임베딩 차원 — null이면 모델 기본값(예: text-embedding-3-small=1536)
@@ -12610,7 +12612,7 @@ var AffinityBubblePipeline = class {
       console.log(`Re-classifying ${outliers.length} outliers...`);
       const totalOutliers = outliers.length;
       onProgress(0, { phase: "classify", total: totalOutliers, done: 0 });
-      const EMBED_AUTO_THRESHOLD = 0.8;
+      const EMBED_AUTO_THRESHOLD = 0.7;
       const labelsWithEmbed = labels.filter((l) => l.embed && l.embed.length > 0);
       const labelPool = labelsWithEmbed.map((l) => {
         const e = l.embed;
