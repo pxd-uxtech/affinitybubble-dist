@@ -12601,6 +12601,9 @@ var AffinityBubblePipeline = class {
         };
       });
     }).filter((d) => d && d.item);
+    const llmFlaggedCount = outliers.length;
+    const restEtcCount = etcCells.length;
+    console.log(`[outlier] LLM \uC9C0\uBAA9 ${llmFlaggedCount}, rest 999 (sim \uBBF8\uB2EC) ${restEtcCount}`);
     outliers = [...outliers, ...etcCells.map((c) => ({
       textid: c.textid,
       text: c.text,
@@ -12613,9 +12616,30 @@ var AffinityBubblePipeline = class {
       const totalOutliers = outliers.length;
       onProgress(0, { phase: "classify", total: totalOutliers, done: 0 });
       const EMBED_AUTO_THRESHOLD = 0.7;
-      const labelsWithEmbed = labels.filter((l) => l.embed && l.embed.length > 0);
+      const clusterCentroids = /* @__PURE__ */ new Map();
+      for (const c of interimClusters) {
+        if (!c.cellDatas?.length) continue;
+        const firstEmbed = c.cellDatas.find((d) => d.embed && d.embed.length)?.embed;
+        if (!firstEmbed) continue;
+        const dim = firstEmbed.length;
+        const cent = new Array(dim).fill(0);
+        let n = 0;
+        for (const item of c.cellDatas) {
+          if (!item.embed || item.embed.length !== dim) continue;
+          for (let i = 0; i < dim; i++) cent[i] += item.embed[i];
+          n++;
+        }
+        if (n > 0) {
+          for (let i = 0; i < dim; i++) cent[i] /= n;
+          clusterCentroids.set(c.cluster, cent);
+        }
+      }
+      const labelsWithEmbed = labels.filter((l) => {
+        const cent = clusterCentroids.get(l.cluster);
+        return cent && cent.length > 0 || l.embed && l.embed.length > 0;
+      });
       const labelPool = labelsWithEmbed.map((l) => {
-        const e = l.embed;
+        const e = clusterCentroids.get(l.cluster) || l.embed;
         let normSq = 0;
         for (let i = 0; i < e.length; i++) normSq += e[i] * e[i];
         return {
@@ -12689,10 +12713,10 @@ var AffinityBubblePipeline = class {
           const result = await this.deps.classifyWithIdThreads(
             augmentedCategories,
             needsLLM.map((d) => `${d.textid} : ${d.text}`),
+            20,
+            // chunkSize: 10 → 20 (대량 outlier에서 LLM 호출 횟수↓)
             10,
-            // chunkSize: 25 → 10 (LLM 집중도 향상)
-            5,
-            // maxConcurrent: 3 → 5 (call 단축 이득 활용)
+            // maxConcurrent: 5 → 10 (병렬도↑, 대량 outlier 처리 속도)
             (p) => {
               const clamped = Math.max(0, Math.min(1, p));
               const llmDone = Math.round(clamped * needsLLM.length);
