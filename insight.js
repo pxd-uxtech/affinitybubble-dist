@@ -26,6 +26,24 @@ function groupBy(data, keyFn) {
   }
   return Array.from(groups.entries());
 }
+function largestRemainder(rawValues, targetSum) {
+  const n = rawValues.length;
+  if (n === 0) return [];
+  const floors = rawValues.map(Math.floor);
+  const sumFloors = floors.reduce((a, b) => a + b, 0);
+  let diff = targetSum - sumFloors;
+  const result = floors.slice();
+  if (diff === 0) return result;
+  const orderDesc = rawValues
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac);
+  if (diff > 0) {
+    for (let k = 0; k < diff; k++) result[orderDesc[k % n].i] += 1;
+  } else {
+    for (let k = 0; k < -diff; k++) result[orderDesc[n - 1 - (k % n)].i] -= 1;
+  }
+  return result;
+}
 function makeCompactText(clusterWithLabel, options = {}) {
   const {
     totalSampleSize = 100,
@@ -113,27 +131,42 @@ function makeCompactTextHierarchical(clusterWithLabel, options = {}) {
   const defaultSortFunc = (key) => (a, b) => b[key] - a[key];
   const sorter = sortFunc || defaultSortFunc;
   const result = [];
-  const bigGroups = groupBy(clusterWithLabel, (d) => d.bigCluster ?? d.bigLabel);
-  bigGroups.map(([bigKey, bigData]) => ({
-    bigKey,
-    bigLabel: bigData[0].bigLabel,
-    size: bigData.length,
-    subGroups: groupBy(bigData, (d) => d.cluster)
-  })).sort(sorter("size")).forEach(({ bigLabel, size, subGroups }, i) => {
-    const bigPct = Math.round(size / total * 100);
-    result.push(`# ${i + 1}. ${bigLabel} (${bigPct}%)`);
-    subGroups.map(([cluster, data]) => {
+  const bigGroupsArr = groupBy(clusterWithLabel, (d) => d.bigCluster ?? d.bigLabel)
+    .map(([bigKey, bigData]) => ({
+      bigKey,
+      bigLabel: bigData[0].bigLabel,
+      size: bigData.length,
+      subGroups: groupBy(bigData, (d) => d.cluster)
+    }))
+    .sort(sorter("size"));
+  const bigPcts = largestRemainder(
+    bigGroupsArr.map((g) => g.size / total * 100),
+    100
+  );
+  let bigIdx = 0;
+  bigGroupsArr.forEach(({ bigLabel, subGroups }, i) => {
+    const bigPct = bigPcts[i];
+    if (bigPct < 1) return;
+    bigIdx += 1;
+    result.push(`# ${bigIdx}. ${bigLabel} (${bigPct}%)`);
+    const subPrepared = subGroups.map(([cluster, data]) => {
       const sampleSize = Math.round(data.length * totalSampleSize / total);
       const clampedSize = Math.max(2, Math.min(sampleSize, 5));
       return {
         label: data[0].label,
         size: data.length,
-        pct: Math.round(data.length / total * 100),
         sample: reservoirSample(data, clampedSize)[0]
       };
-    }).sort(sorter("size")).forEach(({ label, pct, sample }) => {
-      result.push(`## ${label} (${pct}%)`);
-      sample.forEach((t) => {
+    }).sort(sorter("size"));
+    const subPcts = largestRemainder(
+      subPrepared.map((s) => s.size / total * 100),
+      bigPct
+    );
+    subPrepared.forEach((sub, idx) => {
+      const pct = subPcts[idx];
+      if (pct < 1) return;
+      result.push(`## ${sub.label} (${pct}%)`);
+      sub.sample.forEach((t) => {
         result.push("- " + (t.text || t.chunk || "").slice(0, 140));
       });
     });
