@@ -127,7 +127,10 @@ function makeCompactTextHierarchical(clusterWithLabel, options = {}) {
   if (!hasBigLabel) {
     return makeCompactText(clusterWithLabel, options);
   }
-  const total = clusterWithLabel.length;
+  const sizeOf = (d) => d.size ?? 1;
+  const sumSize = (arr) => arr.reduce((s, d) => s + sizeOf(d), 0);
+  const total = sumSize(clusterWithLabel);
+  const totalRows = clusterWithLabel.length;
   const defaultSortFunc = (key) => (a, b) => b[key] - a[key];
   const sorter = sortFunc || defaultSortFunc;
   const result = [];
@@ -135,7 +138,7 @@ function makeCompactTextHierarchical(clusterWithLabel, options = {}) {
     .map(([bigKey, bigData]) => ({
       bigKey,
       bigLabel: bigData[0].bigLabel,
-      size: bigData.length,
+      size: sumSize(bigData),
       subGroups: groupBy(bigData, (d) => d.cluster)
     }))
     .sort(sorter("size"));
@@ -150,11 +153,11 @@ function makeCompactTextHierarchical(clusterWithLabel, options = {}) {
     bigIdx += 1;
     result.push(`# ${bigIdx}. ${bigLabel} (${bigPct}%)`);
     const subPrepared = subGroups.map(([cluster, data]) => {
-      const sampleSize = Math.round(data.length * totalSampleSize / total);
+      const sampleSize = Math.round(data.length * totalSampleSize / totalRows);
       const clampedSize = Math.max(2, Math.min(sampleSize, 5));
       return {
         label: data[0].label,
-        size: data.length,
+        size: sumSize(data),
         sample: reservoirSample(data, clampedSize)[0]
       };
     }).sort(sorter("size"));
