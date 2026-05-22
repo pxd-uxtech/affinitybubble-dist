@@ -11602,7 +11602,7 @@ var SERVICE_TIMEOUTS = {
   get_label_voice: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
   get_label_outlier_sentiment: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
   get_label_with_stance: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
-  refine_subcluster: { totalMs: 12e4, firstChunkMs: 6e4, idleMs: 2e4, retries: 2 },
+  refine_subcluster: { totalMs: 12e4, firstChunkMs: 6e4, idleMs: 2e4, retries: 3 },
   // 토픽/페르소나/도메인 추출: 중간
   extract_topic: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
   extract_persona: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
@@ -11630,10 +11630,10 @@ async function getPromptResult(api, userInput, promptId, configId = "Production"
     } catch (e) {
       lastError = e;
       const msg = e?.message || "";
-      const retriable = /timeout|empty response/i.test(msg);
+      const retriable = /timeout|empty response|network|QUIC|ECONNRESET|fetch failed/i.test(msg);
       console.warn(`getPromptResult [${promptId}] attempt ${attempt + 1}/${retries + 1} \uC2E4\uD328:`, msg || e);
       if (!retriable || attempt === retries) break;
-      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+      await new Promise((r) => setTimeout(r, 1e3 * (attempt + 1)));
     }
   }
   throw lastError;
@@ -11846,7 +11846,7 @@ var Level1PipelineV2 = class {
       });
     });
     this._normalizeEmbeddings(embeds);
-    onProgress({ stage: "clustering", progress: 0, message: "K-means \uD074\uB7EC\uC2A4\uD130\uB9C1..." });
+    onProgress({ stage: "clustering", progress: 0, message: "1\uCC28 \uD074\uB7EC\uC2A4\uD130\uB9C1 \uC911..." });
     const N = embeds.length;
     const K = Math.min(Math.max(Math.ceil(N / COARSE_K_DIVISOR), COARSE_K_MIN), COARSE_K_MAX);
     console.log(`[Level1V2] K-means N=${N}, K=${K}`);
@@ -11862,9 +11862,19 @@ var Level1PipelineV2 = class {
       if (!coarseGroups.has(cid)) coarseGroups.set(cid, []);
       coarseGroups.get(cid).push(i);
     }
-    const liveCoarses = [...coarseGroups.entries()].filter(([_, members]) => members.length > 0);
+    const liveCoarses = [...coarseGroups.entries()].filter(([_, members]) => members.length > 0).sort(([_a, a], [_b, b]) => b.length - a.length);
     console.log(`[Level1V2] coarse clusters: ${liveCoarses.length} / ${K} (empty skipped)`);
-    onProgress({ stage: "clustering", progress: 30, message: `LLM \uC815\uB3C8 \uC911... (0/${liveCoarses.length})` });
+    const coarseOrdinal = new Map(liveCoarses.map(([cid], idx) => [cid, idx + 1]));
+    const partialCoarseEmbeds = embeds.map((d, i) => ({
+      ...d,
+      cluster: coarseOrdinal.get(kmResult.clusters[i]) ?? OUTLIER_CLUSTER
+    }));
+    onProgress({
+      stage: "clustering",
+      progress: 30,
+      partialResult: partialCoarseEmbeds,
+      message: `1\uCC28 \uD074\uB7EC\uC2A4\uD130\uB9C1 \uC644\uB8CC (${liveCoarses.length}\uAC1C \uADF8\uB8F9) \u2014 \uC815\uB3C8 \uC911...`
+    });
     const subGroups = [];
     const outlierGlobalIds = [];
     let refinedDone = 0;
@@ -11915,7 +11925,7 @@ var Level1PipelineV2 = class {
       onProgress({
         stage: "clustering",
         progress,
-        message: `LLM \uC815\uB3C8 \uC911... (${refinedDone}/${liveCoarses.length})`
+        message: `\uD074\uB7EC\uC2A4\uD130 \uC815\uB3C8 \uC911... (${refinedDone}/${liveCoarses.length})`
       });
     };
     await this._runWithConcurrency(liveCoarses, REFINE_CONCURRENCY, refineOne);
@@ -12028,7 +12038,9 @@ var Level1PipelineV2 = class {
       const response = await getPromptResult(this.api, userInput, "refine_subcluster", "Production");
       const result = response?.result;
       if (!result || !Array.isArray(result.sub_groups)) {
-        console.warn(`[refine #${coarseId}] empty response \u2192 FALLBACK`);
+        const resultPreview = result ? JSON.stringify(result).slice(0, 300) : "null";
+        const keys = result && typeof result === "object" ? Object.keys(result) : [];
+        console.warn(`[refine #${coarseId}] EMPTY/INVALID n=${members.length}. keys=[${keys.join(",")}] raw=${resultPreview}`);
         return this._fallbackSingle(members);
       }
       return {
@@ -12038,7 +12050,11 @@ var Level1PipelineV2 = class {
         fallback: false
       };
     } catch (e) {
-      console.warn(`[refine #${coarseId}] error: ${e.message} \u2192 FALLBACK`);
+      console.warn(`[refine #${coarseId}] ERROR n=${members.length}: ${e.message}`);
+      if (e.stack) {
+        const stackLines = e.stack.split("\n").slice(0, 3).join(" | ");
+        console.warn(`  stack: ${stackLines}`);
+      }
       return this._fallbackSingle(members);
     }
   }
@@ -12967,7 +12983,7 @@ var AffinityBubblePipeline = class {
         this.level1.options.clusterSimValue = clusterSimValue;
         level1Result = await this.level1.run(chunkData, (p) => {
           this.state.setProgress("level1", p.progress * 0.3, p.message);
-          if (p.stage === "embedding" && p.partialResult) {
+          if ((p.stage === "embedding" || p.stage === "clustering") && p.partialResult) {
             this.state.setCellData(p.partialResult);
           }
           onProgress(this.state.progress, this.state.snapshot());
