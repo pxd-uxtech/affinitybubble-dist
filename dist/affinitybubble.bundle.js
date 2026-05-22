@@ -11868,15 +11868,33 @@ var Level1PipelineV2 = class {
     const subGroups = [];
     const outlierGlobalIds = [];
     let refinedDone = 0;
+    let fallbackCount = 0;
+    let skipCount = 0;
     const refineOne = async ([coarseId, members]) => {
       let refined;
       if (members.length <= LLM_SKIP_THRESHOLD) {
         refined = {
           sub_groups: [{ stance_hint: "", textids: members.map((_, i) => i) }],
-          outliers: []
+          outliers: [],
+          chosen_axis: "skip",
+          fallback: false
         };
+        skipCount += 1;
+        console.log(`[refine #${coarseId}] n=${members.length} SKIP (LLM \uD638\uCD9C \uC548 \uD568)`);
       } else {
         refined = await this._callRefine(coarseId, members, embeds);
+        if (refined.fallback) fallbackCount += 1;
+        const dist = (refined.sub_groups || []).map((sg) => {
+          const hint = (sg.stance_hint || "").trim() || "(no hint)";
+          const size = Array.isArray(sg.textids) ? sg.textids.length : 0;
+          return `${hint}:${size}`;
+        }).join(", ");
+        const axis = refined.chosen_axis || "unknown";
+        const outlierN = Array.isArray(refined.outliers) ? refined.outliers.length : 0;
+        const flag = refined.fallback ? " FALLBACK" : "";
+        console.log(
+          `[refine #${coarseId}] n=${members.length} axis="${axis}" \u2192 ${refined.sub_groups.length} subs [${dist}] outliers=${outlierN}${flag}`
+        );
       }
       for (const sg of refined.sub_groups) {
         const globalMembers = (sg.textids || []).filter((i) => Number.isInteger(i) && i >= 0 && i < members.length).map((i) => members[i]);
@@ -11901,6 +11919,9 @@ var Level1PipelineV2 = class {
       });
     };
     await this._runWithConcurrency(liveCoarses, REFINE_CONCURRENCY, refineOne);
+    console.log(
+      `[Level1V2] refined: ${subGroups.length} sub-clusters from ${liveCoarses.length} coarses (skipped: ${skipCount}, fallback: ${fallbackCount}, outliers_total: ${outlierGlobalIds.length})`
+    );
     subGroups.sort((a, b) => b.members.length - a.members.length);
     const clusterAssignment = /* @__PURE__ */ new Map();
     subGroups.forEach((sg, idx) => {
@@ -12007,22 +12028,26 @@ var Level1PipelineV2 = class {
       const response = await getPromptResult(this.api, userInput, "refine_subcluster", "Production");
       const result = response?.result;
       if (!result || !Array.isArray(result.sub_groups)) {
-        console.warn(`[Level1V2] refine_subcluster #${coarseId} \uBE48 \uC751\uB2F5, fallback \uB2E8\uC77C sub`);
+        console.warn(`[refine #${coarseId}] empty response \u2192 FALLBACK`);
         return this._fallbackSingle(members);
       }
       return {
         sub_groups: result.sub_groups,
-        outliers: Array.isArray(result.outliers) ? result.outliers : []
+        outliers: Array.isArray(result.outliers) ? result.outliers : [],
+        chosen_axis: result.chosen_axis || "none",
+        fallback: false
       };
     } catch (e) {
-      console.warn(`[Level1V2] refine_subcluster #${coarseId} \uC2E4\uD328: ${e.message}. fallback \uB2E8\uC77C sub`);
+      console.warn(`[refine #${coarseId}] error: ${e.message} \u2192 FALLBACK`);
       return this._fallbackSingle(members);
     }
   }
   _fallbackSingle(members) {
     return {
       sub_groups: [{ stance_hint: "\uBD84\uD560 \uC2E4\uD328", textids: members.map((_, i) => i) }],
-      outliers: []
+      outliers: [],
+      chosen_axis: "FALLBACK",
+      fallback: true
     };
   }
   /**
