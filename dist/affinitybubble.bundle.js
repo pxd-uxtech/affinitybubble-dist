@@ -11879,7 +11879,7 @@ var Level1PipelineV2 = class {
       progress: 30,
       partialResult: partialCoarseEmbeds,
       partialInterimClusters,
-      message: `1\uCC28 \uD074\uB7EC\uC2A4\uD130\uB9C1 \uC644\uB8CC (${liveCoarses.length}\uAC1C \uADF8\uB8F9) \u2014 \uC815\uB3C8 \uC911...`
+      message: `1\uCC28 \uD074\uB7EC\uC2A4\uD130\uB9C1 \uC644\uB8CC (${liveCoarses.length}\uAC1C \uADF8\uB8F9) \u2014 \uC138\uBD84\uD654 \uC911...`
     });
     const subGroups = [];
     const outlierGlobalIds = [];
@@ -11917,7 +11917,8 @@ var Level1PipelineV2 = class {
         if (globalMembers.length > 0) {
           subGroups.push({
             members: globalMembers,
-            stance_hint: (sg.stance_hint || "").trim()
+            stance_hint: (sg.stance_hint || "").trim(),
+            label: (sg.label || "").trim()
           });
         }
       }
@@ -11931,7 +11932,7 @@ var Level1PipelineV2 = class {
       onProgress({
         stage: "clustering",
         progress,
-        message: `\uD074\uB7EC\uC2A4\uD130 \uC815\uB3C8 \uC911... (${refinedDone}/${liveCoarses.length})`
+        message: `\uD074\uB7EC\uC2A4\uD130\uB9C1 \uC138\uBD84\uD654 \uC911... (${refinedDone}/${liveCoarses.length})`
       });
     };
     await this._runWithConcurrency(liveCoarses, REFINE_CONCURRENCY, refineOne);
@@ -11963,19 +11964,41 @@ var Level1PipelineV2 = class {
     for (const item of enrichedEmbeds) {
       const cid = item.cluster;
       if (!groupByCluster.has(cid)) {
-        groupByCluster.set(cid, { cluster: cid, stance_hint: "", cellDatas: [] });
+        groupByCluster.set(cid, { cluster: cid, stance_hint: "", label: "", cellDatas: [] });
       }
       groupByCluster.get(cid).cellDatas.push(item);
     }
     for (const sg of subGroups) {
       const grp = groupByCluster.get(sg.cluster);
-      if (grp) grp.stance_hint = sg.stance_hint;
+      if (grp) {
+        grp.stance_hint = sg.stance_hint;
+        grp.label = sg.label;
+      }
     }
     const interimClusters = [...groupByCluster.values()].sort((a, b) => a.cluster - b.cluster);
-    onProgress({ stage: "clustering", progress: 100, partialResult: interimClusters });
+    const refineLabels = subGroups.filter((sg) => sg.label).map((sg) => ({
+      cluster: sg.cluster,
+      label: sg.label,
+      description: "",
+      sentimentScore: 3,
+      outliers: [],
+      keywords: []
+    }));
+    console.log(`[Level1V2] refine labels (\uBBF8\uB9AC\uBCF4\uAE30, ${refineLabels.length}\uAC1C):`);
+    refineLabels.slice(0, 20).forEach((l) => console.log(`  cluster ${l.cluster}: "${l.label}"`));
+    if (refineLabels.length > 20) console.log(`  ... +${refineLabels.length - 20} more`);
+    onProgress({
+      stage: "clustering",
+      progress: 100,
+      partialResult: enrichedEmbeds,
+      partialInterimClusters: interimClusters,
+      partialRefineLabels: refineLabels,
+      message: "\uC138\uBD84\uD654 \uC644\uB8CC"
+    });
     return {
       embeds: enrichedEmbeds,
-      interimClusters
+      interimClusters,
+      refineLabels
     };
   }
   // ═══════════════════════════════════════════════════════
@@ -12993,7 +13016,8 @@ var AffinityBubblePipeline = class {
             this.state.setCellData(p.partialResult);
           }
           if (p.stage === "clustering" && p.partialInterimClusters) {
-            this.state.setLevel1(p.partialInterimClusters, [], []);
+            const labels2 = Array.isArray(p.partialRefineLabels) ? p.partialRefineLabels : [];
+            this.state.setLevel1(p.partialInterimClusters, labels2, []);
           }
           onProgress(this.state.progress, this.state.snapshot());
         });
