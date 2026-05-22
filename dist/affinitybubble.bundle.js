@@ -24,1245 +24,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// node_modules/umap-js/dist/utils.js
-var require_utils = __commonJS({
-  "node_modules/umap-js/dist/utils.js"(exports) {
-    "use strict";
-    var __values = exports && exports.__values || function(o) {
-      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-      if (m) return m.call(o);
-      if (o && typeof o.length === "number") return {
-        next: function() {
-          if (o && i >= o.length) o = void 0;
-          return { value: o && o[i++], done: !o };
-        }
-      };
-      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-    };
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.reshape2d = exports.rejectionSample = exports.max2d = exports.max = exports.mean = exports.sum = exports.linear = exports.ones = exports.zeros = exports.filled = exports.range = exports.empty = exports.norm = exports.tauRand = exports.tauRandInt = void 0;
-    function tauRandInt(n, random) {
-      return Math.floor(random() * n);
-    }
-    exports.tauRandInt = tauRandInt;
-    function tauRand(random) {
-      return random();
-    }
-    exports.tauRand = tauRand;
-    function norm(vec) {
-      var e_1, _a;
-      var result = 0;
-      try {
-        for (var vec_1 = __values(vec), vec_1_1 = vec_1.next(); !vec_1_1.done; vec_1_1 = vec_1.next()) {
-          var item = vec_1_1.value;
-          result += Math.pow(item, 2);
-        }
-      } catch (e_1_1) {
-        e_1 = { error: e_1_1 };
-      } finally {
-        try {
-          if (vec_1_1 && !vec_1_1.done && (_a = vec_1.return)) _a.call(vec_1);
-        } finally {
-          if (e_1) throw e_1.error;
-        }
-      }
-      return Math.sqrt(result);
-    }
-    exports.norm = norm;
-    function empty2(n) {
-      var output = [];
-      for (var i = 0; i < n; i++) {
-        output.push(void 0);
-      }
-      return output;
-    }
-    exports.empty = empty2;
-    function range(n) {
-      return empty2(n).map(function(_, i) {
-        return i;
-      });
-    }
-    exports.range = range;
-    function filled(n, v) {
-      return empty2(n).map(function() {
-        return v;
-      });
-    }
-    exports.filled = filled;
-    function zeros(n) {
-      return filled(n, 0);
-    }
-    exports.zeros = zeros;
-    function ones(n) {
-      return filled(n, 1);
-    }
-    exports.ones = ones;
-    function linear2(a, b, len) {
-      return empty2(len).map(function(_, i) {
-        return a + i * ((b - a) / (len - 1));
-      });
-    }
-    exports.linear = linear2;
-    function sum(input) {
-      return input.reduce(function(sum2, val) {
-        return sum2 + val;
-      });
-    }
-    exports.sum = sum;
-    function mean(input) {
-      return sum(input) / input.length;
-    }
-    exports.mean = mean;
-    function max2(input) {
-      var max3 = 0;
-      for (var i = 0; i < input.length; i++) {
-        max3 = input[i] > max3 ? input[i] : max3;
-      }
-      return max3;
-    }
-    exports.max = max2;
-    function max2d(input) {
-      var max3 = 0;
-      for (var i = 0; i < input.length; i++) {
-        for (var j = 0; j < input[i].length; j++) {
-          max3 = input[i][j] > max3 ? input[i][j] : max3;
-        }
-      }
-      return max3;
-    }
-    exports.max2d = max2d;
-    function rejectionSample(nSamples, poolSize, random) {
-      var result = zeros(nSamples);
-      for (var i = 0; i < nSamples; i++) {
-        var rejectSample = true;
-        while (rejectSample) {
-          var j = tauRandInt(poolSize, random);
-          var broken = false;
-          for (var k = 0; k < i; k++) {
-            if (j === result[k]) {
-              broken = true;
-              break;
-            }
-          }
-          if (!broken) {
-            rejectSample = false;
-          }
-          result[i] = j;
-        }
-      }
-      return result;
-    }
-    exports.rejectionSample = rejectionSample;
-    function reshape2d(x, a, b) {
-      var rows = [];
-      var count = 0;
-      var index = 0;
-      if (x.length !== a * b) {
-        throw new Error("Array dimensions must match input length.");
-      }
-      for (var i = 0; i < a; i++) {
-        var col = [];
-        for (var j = 0; j < b; j++) {
-          col.push(x[index]);
-          index += 1;
-        }
-        rows.push(col);
-        count += 1;
-      }
-      return rows;
-    }
-    exports.reshape2d = reshape2d;
-  }
-});
-
-// node_modules/umap-js/dist/heap.js
-var require_heap = __commonJS({
-  "node_modules/umap-js/dist/heap.js"(exports) {
-    "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      Object.defineProperty(o, k2, { enumerable: true, get: function() {
-        return m[k];
-      } });
-    }) : (function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
-      Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
-      o["default"] = v;
-    });
-    var __importStar = exports && exports.__importStar || function(mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null) {
-        for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-      }
-      __setModuleDefault(result, mod);
-      return result;
-    };
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.smallestFlagged = exports.deheapSort = exports.buildCandidates = exports.uncheckedHeapPush = exports.heapPush = exports.rejectionSample = exports.makeHeap = void 0;
-    var utils = __importStar(require_utils());
-    function makeHeap(nPoints, size) {
-      var makeArrays = function(fillValue) {
-        return utils.empty(nPoints).map(function() {
-          return utils.filled(size, fillValue);
-        });
-      };
-      var heap = [];
-      heap.push(makeArrays(-1));
-      heap.push(makeArrays(Infinity));
-      heap.push(makeArrays(0));
-      return heap;
-    }
-    exports.makeHeap = makeHeap;
-    function rejectionSample(nSamples, poolSize, random) {
-      var result = utils.zeros(nSamples);
-      for (var i = 0; i < nSamples; i++) {
-        var rejectSample = true;
-        var j = 0;
-        while (rejectSample) {
-          j = utils.tauRandInt(poolSize, random);
-          var broken = false;
-          for (var k = 0; k < i; k++) {
-            if (j === result[k]) {
-              broken = true;
-              break;
-            }
-          }
-          if (!broken)
-            rejectSample = false;
-        }
-        result[i] = j;
-      }
-      return result;
-    }
-    exports.rejectionSample = rejectionSample;
-    function heapPush(heap, row, weight, index, flag) {
-      row = Math.floor(row);
-      var indices = heap[0][row];
-      var weights = heap[1][row];
-      var isNew = heap[2][row];
-      if (weight >= weights[0]) {
-        return 0;
-      }
-      for (var i = 0; i < indices.length; i++) {
-        if (index === indices[i]) {
-          return 0;
-        }
-      }
-      return uncheckedHeapPush(heap, row, weight, index, flag);
-    }
-    exports.heapPush = heapPush;
-    function uncheckedHeapPush(heap, row, weight, index, flag) {
-      var indices = heap[0][row];
-      var weights = heap[1][row];
-      var isNew = heap[2][row];
-      if (weight >= weights[0]) {
-        return 0;
-      }
-      weights[0] = weight;
-      indices[0] = index;
-      isNew[0] = flag;
-      var i = 0;
-      var iSwap = 0;
-      while (true) {
-        var ic1 = 2 * i + 1;
-        var ic2 = ic1 + 1;
-        var heapShape2 = heap[0][0].length;
-        if (ic1 >= heapShape2) {
-          break;
-        } else if (ic2 >= heapShape2) {
-          if (weights[ic1] > weight) {
-            iSwap = ic1;
-          } else {
-            break;
-          }
-        } else if (weights[ic1] >= weights[ic2]) {
-          if (weight < weights[ic1]) {
-            iSwap = ic1;
-          } else {
-            break;
-          }
-        } else {
-          if (weight < weights[ic2]) {
-            iSwap = ic2;
-          } else {
-            break;
-          }
-        }
-        weights[i] = weights[iSwap];
-        indices[i] = indices[iSwap];
-        isNew[i] = isNew[iSwap];
-        i = iSwap;
-      }
-      weights[i] = weight;
-      indices[i] = index;
-      isNew[i] = flag;
-      return 1;
-    }
-    exports.uncheckedHeapPush = uncheckedHeapPush;
-    function buildCandidates(currentGraph, nVertices, nNeighbors, maxCandidates, random) {
-      var candidateNeighbors = makeHeap(nVertices, maxCandidates);
-      for (var i = 0; i < nVertices; i++) {
-        for (var j = 0; j < nNeighbors; j++) {
-          if (currentGraph[0][i][j] < 0) {
-            continue;
-          }
-          var idx = currentGraph[0][i][j];
-          var isn = currentGraph[2][i][j];
-          var d = utils.tauRand(random);
-          heapPush(candidateNeighbors, i, d, idx, isn);
-          heapPush(candidateNeighbors, idx, d, i, isn);
-          currentGraph[2][i][j] = 0;
-        }
-      }
-      return candidateNeighbors;
-    }
-    exports.buildCandidates = buildCandidates;
-    function deheapSort(heap) {
-      var indices = heap[0];
-      var weights = heap[1];
-      for (var i = 0; i < indices.length; i++) {
-        var indHeap = indices[i];
-        var distHeap = weights[i];
-        for (var j = 0; j < indHeap.length - 1; j++) {
-          var indHeapIndex = indHeap.length - j - 1;
-          var distHeapIndex = distHeap.length - j - 1;
-          var temp1 = indHeap[0];
-          indHeap[0] = indHeap[indHeapIndex];
-          indHeap[indHeapIndex] = temp1;
-          var temp2 = distHeap[0];
-          distHeap[0] = distHeap[distHeapIndex];
-          distHeap[distHeapIndex] = temp2;
-          siftDown(distHeap, indHeap, distHeapIndex, 0);
-        }
-      }
-      return { indices, weights };
-    }
-    exports.deheapSort = deheapSort;
-    function siftDown(heap1, heap2, ceiling, elt) {
-      while (elt * 2 + 1 < ceiling) {
-        var leftChild = elt * 2 + 1;
-        var rightChild = leftChild + 1;
-        var swap = elt;
-        if (heap1[swap] < heap1[leftChild]) {
-          swap = leftChild;
-        }
-        if (rightChild < ceiling && heap1[swap] < heap1[rightChild]) {
-          swap = rightChild;
-        }
-        if (swap === elt) {
-          break;
-        } else {
-          var temp1 = heap1[elt];
-          heap1[elt] = heap1[swap];
-          heap1[swap] = temp1;
-          var temp2 = heap2[elt];
-          heap2[elt] = heap2[swap];
-          heap2[swap] = temp2;
-          elt = swap;
-        }
-      }
-    }
-    function smallestFlagged(heap, row) {
-      var ind = heap[0][row];
-      var dist = heap[1][row];
-      var flag = heap[2][row];
-      var minDist = Infinity;
-      var resultIndex = -1;
-      for (var i = 0; i > ind.length; i++) {
-        if (flag[i] === 1 && dist[i] < minDist) {
-          minDist = dist[i];
-          resultIndex = i;
-        }
-      }
-      if (resultIndex >= 0) {
-        flag[resultIndex] = 0;
-        return Math.floor(ind[resultIndex]);
-      } else {
-        return -1;
-      }
-    }
-    exports.smallestFlagged = smallestFlagged;
-  }
-});
-
-// node_modules/umap-js/dist/matrix.js
-var require_matrix = __commonJS({
-  "node_modules/umap-js/dist/matrix.js"(exports) {
-    "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      Object.defineProperty(o, k2, { enumerable: true, get: function() {
-        return m[k];
-      } });
-    }) : (function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
-      Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
-      o["default"] = v;
-    });
-    var __importStar = exports && exports.__importStar || function(mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null) {
-        for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-      }
-      __setModuleDefault(result, mod);
-      return result;
-    };
-    var __read = exports && exports.__read || function(o, n) {
-      var m = typeof Symbol === "function" && o[Symbol.iterator];
-      if (!m) return o;
-      var i = m.call(o), r, ar = [], e;
-      try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-      } catch (error) {
-        e = { error };
-      } finally {
-        try {
-          if (r && !r.done && (m = i["return"])) m.call(i);
-        } finally {
-          if (e) throw e.error;
-        }
-      }
-      return ar;
-    };
-    var __values = exports && exports.__values || function(o) {
-      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-      if (m) return m.call(o);
-      if (o && typeof o.length === "number") return {
-        next: function() {
-          if (o && i >= o.length) o = void 0;
-          return { value: o && o[i++], done: !o };
-        }
-      };
-      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-    };
-    var _a;
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.getCSR = exports.normalize = exports.eliminateZeros = exports.multiplyScalar = exports.maximum = exports.subtract = exports.add = exports.pairwiseMultiply = exports.identity = exports.transpose = exports.SparseMatrix = void 0;
-    var utils = __importStar(require_utils());
-    var SparseMatrix = (function() {
-      function SparseMatrix2(rows, cols, values, dims) {
-        this.entries = /* @__PURE__ */ new Map();
-        this.nRows = 0;
-        this.nCols = 0;
-        if (rows.length !== cols.length || rows.length !== values.length) {
-          throw new Error("rows, cols and values arrays must all have the same length");
-        }
-        this.nRows = dims[0];
-        this.nCols = dims[1];
-        for (var i = 0; i < values.length; i++) {
-          var row = rows[i];
-          var col = cols[i];
-          this.checkDims(row, col);
-          var key = this.makeKey(row, col);
-          this.entries.set(key, { value: values[i], row, col });
-        }
-      }
-      SparseMatrix2.prototype.makeKey = function(row, col) {
-        return row + ":" + col;
-      };
-      SparseMatrix2.prototype.checkDims = function(row, col) {
-        var withinBounds = row < this.nRows && col < this.nCols;
-        if (!withinBounds) {
-          throw new Error("row and/or col specified outside of matrix dimensions");
-        }
-      };
-      SparseMatrix2.prototype.set = function(row, col, value) {
-        this.checkDims(row, col);
-        var key = this.makeKey(row, col);
-        if (!this.entries.has(key)) {
-          this.entries.set(key, { value, row, col });
-        } else {
-          this.entries.get(key).value = value;
-        }
-      };
-      SparseMatrix2.prototype.get = function(row, col, defaultValue) {
-        if (defaultValue === void 0) {
-          defaultValue = 0;
-        }
-        this.checkDims(row, col);
-        var key = this.makeKey(row, col);
-        if (this.entries.has(key)) {
-          return this.entries.get(key).value;
-        } else {
-          return defaultValue;
-        }
-      };
-      SparseMatrix2.prototype.getAll = function(ordered) {
-        if (ordered === void 0) {
-          ordered = true;
-        }
-        var rowColValues = [];
-        this.entries.forEach(function(value) {
-          rowColValues.push(value);
-        });
-        if (ordered) {
-          rowColValues.sort(function(a, b) {
-            if (a.row === b.row) {
-              return a.col - b.col;
-            } else {
-              return a.row - b.row;
-            }
-          });
-        }
-        return rowColValues;
-      };
-      SparseMatrix2.prototype.getDims = function() {
-        return [this.nRows, this.nCols];
-      };
-      SparseMatrix2.prototype.getRows = function() {
-        return Array.from(this.entries, function(_a2) {
-          var _b = __read(_a2, 2), key = _b[0], value = _b[1];
-          return value.row;
-        });
-      };
-      SparseMatrix2.prototype.getCols = function() {
-        return Array.from(this.entries, function(_a2) {
-          var _b = __read(_a2, 2), key = _b[0], value = _b[1];
-          return value.col;
-        });
-      };
-      SparseMatrix2.prototype.getValues = function() {
-        return Array.from(this.entries, function(_a2) {
-          var _b = __read(_a2, 2), key = _b[0], value = _b[1];
-          return value.value;
-        });
-      };
-      SparseMatrix2.prototype.forEach = function(fn) {
-        this.entries.forEach(function(value) {
-          return fn(value.value, value.row, value.col);
-        });
-      };
-      SparseMatrix2.prototype.map = function(fn) {
-        var vals = [];
-        this.entries.forEach(function(value) {
-          vals.push(fn(value.value, value.row, value.col));
-        });
-        var dims = [this.nRows, this.nCols];
-        return new SparseMatrix2(this.getRows(), this.getCols(), vals, dims);
-      };
-      SparseMatrix2.prototype.toArray = function() {
-        var _this = this;
-        var rows = utils.empty(this.nRows);
-        var output = rows.map(function() {
-          return utils.zeros(_this.nCols);
-        });
-        this.entries.forEach(function(value) {
-          output[value.row][value.col] = value.value;
-        });
-        return output;
-      };
-      return SparseMatrix2;
-    })();
-    exports.SparseMatrix = SparseMatrix;
-    function transpose(matrix) {
-      var cols = [];
-      var rows = [];
-      var vals = [];
-      matrix.forEach(function(value, row, col) {
-        cols.push(row);
-        rows.push(col);
-        vals.push(value);
-      });
-      var dims = [matrix.nCols, matrix.nRows];
-      return new SparseMatrix(rows, cols, vals, dims);
-    }
-    exports.transpose = transpose;
-    function identity3(size) {
-      var _a2 = __read(size, 1), rows = _a2[0];
-      var matrix = new SparseMatrix([], [], [], size);
-      for (var i = 0; i < rows; i++) {
-        matrix.set(i, i, 1);
-      }
-      return matrix;
-    }
-    exports.identity = identity3;
-    function pairwiseMultiply(a, b) {
-      return elementWise(a, b, function(x, y) {
-        return x * y;
-      });
-    }
-    exports.pairwiseMultiply = pairwiseMultiply;
-    function add(a, b) {
-      return elementWise(a, b, function(x, y) {
-        return x + y;
-      });
-    }
-    exports.add = add;
-    function subtract(a, b) {
-      return elementWise(a, b, function(x, y) {
-        return x - y;
-      });
-    }
-    exports.subtract = subtract;
-    function maximum(a, b) {
-      return elementWise(a, b, function(x, y) {
-        return x > y ? x : y;
-      });
-    }
-    exports.maximum = maximum;
-    function multiplyScalar(a, scalar) {
-      return a.map(function(value) {
-        return value * scalar;
-      });
-    }
-    exports.multiplyScalar = multiplyScalar;
-    function eliminateZeros(m) {
-      var zeroIndices = /* @__PURE__ */ new Set();
-      var values = m.getValues();
-      var rows = m.getRows();
-      var cols = m.getCols();
-      for (var i = 0; i < values.length; i++) {
-        if (values[i] === 0) {
-          zeroIndices.add(i);
-        }
-      }
-      var removeByZeroIndex = function(_, index) {
-        return !zeroIndices.has(index);
-      };
-      var nextValues = values.filter(removeByZeroIndex);
-      var nextRows = rows.filter(removeByZeroIndex);
-      var nextCols = cols.filter(removeByZeroIndex);
-      return new SparseMatrix(nextRows, nextCols, nextValues, m.getDims());
-    }
-    exports.eliminateZeros = eliminateZeros;
-    function normalize(m, normType) {
-      var e_1, _a2;
-      if (normType === void 0) {
-        normType = "l2";
-      }
-      var normFn = normFns[normType];
-      var colsByRow = /* @__PURE__ */ new Map();
-      m.forEach(function(_, row2, col) {
-        var cols = colsByRow.get(row2) || [];
-        cols.push(col);
-        colsByRow.set(row2, cols);
-      });
-      var nextMatrix = new SparseMatrix([], [], [], m.getDims());
-      var _loop_1 = function(row2) {
-        var cols = colsByRow.get(row2).sort();
-        var vals = cols.map(function(col) {
-          return m.get(row2, col);
-        });
-        var norm = normFn(vals);
-        for (var i = 0; i < norm.length; i++) {
-          nextMatrix.set(row2, cols[i], norm[i]);
-        }
-      };
-      try {
-        for (var _b = __values(colsByRow.keys()), _c = _b.next(); !_c.done; _c = _b.next()) {
-          var row = _c.value;
-          _loop_1(row);
-        }
-      } catch (e_1_1) {
-        e_1 = { error: e_1_1 };
-      } finally {
-        try {
-          if (_c && !_c.done && (_a2 = _b.return)) _a2.call(_b);
-        } finally {
-          if (e_1) throw e_1.error;
-        }
-      }
-      return nextMatrix;
-    }
-    exports.normalize = normalize;
-    var normFns = (_a = {}, _a["max"] = function(xs) {
-      var max2 = -Infinity;
-      for (var i = 0; i < xs.length; i++) {
-        max2 = xs[i] > max2 ? xs[i] : max2;
-      }
-      return xs.map(function(x) {
-        return x / max2;
-      });
-    }, _a["l1"] = function(xs) {
-      var sum = 0;
-      for (var i = 0; i < xs.length; i++) {
-        sum += xs[i];
-      }
-      return xs.map(function(x) {
-        return x / sum;
-      });
-    }, _a["l2"] = function(xs) {
-      var sum = 0;
-      for (var i = 0; i < xs.length; i++) {
-        sum += Math.pow(xs[i], 2);
-      }
-      return xs.map(function(x) {
-        return Math.sqrt(Math.pow(x, 2) / sum);
-      });
-    }, _a);
-    function elementWise(a, b, op) {
-      var visited = /* @__PURE__ */ new Set();
-      var rows = [];
-      var cols = [];
-      var vals = [];
-      var operate = function(row2, col2) {
-        rows.push(row2);
-        cols.push(col2);
-        var nextValue = op(a.get(row2, col2), b.get(row2, col2));
-        vals.push(nextValue);
-      };
-      var valuesA = a.getValues();
-      var rowsA = a.getRows();
-      var colsA = a.getCols();
-      for (var i = 0; i < valuesA.length; i++) {
-        var row = rowsA[i];
-        var col = colsA[i];
-        var key = row + ":" + col;
-        visited.add(key);
-        operate(row, col);
-      }
-      var valuesB = b.getValues();
-      var rowsB = b.getRows();
-      var colsB = b.getCols();
-      for (var i = 0; i < valuesB.length; i++) {
-        var row = rowsB[i];
-        var col = colsB[i];
-        var key = row + ":" + col;
-        if (visited.has(key))
-          continue;
-        operate(row, col);
-      }
-      var dims = [a.nRows, a.nCols];
-      return new SparseMatrix(rows, cols, vals, dims);
-    }
-    function getCSR(x) {
-      var entries = [];
-      x.forEach(function(value2, row2, col2) {
-        entries.push({ value: value2, row: row2, col: col2 });
-      });
-      entries.sort(function(a, b) {
-        if (a.row === b.row) {
-          return a.col - b.col;
-        } else {
-          return a.row - b.row;
-        }
-      });
-      var indices = [];
-      var values = [];
-      var indptr = [];
-      var currentRow = -1;
-      for (var i = 0; i < entries.length; i++) {
-        var _a2 = entries[i], row = _a2.row, col = _a2.col, value = _a2.value;
-        if (row !== currentRow) {
-          currentRow = row;
-          indptr.push(i);
-        }
-        indices.push(col);
-        values.push(value);
-      }
-      return { indices, values, indptr };
-    }
-    exports.getCSR = getCSR;
-  }
-});
-
-// node_modules/umap-js/dist/tree.js
-var require_tree = __commonJS({
-  "node_modules/umap-js/dist/tree.js"(exports) {
-    "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      Object.defineProperty(o, k2, { enumerable: true, get: function() {
-        return m[k];
-      } });
-    }) : (function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
-      Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
-      o["default"] = v;
-    });
-    var __importStar = exports && exports.__importStar || function(mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null) {
-        for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-      }
-      __setModuleDefault(result, mod);
-      return result;
-    };
-    var __read = exports && exports.__read || function(o, n) {
-      var m = typeof Symbol === "function" && o[Symbol.iterator];
-      if (!m) return o;
-      var i = m.call(o), r, ar = [], e;
-      try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-      } catch (error) {
-        e = { error };
-      } finally {
-        try {
-          if (r && !r.done && (m = i["return"])) m.call(i);
-        } finally {
-          if (e) throw e.error;
-        }
-      }
-      return ar;
-    };
-    var __spread = exports && exports.__spread || function() {
-      for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-      return ar;
-    };
-    var __values = exports && exports.__values || function(o) {
-      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-      if (m) return m.call(o);
-      if (o && typeof o.length === "number") return {
-        next: function() {
-          if (o && i >= o.length) o = void 0;
-          return { value: o && o[i++], done: !o };
-        }
-      };
-      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-    };
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.searchFlatTree = exports.makeLeafArray = exports.makeForest = exports.FlatTree = void 0;
-    var utils = __importStar(require_utils());
-    var FlatTree = /* @__PURE__ */ (function() {
-      function FlatTree2(hyperplanes, offsets, children2, indices) {
-        this.hyperplanes = hyperplanes;
-        this.offsets = offsets;
-        this.children = children2;
-        this.indices = indices;
-      }
-      return FlatTree2;
-    })();
-    exports.FlatTree = FlatTree;
-    function makeForest(data, nNeighbors, nTrees, random) {
-      var leafSize = Math.max(10, nNeighbors);
-      var trees = utils.range(nTrees).map(function(_, i) {
-        return makeTree(data, leafSize, i, random);
-      });
-      var forest = trees.map(function(tree) {
-        return flattenTree(tree, leafSize);
-      });
-      return forest;
-    }
-    exports.makeForest = makeForest;
-    function makeTree(data, leafSize, n, random) {
-      if (leafSize === void 0) {
-        leafSize = 30;
-      }
-      var indices = utils.range(data.length);
-      var tree = makeEuclideanTree(data, indices, leafSize, n, random);
-      return tree;
-    }
-    function makeEuclideanTree(data, indices, leafSize, q, random) {
-      if (leafSize === void 0) {
-        leafSize = 30;
-      }
-      if (indices.length > leafSize) {
-        var splitResults = euclideanRandomProjectionSplit(data, indices, random);
-        var indicesLeft = splitResults.indicesLeft, indicesRight = splitResults.indicesRight, hyperplane = splitResults.hyperplane, offset = splitResults.offset;
-        var leftChild = makeEuclideanTree(data, indicesLeft, leafSize, q + 1, random);
-        var rightChild = makeEuclideanTree(data, indicesRight, leafSize, q + 1, random);
-        var node = { leftChild, rightChild, isLeaf: false, hyperplane, offset };
-        return node;
-      } else {
-        var node = { indices, isLeaf: true };
-        return node;
-      }
-    }
-    function euclideanRandomProjectionSplit(data, indices, random) {
-      var dim = data[0].length;
-      var leftIndex = utils.tauRandInt(indices.length, random);
-      var rightIndex = utils.tauRandInt(indices.length, random);
-      rightIndex += leftIndex === rightIndex ? 1 : 0;
-      rightIndex = rightIndex % indices.length;
-      var left = indices[leftIndex];
-      var right = indices[rightIndex];
-      var hyperplaneOffset = 0;
-      var hyperplaneVector = utils.zeros(dim);
-      for (var i = 0; i < hyperplaneVector.length; i++) {
-        hyperplaneVector[i] = data[left][i] - data[right][i];
-        hyperplaneOffset -= hyperplaneVector[i] * (data[left][i] + data[right][i]) / 2;
-      }
-      var nLeft = 0;
-      var nRight = 0;
-      var side = utils.zeros(indices.length);
-      for (var i = 0; i < indices.length; i++) {
-        var margin = hyperplaneOffset;
-        for (var d = 0; d < dim; d++) {
-          margin += hyperplaneVector[d] * data[indices[i]][d];
-        }
-        if (margin === 0) {
-          side[i] = utils.tauRandInt(2, random);
-          if (side[i] === 0) {
-            nLeft += 1;
-          } else {
-            nRight += 1;
-          }
-        } else if (margin > 0) {
-          side[i] = 0;
-          nLeft += 1;
-        } else {
-          side[i] = 1;
-          nRight += 1;
-        }
-      }
-      var indicesLeft = utils.zeros(nLeft);
-      var indicesRight = utils.zeros(nRight);
-      nLeft = 0;
-      nRight = 0;
-      for (var i = 0; i < side.length; i++) {
-        if (side[i] === 0) {
-          indicesLeft[nLeft] = indices[i];
-          nLeft += 1;
-        } else {
-          indicesRight[nRight] = indices[i];
-          nRight += 1;
-        }
-      }
-      return {
-        indicesLeft,
-        indicesRight,
-        hyperplane: hyperplaneVector,
-        offset: hyperplaneOffset
-      };
-    }
-    function flattenTree(tree, leafSize) {
-      var nNodes = numNodes(tree);
-      var nLeaves = numLeaves(tree);
-      var hyperplanes = utils.range(nNodes).map(function() {
-        return utils.zeros(tree.hyperplane ? tree.hyperplane.length : 0);
-      });
-      var offsets = utils.zeros(nNodes);
-      var children2 = utils.range(nNodes).map(function() {
-        return [-1, -1];
-      });
-      var indices = utils.range(nLeaves).map(function() {
-        return utils.range(leafSize).map(function() {
-          return -1;
-        });
-      });
-      recursiveFlatten(tree, hyperplanes, offsets, children2, indices, 0, 0);
-      return new FlatTree(hyperplanes, offsets, children2, indices);
-    }
-    function recursiveFlatten(tree, hyperplanes, offsets, children2, indices, nodeNum, leafNum) {
-      var _a;
-      if (tree.isLeaf) {
-        children2[nodeNum][0] = -leafNum;
-        (_a = indices[leafNum]).splice.apply(_a, __spread([0, tree.indices.length], tree.indices));
-        leafNum += 1;
-        return { nodeNum, leafNum };
-      } else {
-        hyperplanes[nodeNum] = tree.hyperplane;
-        offsets[nodeNum] = tree.offset;
-        children2[nodeNum][0] = nodeNum + 1;
-        var oldNodeNum = nodeNum;
-        var res = recursiveFlatten(tree.leftChild, hyperplanes, offsets, children2, indices, nodeNum + 1, leafNum);
-        nodeNum = res.nodeNum;
-        leafNum = res.leafNum;
-        children2[oldNodeNum][1] = nodeNum + 1;
-        res = recursiveFlatten(tree.rightChild, hyperplanes, offsets, children2, indices, nodeNum + 1, leafNum);
-        return { nodeNum: res.nodeNum, leafNum: res.leafNum };
-      }
-    }
-    function numNodes(tree) {
-      if (tree.isLeaf) {
-        return 1;
-      } else {
-        return 1 + numNodes(tree.leftChild) + numNodes(tree.rightChild);
-      }
-    }
-    function numLeaves(tree) {
-      if (tree.isLeaf) {
-        return 1;
-      } else {
-        return numLeaves(tree.leftChild) + numLeaves(tree.rightChild);
-      }
-    }
-    function makeLeafArray(rpForest) {
-      var e_1, _a;
-      if (rpForest.length > 0) {
-        var output = [];
-        try {
-          for (var rpForest_1 = __values(rpForest), rpForest_1_1 = rpForest_1.next(); !rpForest_1_1.done; rpForest_1_1 = rpForest_1.next()) {
-            var tree = rpForest_1_1.value;
-            output.push.apply(output, __spread(tree.indices));
-          }
-        } catch (e_1_1) {
-          e_1 = { error: e_1_1 };
-        } finally {
-          try {
-            if (rpForest_1_1 && !rpForest_1_1.done && (_a = rpForest_1.return)) _a.call(rpForest_1);
-          } finally {
-            if (e_1) throw e_1.error;
-          }
-        }
-        return output;
-      } else {
-        return [[-1]];
-      }
-    }
-    exports.makeLeafArray = makeLeafArray;
-    function selectSide(hyperplane, offset, point, random) {
-      var margin = offset;
-      for (var d = 0; d < point.length; d++) {
-        margin += hyperplane[d] * point[d];
-      }
-      if (margin === 0) {
-        var side = utils.tauRandInt(2, random);
-        return side;
-      } else if (margin > 0) {
-        return 0;
-      } else {
-        return 1;
-      }
-    }
-    function searchFlatTree(point, tree, random) {
-      var node = 0;
-      while (tree.children[node][0] > 0) {
-        var side = selectSide(tree.hyperplanes[node], tree.offsets[node], point, random);
-        if (side === 0) {
-          node = tree.children[node][0];
-        } else {
-          node = tree.children[node][1];
-        }
-      }
-      var index = -1 * tree.children[node][0];
-      return tree.indices[index];
-    }
-    exports.searchFlatTree = searchFlatTree;
-  }
-});
-
-// node_modules/umap-js/dist/nn_descent.js
-var require_nn_descent = __commonJS({
-  "node_modules/umap-js/dist/nn_descent.js"(exports) {
-    "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      Object.defineProperty(o, k2, { enumerable: true, get: function() {
-        return m[k];
-      } });
-    }) : (function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
-      Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
-      o["default"] = v;
-    });
-    var __importStar = exports && exports.__importStar || function(mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null) {
-        for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-      }
-      __setModuleDefault(result, mod);
-      return result;
-    };
-    var __values = exports && exports.__values || function(o) {
-      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-      if (m) return m.call(o);
-      if (o && typeof o.length === "number") return {
-        next: function() {
-          if (o && i >= o.length) o = void 0;
-          return { value: o && o[i++], done: !o };
-        }
-      };
-      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-    };
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.initializeSearch = exports.makeInitializedNNSearch = exports.makeInitializations = exports.makeNNDescent = void 0;
-    var heap = __importStar(require_heap());
-    var matrix = __importStar(require_matrix());
-    var tree = __importStar(require_tree());
-    var utils = __importStar(require_utils());
-    function makeNNDescent(distanceFn, random) {
-      return function nNDescent(data, leafArray, nNeighbors, nIters, maxCandidates, delta, rho, rpTreeInit) {
-        if (nIters === void 0) {
-          nIters = 10;
-        }
-        if (maxCandidates === void 0) {
-          maxCandidates = 50;
-        }
-        if (delta === void 0) {
-          delta = 1e-3;
-        }
-        if (rho === void 0) {
-          rho = 0.5;
-        }
-        if (rpTreeInit === void 0) {
-          rpTreeInit = true;
-        }
-        var nVertices = data.length;
-        var currentGraph = heap.makeHeap(data.length, nNeighbors);
-        for (var i = 0; i < data.length; i++) {
-          var indices = heap.rejectionSample(nNeighbors, data.length, random);
-          for (var j = 0; j < indices.length; j++) {
-            var d = distanceFn(data[i], data[indices[j]]);
-            heap.heapPush(currentGraph, i, d, indices[j], 1);
-            heap.heapPush(currentGraph, indices[j], d, i, 1);
-          }
-        }
-        if (rpTreeInit) {
-          for (var n = 0; n < leafArray.length; n++) {
-            for (var i = 0; i < leafArray[n].length; i++) {
-              if (leafArray[n][i] < 0) {
-                break;
-              }
-              for (var j = i + 1; j < leafArray[n].length; j++) {
-                if (leafArray[n][j] < 0) {
-                  break;
-                }
-                var d = distanceFn(data[leafArray[n][i]], data[leafArray[n][j]]);
-                heap.heapPush(currentGraph, leafArray[n][i], d, leafArray[n][j], 1);
-                heap.heapPush(currentGraph, leafArray[n][j], d, leafArray[n][i], 1);
-              }
-            }
-          }
-        }
-        for (var n = 0; n < nIters; n++) {
-          var candidateNeighbors = heap.buildCandidates(currentGraph, nVertices, nNeighbors, maxCandidates, random);
-          var c = 0;
-          for (var i = 0; i < nVertices; i++) {
-            for (var j = 0; j < maxCandidates; j++) {
-              var p = Math.floor(candidateNeighbors[0][i][j]);
-              if (p < 0 || utils.tauRand(random) < rho) {
-                continue;
-              }
-              for (var k = 0; k < maxCandidates; k++) {
-                var q = Math.floor(candidateNeighbors[0][i][k]);
-                var cj = candidateNeighbors[2][i][j];
-                var ck = candidateNeighbors[2][i][k];
-                if (q < 0 || !cj && !ck) {
-                  continue;
-                }
-                var d = distanceFn(data[p], data[q]);
-                c += heap.heapPush(currentGraph, p, d, q, 1);
-                c += heap.heapPush(currentGraph, q, d, p, 1);
-              }
-            }
-          }
-          if (c <= delta * nNeighbors * data.length) {
-            break;
-          }
-        }
-        var sorted = heap.deheapSort(currentGraph);
-        return sorted;
-      };
-    }
-    exports.makeNNDescent = makeNNDescent;
-    function makeInitializations(distanceFn) {
-      function initFromRandom(nNeighbors, data, queryPoints, _heap, random) {
-        for (var i = 0; i < queryPoints.length; i++) {
-          var indices = utils.rejectionSample(nNeighbors, data.length, random);
-          for (var j = 0; j < indices.length; j++) {
-            if (indices[j] < 0) {
-              continue;
-            }
-            var d = distanceFn(data[indices[j]], queryPoints[i]);
-            heap.heapPush(_heap, i, d, indices[j], 1);
-          }
-        }
-      }
-      function initFromTree(_tree, data, queryPoints, _heap, random) {
-        for (var i = 0; i < queryPoints.length; i++) {
-          var indices = tree.searchFlatTree(queryPoints[i], _tree, random);
-          for (var j = 0; j < indices.length; j++) {
-            if (indices[j] < 0) {
-              return;
-            }
-            var d = distanceFn(data[indices[j]], queryPoints[i]);
-            heap.heapPush(_heap, i, d, indices[j], 1);
-          }
-        }
-        return;
-      }
-      return { initFromRandom, initFromTree };
-    }
-    exports.makeInitializations = makeInitializations;
-    function makeInitializedNNSearch(distanceFn) {
-      return function nnSearchFn(data, graph, initialization, queryPoints) {
-        var e_1, _a;
-        var _b = matrix.getCSR(graph), indices = _b.indices, indptr = _b.indptr;
-        for (var i = 0; i < queryPoints.length; i++) {
-          var tried = new Set(initialization[0][i]);
-          while (true) {
-            var vertex = heap.smallestFlagged(initialization, i);
-            if (vertex === -1) {
-              break;
-            }
-            var candidates = indices.slice(indptr[vertex], indptr[vertex + 1]);
-            try {
-              for (var candidates_1 = (e_1 = void 0, __values(candidates)), candidates_1_1 = candidates_1.next(); !candidates_1_1.done; candidates_1_1 = candidates_1.next()) {
-                var candidate = candidates_1_1.value;
-                if (candidate === vertex || candidate === -1 || tried.has(candidate)) {
-                  continue;
-                }
-                var d = distanceFn(data[candidate], queryPoints[i]);
-                heap.uncheckedHeapPush(initialization, i, d, candidate, 1);
-                tried.add(candidate);
-              }
-            } catch (e_1_1) {
-              e_1 = { error: e_1_1 };
-            } finally {
-              try {
-                if (candidates_1_1 && !candidates_1_1.done && (_a = candidates_1.return)) _a.call(candidates_1);
-              } finally {
-                if (e_1) throw e_1.error;
-              }
-            }
-          }
-        }
-        return initialization;
-      };
-    }
-    exports.makeInitializedNNSearch = makeInitializedNNSearch;
-    function initializeSearch(forest, data, queryPoints, nNeighbors, initFromRandom, initFromTree, random) {
-      var e_2, _a;
-      var results = heap.makeHeap(queryPoints.length, nNeighbors);
-      initFromRandom(nNeighbors, data, queryPoints, results, random);
-      if (forest) {
-        try {
-          for (var forest_1 = __values(forest), forest_1_1 = forest_1.next(); !forest_1_1.done; forest_1_1 = forest_1.next()) {
-            var tree_1 = forest_1_1.value;
-            initFromTree(tree_1, data, queryPoints, results, random);
-          }
-        } catch (e_2_1) {
-          e_2 = { error: e_2_1 };
-        } finally {
-          try {
-            if (forest_1_1 && !forest_1_1.done && (_a = forest_1.return)) _a.call(forest_1);
-          } finally {
-            if (e_2) throw e_2.error;
-          }
-        }
-      }
-      return results;
-    }
-    exports.initializeSearch = initializeSearch;
-  }
-});
-
-// node_modules/is-any-array/lib/index.js
-var require_lib = __commonJS({
-  "node_modules/is-any-array/lib/index.js"(exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    var toString = Object.prototype.toString;
-    function isAnyArray(object) {
-      return toString.call(object).endsWith("Array]");
-    }
-    exports.default = isAnyArray;
-  }
-});
-
 // node_modules/ml-matrix/node_modules/is-any-array/lib/index.js
-var require_lib2 = __commonJS({
+var require_lib = __commonJS({
   "node_modules/ml-matrix/node_modules/is-any-array/lib/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -1277,7 +40,7 @@ var require_lib2 = __commonJS({
 });
 
 // node_modules/ml-array-rescale/node_modules/is-any-array/lib/index.js
-var require_lib3 = __commonJS({
+var require_lib2 = __commonJS({
   "node_modules/ml-array-rescale/node_modules/is-any-array/lib/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -1292,7 +55,7 @@ var require_lib3 = __commonJS({
 });
 
 // node_modules/ml-array-max/node_modules/is-any-array/lib/index.js
-var require_lib4 = __commonJS({
+var require_lib3 = __commonJS({
   "node_modules/ml-array-max/node_modules/is-any-array/lib/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -1307,10 +70,10 @@ var require_lib4 = __commonJS({
 });
 
 // node_modules/ml-array-max/lib/index.js
-var require_lib5 = __commonJS({
+var require_lib4 = __commonJS({
   "node_modules/ml-array-max/lib/index.js"(exports, module) {
     "use strict";
-    var isAnyArray = require_lib4();
+    var isAnyArray = require_lib3();
     function max2(input, options = {}) {
       if (!isAnyArray.isAnyArray(input)) {
         throw new TypeError("input must be an array");
@@ -1338,7 +101,7 @@ var require_lib5 = __commonJS({
 });
 
 // node_modules/ml-array-min/node_modules/is-any-array/lib/index.js
-var require_lib6 = __commonJS({
+var require_lib5 = __commonJS({
   "node_modules/ml-array-min/node_modules/is-any-array/lib/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -1353,10 +116,10 @@ var require_lib6 = __commonJS({
 });
 
 // node_modules/ml-array-min/lib/index.js
-var require_lib7 = __commonJS({
+var require_lib6 = __commonJS({
   "node_modules/ml-array-min/lib/index.js"(exports, module) {
     "use strict";
-    var isAnyArray = require_lib6();
+    var isAnyArray = require_lib5();
     function min2(input, options = {}) {
       if (!isAnyArray.isAnyArray(input)) {
         throw new TypeError("input must be an array");
@@ -1384,12 +147,12 @@ var require_lib7 = __commonJS({
 });
 
 // node_modules/ml-array-rescale/lib/index.js
-var require_lib8 = __commonJS({
+var require_lib7 = __commonJS({
   "node_modules/ml-array-rescale/lib/index.js"(exports, module) {
     "use strict";
-    var isAnyArray = require_lib3();
-    var max2 = require_lib5();
-    var min2 = require_lib7();
+    var isAnyArray = require_lib2();
+    var max2 = require_lib4();
+    var min2 = require_lib6();
     function _interopDefaultLegacy(e) {
       return e && typeof e === "object" && "default" in e ? e : { "default": e };
     }
@@ -1435,34 +198,34 @@ var require_lib8 = __commonJS({
 });
 
 // node_modules/ml-matrix/matrix.js
-var require_matrix2 = __commonJS({
+var require_matrix = __commonJS({
   "node_modules/ml-matrix/matrix.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    var isAnyArray = require_lib2();
-    var rescale = require_lib8();
+    var isAnyArray = require_lib();
+    var rescale = require_lib7();
     var indent = " ".repeat(2);
     var indentData = " ".repeat(4);
     function inspectMatrix() {
       return inspectMatrixWithOptions(this);
     }
-    function inspectMatrixWithOptions(matrix, options = {}) {
+    function inspectMatrixWithOptions(matrix2, options = {}) {
       const {
         maxRows = 15,
         maxColumns = 10,
         maxNumSize = 8,
         padMinus = "auto"
       } = options;
-      return `${matrix.constructor.name} {
+      return `${matrix2.constructor.name} {
 ${indent}[
-${indentData}${inspectData(matrix, maxRows, maxColumns, maxNumSize, padMinus)}
+${indentData}${inspectData(matrix2, maxRows, maxColumns, maxNumSize, padMinus)}
 ${indent}]
-${indent}rows: ${matrix.rows}
-${indent}columns: ${matrix.columns}
+${indent}rows: ${matrix2.rows}
+${indent}columns: ${matrix2.columns}
 }`;
     }
-    function inspectData(matrix, maxRows, maxColumns, maxNumSize, padMinus) {
-      const { rows, columns } = matrix;
+    function inspectData(matrix2, maxRows, maxColumns, maxNumSize, padMinus) {
+      const { rows, columns } = matrix2;
       const maxI = Math.min(rows, maxRows);
       const maxJ = Math.min(columns, maxColumns);
       const result = [];
@@ -1470,7 +233,7 @@ ${indent}columns: ${matrix.columns}
         padMinus = false;
         loop: for (let i = 0; i < maxI; i++) {
           for (let j = 0; j < maxJ; j++) {
-            if (matrix.get(i, j) < 0) {
+            if (matrix2.get(i, j) < 0) {
               padMinus = true;
               break loop;
             }
@@ -1480,7 +243,7 @@ ${indent}columns: ${matrix.columns}
       for (let i = 0; i < maxI; i++) {
         let line = [];
         for (let j = 0; j < maxJ; j++) {
-          line.push(formatNumber(matrix.get(i, j), maxNumSize, padMinus));
+          line.push(formatNumber(matrix2.get(i, j), maxNumSize, padMinus));
         }
         result.push(`${line.join(" ")}`);
       }
@@ -1512,12 +275,12 @@ ${indentData}`);
       }
       return exp.slice(0);
     }
-    function installMathOperations(AbstractMatrix2, Matrix2) {
-      AbstractMatrix2.prototype.add = function add(value) {
+    function installMathOperations(AbstractMatrix3, Matrix4) {
+      AbstractMatrix3.prototype.add = function add(value) {
         if (typeof value === "number") return this.addS(value);
         return this.addM(value);
       };
-      AbstractMatrix2.prototype.addS = function addS(value) {
+      AbstractMatrix3.prototype.addS = function addS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) + value);
@@ -1525,27 +288,27 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.addM = function addM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.addM = function addM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) + matrix.get(i, j));
+            this.set(i, j, this.get(i, j) + matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.add = function add(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.add = function add(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.add(value);
       };
-      AbstractMatrix2.prototype.sub = function sub(value) {
+      AbstractMatrix3.prototype.sub = function sub(value) {
         if (typeof value === "number") return this.subS(value);
         return this.subM(value);
       };
-      AbstractMatrix2.prototype.subS = function subS(value) {
+      AbstractMatrix3.prototype.subS = function subS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) - value);
@@ -1553,31 +316,31 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.subM = function subM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.subM = function subM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) - matrix.get(i, j));
+            this.set(i, j, this.get(i, j) - matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.sub = function sub(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.sub = function sub(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.sub(value);
       };
-      AbstractMatrix2.prototype.subtract = AbstractMatrix2.prototype.sub;
-      AbstractMatrix2.prototype.subtractS = AbstractMatrix2.prototype.subS;
-      AbstractMatrix2.prototype.subtractM = AbstractMatrix2.prototype.subM;
-      AbstractMatrix2.subtract = AbstractMatrix2.sub;
-      AbstractMatrix2.prototype.mul = function mul(value) {
+      AbstractMatrix3.prototype.subtract = AbstractMatrix3.prototype.sub;
+      AbstractMatrix3.prototype.subtractS = AbstractMatrix3.prototype.subS;
+      AbstractMatrix3.prototype.subtractM = AbstractMatrix3.prototype.subM;
+      AbstractMatrix3.subtract = AbstractMatrix3.sub;
+      AbstractMatrix3.prototype.mul = function mul(value) {
         if (typeof value === "number") return this.mulS(value);
         return this.mulM(value);
       };
-      AbstractMatrix2.prototype.mulS = function mulS(value) {
+      AbstractMatrix3.prototype.mulS = function mulS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) * value);
@@ -1585,31 +348,31 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.mulM = function mulM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.mulM = function mulM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) * matrix.get(i, j));
+            this.set(i, j, this.get(i, j) * matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.mul = function mul(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.mul = function mul(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.mul(value);
       };
-      AbstractMatrix2.prototype.multiply = AbstractMatrix2.prototype.mul;
-      AbstractMatrix2.prototype.multiplyS = AbstractMatrix2.prototype.mulS;
-      AbstractMatrix2.prototype.multiplyM = AbstractMatrix2.prototype.mulM;
-      AbstractMatrix2.multiply = AbstractMatrix2.mul;
-      AbstractMatrix2.prototype.div = function div(value) {
+      AbstractMatrix3.prototype.multiply = AbstractMatrix3.prototype.mul;
+      AbstractMatrix3.prototype.multiplyS = AbstractMatrix3.prototype.mulS;
+      AbstractMatrix3.prototype.multiplyM = AbstractMatrix3.prototype.mulM;
+      AbstractMatrix3.multiply = AbstractMatrix3.mul;
+      AbstractMatrix3.prototype.div = function div(value) {
         if (typeof value === "number") return this.divS(value);
         return this.divM(value);
       };
-      AbstractMatrix2.prototype.divS = function divS(value) {
+      AbstractMatrix3.prototype.divS = function divS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) / value);
@@ -1617,31 +380,31 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.divM = function divM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.divM = function divM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) / matrix.get(i, j));
+            this.set(i, j, this.get(i, j) / matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.div = function div(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.div = function div(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.div(value);
       };
-      AbstractMatrix2.prototype.divide = AbstractMatrix2.prototype.div;
-      AbstractMatrix2.prototype.divideS = AbstractMatrix2.prototype.divS;
-      AbstractMatrix2.prototype.divideM = AbstractMatrix2.prototype.divM;
-      AbstractMatrix2.divide = AbstractMatrix2.div;
-      AbstractMatrix2.prototype.mod = function mod(value) {
+      AbstractMatrix3.prototype.divide = AbstractMatrix3.prototype.div;
+      AbstractMatrix3.prototype.divideS = AbstractMatrix3.prototype.divS;
+      AbstractMatrix3.prototype.divideM = AbstractMatrix3.prototype.divM;
+      AbstractMatrix3.divide = AbstractMatrix3.div;
+      AbstractMatrix3.prototype.mod = function mod(value) {
         if (typeof value === "number") return this.modS(value);
         return this.modM(value);
       };
-      AbstractMatrix2.prototype.modS = function modS(value) {
+      AbstractMatrix3.prototype.modS = function modS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) % value);
@@ -1649,31 +412,31 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.modM = function modM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.modM = function modM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) % matrix.get(i, j));
+            this.set(i, j, this.get(i, j) % matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.mod = function mod(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.mod = function mod(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.mod(value);
       };
-      AbstractMatrix2.prototype.modulus = AbstractMatrix2.prototype.mod;
-      AbstractMatrix2.prototype.modulusS = AbstractMatrix2.prototype.modS;
-      AbstractMatrix2.prototype.modulusM = AbstractMatrix2.prototype.modM;
-      AbstractMatrix2.modulus = AbstractMatrix2.mod;
-      AbstractMatrix2.prototype.and = function and(value) {
+      AbstractMatrix3.prototype.modulus = AbstractMatrix3.prototype.mod;
+      AbstractMatrix3.prototype.modulusS = AbstractMatrix3.prototype.modS;
+      AbstractMatrix3.prototype.modulusM = AbstractMatrix3.prototype.modM;
+      AbstractMatrix3.modulus = AbstractMatrix3.mod;
+      AbstractMatrix3.prototype.and = function and(value) {
         if (typeof value === "number") return this.andS(value);
         return this.andM(value);
       };
-      AbstractMatrix2.prototype.andS = function andS(value) {
+      AbstractMatrix3.prototype.andS = function andS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) & value);
@@ -1681,27 +444,27 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.andM = function andM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.andM = function andM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) & matrix.get(i, j));
+            this.set(i, j, this.get(i, j) & matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.and = function and(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.and = function and(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.and(value);
       };
-      AbstractMatrix2.prototype.or = function or(value) {
+      AbstractMatrix3.prototype.or = function or(value) {
         if (typeof value === "number") return this.orS(value);
         return this.orM(value);
       };
-      AbstractMatrix2.prototype.orS = function orS(value) {
+      AbstractMatrix3.prototype.orS = function orS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) | value);
@@ -1709,27 +472,27 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.orM = function orM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.orM = function orM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) | matrix.get(i, j));
+            this.set(i, j, this.get(i, j) | matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.or = function or(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.or = function or(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.or(value);
       };
-      AbstractMatrix2.prototype.xor = function xor(value) {
+      AbstractMatrix3.prototype.xor = function xor(value) {
         if (typeof value === "number") return this.xorS(value);
         return this.xorM(value);
       };
-      AbstractMatrix2.prototype.xorS = function xorS(value) {
+      AbstractMatrix3.prototype.xorS = function xorS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) ^ value);
@@ -1737,27 +500,27 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.xorM = function xorM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.xorM = function xorM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) ^ matrix.get(i, j));
+            this.set(i, j, this.get(i, j) ^ matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.xor = function xor(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.xor = function xor(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.xor(value);
       };
-      AbstractMatrix2.prototype.leftShift = function leftShift(value) {
+      AbstractMatrix3.prototype.leftShift = function leftShift(value) {
         if (typeof value === "number") return this.leftShiftS(value);
         return this.leftShiftM(value);
       };
-      AbstractMatrix2.prototype.leftShiftS = function leftShiftS(value) {
+      AbstractMatrix3.prototype.leftShiftS = function leftShiftS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) << value);
@@ -1765,27 +528,27 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.leftShiftM = function leftShiftM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.leftShiftM = function leftShiftM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) << matrix.get(i, j));
+            this.set(i, j, this.get(i, j) << matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.leftShift = function leftShift(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.leftShift = function leftShift(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.leftShift(value);
       };
-      AbstractMatrix2.prototype.signPropagatingRightShift = function signPropagatingRightShift(value) {
+      AbstractMatrix3.prototype.signPropagatingRightShift = function signPropagatingRightShift(value) {
         if (typeof value === "number") return this.signPropagatingRightShiftS(value);
         return this.signPropagatingRightShiftM(value);
       };
-      AbstractMatrix2.prototype.signPropagatingRightShiftS = function signPropagatingRightShiftS(value) {
+      AbstractMatrix3.prototype.signPropagatingRightShiftS = function signPropagatingRightShiftS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) >> value);
@@ -1793,27 +556,27 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.signPropagatingRightShiftM = function signPropagatingRightShiftM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.signPropagatingRightShiftM = function signPropagatingRightShiftM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) >> matrix.get(i, j));
+            this.set(i, j, this.get(i, j) >> matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.signPropagatingRightShift = function signPropagatingRightShift(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.signPropagatingRightShift = function signPropagatingRightShift(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.signPropagatingRightShift(value);
       };
-      AbstractMatrix2.prototype.rightShift = function rightShift(value) {
+      AbstractMatrix3.prototype.rightShift = function rightShift(value) {
         if (typeof value === "number") return this.rightShiftS(value);
         return this.rightShiftM(value);
       };
-      AbstractMatrix2.prototype.rightShiftS = function rightShiftS(value) {
+      AbstractMatrix3.prototype.rightShiftS = function rightShiftS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) >>> value);
@@ -1821,27 +584,27 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.rightShiftM = function rightShiftM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.rightShiftM = function rightShiftM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) >>> matrix.get(i, j));
+            this.set(i, j, this.get(i, j) >>> matrix2.get(i, j));
           }
         }
         return this;
       };
-      AbstractMatrix2.rightShift = function rightShift(matrix, value) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.rightShift = function rightShift(matrix2, value) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.rightShift(value);
       };
-      AbstractMatrix2.prototype.zeroFillRightShift = AbstractMatrix2.prototype.rightShift;
-      AbstractMatrix2.prototype.zeroFillRightShiftS = AbstractMatrix2.prototype.rightShiftS;
-      AbstractMatrix2.prototype.zeroFillRightShiftM = AbstractMatrix2.prototype.rightShiftM;
-      AbstractMatrix2.zeroFillRightShift = AbstractMatrix2.rightShift;
-      AbstractMatrix2.prototype.not = function not() {
+      AbstractMatrix3.prototype.zeroFillRightShift = AbstractMatrix3.prototype.rightShift;
+      AbstractMatrix3.prototype.zeroFillRightShiftS = AbstractMatrix3.prototype.rightShiftS;
+      AbstractMatrix3.prototype.zeroFillRightShiftM = AbstractMatrix3.prototype.rightShiftM;
+      AbstractMatrix3.zeroFillRightShift = AbstractMatrix3.rightShift;
+      AbstractMatrix3.prototype.not = function not() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, ~this.get(i, j));
@@ -1849,11 +612,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.not = function not(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.not = function not(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.not();
       };
-      AbstractMatrix2.prototype.abs = function abs2() {
+      AbstractMatrix3.prototype.abs = function abs2() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.abs(this.get(i, j)));
@@ -1861,11 +624,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.abs = function abs2(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.abs = function abs2(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.abs();
       };
-      AbstractMatrix2.prototype.acos = function acos() {
+      AbstractMatrix3.prototype.acos = function acos() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.acos(this.get(i, j)));
@@ -1873,11 +636,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.acos = function acos(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.acos = function acos(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.acos();
       };
-      AbstractMatrix2.prototype.acosh = function acosh() {
+      AbstractMatrix3.prototype.acosh = function acosh() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.acosh(this.get(i, j)));
@@ -1885,11 +648,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.acosh = function acosh(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.acosh = function acosh(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.acosh();
       };
-      AbstractMatrix2.prototype.asin = function asin() {
+      AbstractMatrix3.prototype.asin = function asin() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.asin(this.get(i, j)));
@@ -1897,11 +660,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.asin = function asin(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.asin = function asin(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.asin();
       };
-      AbstractMatrix2.prototype.asinh = function asinh() {
+      AbstractMatrix3.prototype.asinh = function asinh() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.asinh(this.get(i, j)));
@@ -1909,11 +672,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.asinh = function asinh(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.asinh = function asinh(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.asinh();
       };
-      AbstractMatrix2.prototype.atan = function atan() {
+      AbstractMatrix3.prototype.atan = function atan() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.atan(this.get(i, j)));
@@ -1921,11 +684,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.atan = function atan(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.atan = function atan(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.atan();
       };
-      AbstractMatrix2.prototype.atanh = function atanh() {
+      AbstractMatrix3.prototype.atanh = function atanh() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.atanh(this.get(i, j)));
@@ -1933,11 +696,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.atanh = function atanh(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.atanh = function atanh(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.atanh();
       };
-      AbstractMatrix2.prototype.cbrt = function cbrt() {
+      AbstractMatrix3.prototype.cbrt = function cbrt() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.cbrt(this.get(i, j)));
@@ -1945,11 +708,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.cbrt = function cbrt(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.cbrt = function cbrt(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.cbrt();
       };
-      AbstractMatrix2.prototype.ceil = function ceil() {
+      AbstractMatrix3.prototype.ceil = function ceil() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.ceil(this.get(i, j)));
@@ -1957,11 +720,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.ceil = function ceil(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.ceil = function ceil(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.ceil();
       };
-      AbstractMatrix2.prototype.clz32 = function clz32() {
+      AbstractMatrix3.prototype.clz32 = function clz32() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.clz32(this.get(i, j)));
@@ -1969,11 +732,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.clz32 = function clz32(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.clz32 = function clz32(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.clz32();
       };
-      AbstractMatrix2.prototype.cos = function cos() {
+      AbstractMatrix3.prototype.cos = function cos() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.cos(this.get(i, j)));
@@ -1981,11 +744,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.cos = function cos(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.cos = function cos(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.cos();
       };
-      AbstractMatrix2.prototype.cosh = function cosh() {
+      AbstractMatrix3.prototype.cosh = function cosh() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.cosh(this.get(i, j)));
@@ -1993,11 +756,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.cosh = function cosh(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.cosh = function cosh(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.cosh();
       };
-      AbstractMatrix2.prototype.exp = function exp() {
+      AbstractMatrix3.prototype.exp = function exp() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.exp(this.get(i, j)));
@@ -2005,11 +768,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.exp = function exp(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.exp = function exp(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.exp();
       };
-      AbstractMatrix2.prototype.expm1 = function expm1() {
+      AbstractMatrix3.prototype.expm1 = function expm1() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.expm1(this.get(i, j)));
@@ -2017,11 +780,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.expm1 = function expm1(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.expm1 = function expm1(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.expm1();
       };
-      AbstractMatrix2.prototype.floor = function floor() {
+      AbstractMatrix3.prototype.floor = function floor() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.floor(this.get(i, j)));
@@ -2029,11 +792,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.floor = function floor(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.floor = function floor(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.floor();
       };
-      AbstractMatrix2.prototype.fround = function fround() {
+      AbstractMatrix3.prototype.fround = function fround() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.fround(this.get(i, j)));
@@ -2041,11 +804,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.fround = function fround(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.fround = function fround(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.fround();
       };
-      AbstractMatrix2.prototype.log = function log() {
+      AbstractMatrix3.prototype.log = function log() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.log(this.get(i, j)));
@@ -2053,11 +816,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.log = function log(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.log = function log(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.log();
       };
-      AbstractMatrix2.prototype.log1p = function log1p() {
+      AbstractMatrix3.prototype.log1p = function log1p() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.log1p(this.get(i, j)));
@@ -2065,11 +828,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.log1p = function log1p(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.log1p = function log1p(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.log1p();
       };
-      AbstractMatrix2.prototype.log10 = function log10() {
+      AbstractMatrix3.prototype.log10 = function log10() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.log10(this.get(i, j)));
@@ -2077,11 +840,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.log10 = function log10(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.log10 = function log10(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.log10();
       };
-      AbstractMatrix2.prototype.log2 = function log2() {
+      AbstractMatrix3.prototype.log2 = function log2() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.log2(this.get(i, j)));
@@ -2089,11 +852,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.log2 = function log2(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.log2 = function log2(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.log2();
       };
-      AbstractMatrix2.prototype.round = function round() {
+      AbstractMatrix3.prototype.round = function round() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.round(this.get(i, j)));
@@ -2101,11 +864,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.round = function round(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.round = function round(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.round();
       };
-      AbstractMatrix2.prototype.sign = function sign() {
+      AbstractMatrix3.prototype.sign = function sign() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.sign(this.get(i, j)));
@@ -2113,11 +876,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.sign = function sign(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.sign = function sign(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.sign();
       };
-      AbstractMatrix2.prototype.sin = function sin() {
+      AbstractMatrix3.prototype.sin = function sin() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.sin(this.get(i, j)));
@@ -2125,11 +888,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.sin = function sin(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.sin = function sin(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.sin();
       };
-      AbstractMatrix2.prototype.sinh = function sinh() {
+      AbstractMatrix3.prototype.sinh = function sinh() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.sinh(this.get(i, j)));
@@ -2137,11 +900,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.sinh = function sinh(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.sinh = function sinh(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.sinh();
       };
-      AbstractMatrix2.prototype.sqrt = function sqrt() {
+      AbstractMatrix3.prototype.sqrt = function sqrt() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.sqrt(this.get(i, j)));
@@ -2149,11 +912,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.sqrt = function sqrt(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.sqrt = function sqrt(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.sqrt();
       };
-      AbstractMatrix2.prototype.tan = function tan() {
+      AbstractMatrix3.prototype.tan = function tan() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.tan(this.get(i, j)));
@@ -2161,11 +924,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.tan = function tan(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.tan = function tan(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.tan();
       };
-      AbstractMatrix2.prototype.tanh = function tanh() {
+      AbstractMatrix3.prototype.tanh = function tanh() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.tanh(this.get(i, j)));
@@ -2173,11 +936,11 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.tanh = function tanh(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.tanh = function tanh(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.tanh();
       };
-      AbstractMatrix2.prototype.trunc = function trunc() {
+      AbstractMatrix3.prototype.trunc = function trunc() {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, Math.trunc(this.get(i, j)));
@@ -2185,19 +948,19 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.trunc = function trunc(matrix) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.trunc = function trunc(matrix2) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.trunc();
       };
-      AbstractMatrix2.pow = function pow(matrix, arg0) {
-        const newMatrix = new Matrix2(matrix);
+      AbstractMatrix3.pow = function pow(matrix2, arg0) {
+        const newMatrix = new Matrix4(matrix2);
         return newMatrix.pow(arg0);
       };
-      AbstractMatrix2.prototype.pow = function pow(value) {
+      AbstractMatrix3.prototype.pow = function pow(value) {
         if (typeof value === "number") return this.powS(value);
         return this.powM(value);
       };
-      AbstractMatrix2.prototype.powS = function powS(value) {
+      AbstractMatrix3.prototype.powS = function powS(value) {
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             this.set(i, j, this.get(i, j) ** value);
@@ -2205,72 +968,72 @@ ${indentData}`);
         }
         return this;
       };
-      AbstractMatrix2.prototype.powM = function powM(matrix) {
-        matrix = Matrix2.checkMatrix(matrix);
-        if (this.rows !== matrix.rows || this.columns !== matrix.columns) {
+      AbstractMatrix3.prototype.powM = function powM(matrix2) {
+        matrix2 = Matrix4.checkMatrix(matrix2);
+        if (this.rows !== matrix2.rows || this.columns !== matrix2.columns) {
           throw new RangeError("Matrices dimensions must be equal");
         }
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
-            this.set(i, j, this.get(i, j) ** matrix.get(i, j));
+            this.set(i, j, this.get(i, j) ** matrix2.get(i, j));
           }
         }
         return this;
       };
     }
-    function checkRowIndex(matrix, index, outer) {
-      let max2 = outer ? matrix.rows : matrix.rows - 1;
+    function checkRowIndex(matrix2, index, outer) {
+      let max2 = outer ? matrix2.rows : matrix2.rows - 1;
       if (index < 0 || index > max2) {
         throw new RangeError("Row index out of range");
       }
     }
-    function checkColumnIndex(matrix, index, outer) {
-      let max2 = outer ? matrix.columns : matrix.columns - 1;
+    function checkColumnIndex(matrix2, index, outer) {
+      let max2 = outer ? matrix2.columns : matrix2.columns - 1;
       if (index < 0 || index > max2) {
         throw new RangeError("Column index out of range");
       }
     }
-    function checkRowVector(matrix, vector) {
+    function checkRowVector(matrix2, vector) {
       if (vector.to1DArray) {
         vector = vector.to1DArray();
       }
-      if (vector.length !== matrix.columns) {
+      if (vector.length !== matrix2.columns) {
         throw new RangeError(
           "vector size must be the same as the number of columns"
         );
       }
       return vector;
     }
-    function checkColumnVector(matrix, vector) {
+    function checkColumnVector(matrix2, vector) {
       if (vector.to1DArray) {
         vector = vector.to1DArray();
       }
-      if (vector.length !== matrix.rows) {
+      if (vector.length !== matrix2.rows) {
         throw new RangeError("vector size must be the same as the number of rows");
       }
       return vector;
     }
-    function checkRowIndices(matrix, rowIndices) {
+    function checkRowIndices(matrix2, rowIndices) {
       if (!isAnyArray.isAnyArray(rowIndices)) {
         throw new TypeError("row indices must be an array");
       }
       for (let i = 0; i < rowIndices.length; i++) {
-        if (rowIndices[i] < 0 || rowIndices[i] >= matrix.rows) {
+        if (rowIndices[i] < 0 || rowIndices[i] >= matrix2.rows) {
           throw new RangeError("row indices are out of range");
         }
       }
     }
-    function checkColumnIndices(matrix, columnIndices) {
+    function checkColumnIndices(matrix2, columnIndices) {
       if (!isAnyArray.isAnyArray(columnIndices)) {
         throw new TypeError("column indices must be an array");
       }
       for (let i = 0; i < columnIndices.length; i++) {
-        if (columnIndices[i] < 0 || columnIndices[i] >= matrix.columns) {
+        if (columnIndices[i] < 0 || columnIndices[i] >= matrix2.columns) {
           throw new RangeError("column indices are out of range");
         }
       }
     }
-    function checkRange(matrix, startRow, endRow, startColumn, endColumn) {
+    function checkRange(matrix2, startRow, endRow, startColumn, endColumn) {
       if (arguments.length !== 5) {
         throw new RangeError("expected 4 arguments");
       }
@@ -2278,7 +1041,7 @@ ${indentData}`);
       checkNumber("endRow", endRow);
       checkNumber("startColumn", startColumn);
       checkNumber("endColumn", endColumn);
-      if (startRow > endRow || startColumn > endColumn || startRow < 0 || startRow >= matrix.rows || endRow < 0 || endRow >= matrix.rows || startColumn < 0 || startColumn >= matrix.columns || endColumn < 0 || endColumn >= matrix.columns) {
+      if (startRow > endRow || startColumn > endColumn || startRow < 0 || startRow >= matrix2.rows || endRow < 0 || endRow >= matrix2.rows || startColumn < 0 || startColumn >= matrix2.columns || endColumn < 0 || endColumn >= matrix2.columns) {
         throw new RangeError("Submatrix indices are out of range");
       }
     }
@@ -2294,75 +1057,75 @@ ${indentData}`);
         throw new TypeError(`${name} must be a number`);
       }
     }
-    function checkNonEmpty(matrix) {
-      if (matrix.isEmpty()) {
+    function checkNonEmpty(matrix2) {
+      if (matrix2.isEmpty()) {
         throw new Error("Empty matrix has no elements to index");
       }
     }
-    function sumByRow(matrix) {
-      let sum = newArray(matrix.rows);
-      for (let i = 0; i < matrix.rows; ++i) {
-        for (let j = 0; j < matrix.columns; ++j) {
-          sum[i] += matrix.get(i, j);
+    function sumByRow(matrix2) {
+      let sum = newArray(matrix2.rows);
+      for (let i = 0; i < matrix2.rows; ++i) {
+        for (let j = 0; j < matrix2.columns; ++j) {
+          sum[i] += matrix2.get(i, j);
         }
       }
       return sum;
     }
-    function sumByColumn(matrix) {
-      let sum = newArray(matrix.columns);
-      for (let i = 0; i < matrix.rows; ++i) {
-        for (let j = 0; j < matrix.columns; ++j) {
-          sum[j] += matrix.get(i, j);
+    function sumByColumn(matrix2) {
+      let sum = newArray(matrix2.columns);
+      for (let i = 0; i < matrix2.rows; ++i) {
+        for (let j = 0; j < matrix2.columns; ++j) {
+          sum[j] += matrix2.get(i, j);
         }
       }
       return sum;
     }
-    function sumAll(matrix) {
+    function sumAll(matrix2) {
       let v = 0;
-      for (let i = 0; i < matrix.rows; i++) {
-        for (let j = 0; j < matrix.columns; j++) {
-          v += matrix.get(i, j);
+      for (let i = 0; i < matrix2.rows; i++) {
+        for (let j = 0; j < matrix2.columns; j++) {
+          v += matrix2.get(i, j);
         }
       }
       return v;
     }
-    function productByRow(matrix) {
-      let sum = newArray(matrix.rows, 1);
-      for (let i = 0; i < matrix.rows; ++i) {
-        for (let j = 0; j < matrix.columns; ++j) {
-          sum[i] *= matrix.get(i, j);
+    function productByRow(matrix2) {
+      let sum = newArray(matrix2.rows, 1);
+      for (let i = 0; i < matrix2.rows; ++i) {
+        for (let j = 0; j < matrix2.columns; ++j) {
+          sum[i] *= matrix2.get(i, j);
         }
       }
       return sum;
     }
-    function productByColumn(matrix) {
-      let sum = newArray(matrix.columns, 1);
-      for (let i = 0; i < matrix.rows; ++i) {
-        for (let j = 0; j < matrix.columns; ++j) {
-          sum[j] *= matrix.get(i, j);
+    function productByColumn(matrix2) {
+      let sum = newArray(matrix2.columns, 1);
+      for (let i = 0; i < matrix2.rows; ++i) {
+        for (let j = 0; j < matrix2.columns; ++j) {
+          sum[j] *= matrix2.get(i, j);
         }
       }
       return sum;
     }
-    function productAll(matrix) {
+    function productAll(matrix2) {
       let v = 1;
-      for (let i = 0; i < matrix.rows; i++) {
-        for (let j = 0; j < matrix.columns; j++) {
-          v *= matrix.get(i, j);
+      for (let i = 0; i < matrix2.rows; i++) {
+        for (let j = 0; j < matrix2.columns; j++) {
+          v *= matrix2.get(i, j);
         }
       }
       return v;
     }
-    function varianceByRow(matrix, unbiased, mean) {
-      const rows = matrix.rows;
-      const cols = matrix.columns;
+    function varianceByRow(matrix2, unbiased, mean) {
+      const rows = matrix2.rows;
+      const cols = matrix2.columns;
       const variance = [];
       for (let i = 0; i < rows; i++) {
         let sum1 = 0;
         let sum2 = 0;
         let x = 0;
         for (let j = 0; j < cols; j++) {
-          x = matrix.get(i, j) - mean[i];
+          x = matrix2.get(i, j) - mean[i];
           sum1 += x;
           sum2 += x * x;
         }
@@ -2374,16 +1137,16 @@ ${indentData}`);
       }
       return variance;
     }
-    function varianceByColumn(matrix, unbiased, mean) {
-      const rows = matrix.rows;
-      const cols = matrix.columns;
+    function varianceByColumn(matrix2, unbiased, mean) {
+      const rows = matrix2.rows;
+      const cols = matrix2.columns;
       const variance = [];
       for (let j = 0; j < cols; j++) {
         let sum1 = 0;
         let sum2 = 0;
         let x = 0;
         for (let i = 0; i < rows; i++) {
-          x = matrix.get(i, j) - mean[j];
+          x = matrix2.get(i, j) - mean[j];
           sum1 += x;
           sum2 += x * x;
         }
@@ -2395,16 +1158,16 @@ ${indentData}`);
       }
       return variance;
     }
-    function varianceAll(matrix, unbiased, mean) {
-      const rows = matrix.rows;
-      const cols = matrix.columns;
+    function varianceAll(matrix2, unbiased, mean) {
+      const rows = matrix2.rows;
+      const cols = matrix2.columns;
       const size = rows * cols;
       let sum1 = 0;
       let sum2 = 0;
       let x = 0;
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
-          x = matrix.get(i, j) - mean;
+          x = matrix2.get(i, j) - mean;
           sum1 += x;
           sum2 += x * x;
         }
@@ -2415,87 +1178,87 @@ ${indentData}`);
         return (sum2 - sum1 * sum1 / size) / size;
       }
     }
-    function centerByRow(matrix, mean) {
-      for (let i = 0; i < matrix.rows; i++) {
-        for (let j = 0; j < matrix.columns; j++) {
-          matrix.set(i, j, matrix.get(i, j) - mean[i]);
+    function centerByRow(matrix2, mean) {
+      for (let i = 0; i < matrix2.rows; i++) {
+        for (let j = 0; j < matrix2.columns; j++) {
+          matrix2.set(i, j, matrix2.get(i, j) - mean[i]);
         }
       }
     }
-    function centerByColumn(matrix, mean) {
-      for (let i = 0; i < matrix.rows; i++) {
-        for (let j = 0; j < matrix.columns; j++) {
-          matrix.set(i, j, matrix.get(i, j) - mean[j]);
+    function centerByColumn(matrix2, mean) {
+      for (let i = 0; i < matrix2.rows; i++) {
+        for (let j = 0; j < matrix2.columns; j++) {
+          matrix2.set(i, j, matrix2.get(i, j) - mean[j]);
         }
       }
     }
-    function centerAll(matrix, mean) {
-      for (let i = 0; i < matrix.rows; i++) {
-        for (let j = 0; j < matrix.columns; j++) {
-          matrix.set(i, j, matrix.get(i, j) - mean);
+    function centerAll(matrix2, mean) {
+      for (let i = 0; i < matrix2.rows; i++) {
+        for (let j = 0; j < matrix2.columns; j++) {
+          matrix2.set(i, j, matrix2.get(i, j) - mean);
         }
       }
     }
-    function getScaleByRow(matrix) {
+    function getScaleByRow(matrix2) {
       const scale = [];
-      for (let i = 0; i < matrix.rows; i++) {
+      for (let i = 0; i < matrix2.rows; i++) {
         let sum = 0;
-        for (let j = 0; j < matrix.columns; j++) {
-          sum += matrix.get(i, j) ** 2 / (matrix.columns - 1);
+        for (let j = 0; j < matrix2.columns; j++) {
+          sum += matrix2.get(i, j) ** 2 / (matrix2.columns - 1);
         }
         scale.push(Math.sqrt(sum));
       }
       return scale;
     }
-    function scaleByRow(matrix, scale) {
-      for (let i = 0; i < matrix.rows; i++) {
-        for (let j = 0; j < matrix.columns; j++) {
-          matrix.set(i, j, matrix.get(i, j) / scale[i]);
+    function scaleByRow(matrix2, scale) {
+      for (let i = 0; i < matrix2.rows; i++) {
+        for (let j = 0; j < matrix2.columns; j++) {
+          matrix2.set(i, j, matrix2.get(i, j) / scale[i]);
         }
       }
     }
-    function getScaleByColumn(matrix) {
+    function getScaleByColumn(matrix2) {
       const scale = [];
-      for (let j = 0; j < matrix.columns; j++) {
+      for (let j = 0; j < matrix2.columns; j++) {
         let sum = 0;
-        for (let i = 0; i < matrix.rows; i++) {
-          sum += matrix.get(i, j) ** 2 / (matrix.rows - 1);
+        for (let i = 0; i < matrix2.rows; i++) {
+          sum += matrix2.get(i, j) ** 2 / (matrix2.rows - 1);
         }
         scale.push(Math.sqrt(sum));
       }
       return scale;
     }
-    function scaleByColumn(matrix, scale) {
-      for (let i = 0; i < matrix.rows; i++) {
-        for (let j = 0; j < matrix.columns; j++) {
-          matrix.set(i, j, matrix.get(i, j) / scale[j]);
+    function scaleByColumn(matrix2, scale) {
+      for (let i = 0; i < matrix2.rows; i++) {
+        for (let j = 0; j < matrix2.columns; j++) {
+          matrix2.set(i, j, matrix2.get(i, j) / scale[j]);
         }
       }
     }
-    function getScaleAll(matrix) {
-      const divider = matrix.size - 1;
+    function getScaleAll(matrix2) {
+      const divider = matrix2.size - 1;
       let sum = 0;
-      for (let j = 0; j < matrix.columns; j++) {
-        for (let i = 0; i < matrix.rows; i++) {
-          sum += matrix.get(i, j) ** 2 / divider;
+      for (let j = 0; j < matrix2.columns; j++) {
+        for (let i = 0; i < matrix2.rows; i++) {
+          sum += matrix2.get(i, j) ** 2 / divider;
         }
       }
       return Math.sqrt(sum);
     }
-    function scaleAll(matrix, scale) {
-      for (let i = 0; i < matrix.rows; i++) {
-        for (let j = 0; j < matrix.columns; j++) {
-          matrix.set(i, j, matrix.get(i, j) / scale);
+    function scaleAll(matrix2, scale) {
+      for (let i = 0; i < matrix2.rows; i++) {
+        for (let j = 0; j < matrix2.columns; j++) {
+          matrix2.set(i, j, matrix2.get(i, j) / scale);
         }
       }
     }
-    var AbstractMatrix = class _AbstractMatrix {
+    var AbstractMatrix2 = class _AbstractMatrix {
       static from1DArray(newRows, newColumns, newData) {
         let length = newRows * newColumns;
         if (length !== newData.length) {
           throw new RangeError("data length does not match given dimensions");
         }
-        let newMatrix = new Matrix(newRows, newColumns);
+        let newMatrix = new Matrix3(newRows, newColumns);
         for (let row = 0; row < newRows; row++) {
           for (let column = 0; column < newColumns; column++) {
             newMatrix.set(row, column, newData[row * newColumns + column]);
@@ -2504,83 +1267,83 @@ ${indentData}`);
         return newMatrix;
       }
       static rowVector(newData) {
-        let vector = new Matrix(1, newData.length);
+        let vector = new Matrix3(1, newData.length);
         for (let i = 0; i < newData.length; i++) {
           vector.set(0, i, newData[i]);
         }
         return vector;
       }
       static columnVector(newData) {
-        let vector = new Matrix(newData.length, 1);
+        let vector = new Matrix3(newData.length, 1);
         for (let i = 0; i < newData.length; i++) {
           vector.set(i, 0, newData[i]);
         }
         return vector;
       }
       static zeros(rows, columns) {
-        return new Matrix(rows, columns);
+        return new Matrix3(rows, columns);
       }
       static ones(rows, columns) {
-        return new Matrix(rows, columns).fill(1);
+        return new Matrix3(rows, columns).fill(1);
       }
       static rand(rows, columns, options = {}) {
         if (typeof options !== "object") {
           throw new TypeError("options must be an object");
         }
-        const { random = Math.random } = options;
-        let matrix = new Matrix(rows, columns);
+        const { random: random2 = Math.random } = options;
+        let matrix2 = new Matrix3(rows, columns);
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < columns; j++) {
-            matrix.set(i, j, random());
+            matrix2.set(i, j, random2());
           }
         }
-        return matrix;
+        return matrix2;
       }
       static randInt(rows, columns, options = {}) {
         if (typeof options !== "object") {
           throw new TypeError("options must be an object");
         }
-        const { min: min2 = 0, max: max2 = 1e3, random = Math.random } = options;
+        const { min: min2 = 0, max: max2 = 1e3, random: random2 = Math.random } = options;
         if (!Number.isInteger(min2)) throw new TypeError("min must be an integer");
         if (!Number.isInteger(max2)) throw new TypeError("max must be an integer");
         if (min2 >= max2) throw new RangeError("min must be smaller than max");
         let interval2 = max2 - min2;
-        let matrix = new Matrix(rows, columns);
+        let matrix2 = new Matrix3(rows, columns);
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < columns; j++) {
-            let value = min2 + Math.round(random() * interval2);
-            matrix.set(i, j, value);
+            let value = min2 + Math.round(random2() * interval2);
+            matrix2.set(i, j, value);
           }
         }
-        return matrix;
+        return matrix2;
       }
       static eye(rows, columns, value) {
         if (columns === void 0) columns = rows;
         if (value === void 0) value = 1;
         let min2 = Math.min(rows, columns);
-        let matrix = this.zeros(rows, columns);
+        let matrix2 = this.zeros(rows, columns);
         for (let i = 0; i < min2; i++) {
-          matrix.set(i, i, value);
+          matrix2.set(i, i, value);
         }
-        return matrix;
+        return matrix2;
       }
       static diag(data, rows, columns) {
         let l = data.length;
         if (rows === void 0) rows = l;
         if (columns === void 0) columns = rows;
         let min2 = Math.min(l, rows, columns);
-        let matrix = this.zeros(rows, columns);
+        let matrix2 = this.zeros(rows, columns);
         for (let i = 0; i < min2; i++) {
-          matrix.set(i, i, data[i]);
+          matrix2.set(i, i, data[i]);
         }
-        return matrix;
+        return matrix2;
       }
       static min(matrix1, matrix2) {
         matrix1 = this.checkMatrix(matrix1);
         matrix2 = this.checkMatrix(matrix2);
         let rows = matrix1.rows;
         let columns = matrix1.columns;
-        let result = new Matrix(rows, columns);
+        let result = new Matrix3(rows, columns);
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < columns; j++) {
             result.set(i, j, Math.min(matrix1.get(i, j), matrix2.get(i, j)));
@@ -2602,7 +1365,7 @@ ${indentData}`);
         return result;
       }
       static checkMatrix(value) {
-        return _AbstractMatrix.isMatrix(value) ? value : new Matrix(value);
+        return _AbstractMatrix.isMatrix(value) ? value : new Matrix3(value);
       }
       static isMatrix(value) {
         return value != null && value.klass === "Matrix";
@@ -2810,13 +1573,13 @@ ${indentData}`);
         if (!Number.isInteger(columns) || columns <= 0) {
           throw new TypeError("columns must be a positive integer");
         }
-        let matrix = new Matrix(this.rows * rows, this.columns * columns);
+        let matrix2 = new Matrix3(this.rows * rows, this.columns * columns);
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < columns; j++) {
-            matrix.setSubMatrix(this, this.rows * i, this.columns * j);
+            matrix2.setSubMatrix(this, this.rows * i, this.columns * j);
           }
         }
-        return matrix;
+        return matrix2;
       }
       fill(value) {
         for (let i = 0; i < this.rows; i++) {
@@ -2838,7 +1601,7 @@ ${indentData}`);
         return row;
       }
       getRowVector(index) {
-        return Matrix.rowVector(this.getRow(index));
+        return Matrix3.rowVector(this.getRow(index));
       }
       setRow(index, array2) {
         checkRowIndex(this, index);
@@ -2867,7 +1630,7 @@ ${indentData}`);
         return column;
       }
       getColumnVector(index) {
-        return Matrix.columnVector(this.getColumn(index));
+        return Matrix3.columnVector(this.getColumn(index));
       }
       setColumn(index, array2) {
         checkColumnIndex(this, index);
@@ -3232,11 +1995,11 @@ ${indentData}`);
         return dot;
       }
       mmul(other) {
-        other = Matrix.checkMatrix(other);
+        other = Matrix3.checkMatrix(other);
         let m = this.rows;
         let n = this.columns;
         let p = other.columns;
-        let result = new Matrix(m, p);
+        let result = new Matrix3(m, p);
         let Bcolj = new Float64Array(n);
         for (let j = 0; j < p; j++) {
           for (let k = 0; k < n; k++) {
@@ -3259,7 +2022,7 @@ ${indentData}`);
         if (!Number.isInteger(scalar) || scalar < 0) {
           throw new RangeError("Exponent must be a non-negative integer");
         }
-        let result = Matrix.eye(this.rows);
+        let result = Matrix3.eye(this.rows);
         let bb = this;
         for (let e = scalar; e >= 1; e /= 2) {
           if ((e & 1) !== 0) {
@@ -3270,8 +2033,8 @@ ${indentData}`);
         return result;
       }
       strassen2x2(other) {
-        other = Matrix.checkMatrix(other);
-        let result = new Matrix(2, 2);
+        other = Matrix3.checkMatrix(other);
+        let result = new Matrix3(2, 2);
         const a11 = this.get(0, 0);
         const b11 = other.get(0, 0);
         const a12 = this.get(0, 1);
@@ -3298,8 +2061,8 @@ ${indentData}`);
         return result;
       }
       strassen3x3(other) {
-        other = Matrix.checkMatrix(other);
-        let result = new Matrix(3, 3);
+        other = Matrix3.checkMatrix(other);
+        let result = new Matrix3(3, 3);
         const a00 = this.get(0, 0);
         const a01 = this.get(0, 1);
         const a02 = this.get(0, 2);
@@ -3362,7 +2125,7 @@ ${indentData}`);
         return result;
       }
       mmulStrassen(y) {
-        y = Matrix.checkMatrix(y);
+        y = Matrix3.checkMatrix(y);
         let x = this.clone();
         let r1 = x.rows;
         let c1 = x.columns;
@@ -3459,7 +2222,7 @@ ${indentData}`);
         if (!Number.isFinite(min2)) throw new TypeError("min must be a number");
         if (!Number.isFinite(max2)) throw new TypeError("max must be a number");
         if (min2 >= max2) throw new RangeError("min must be smaller than max");
-        let newMatrix = new Matrix(this.rows, this.columns);
+        let newMatrix = new Matrix3(this.rows, this.columns);
         for (let i = 0; i < this.rows; i++) {
           const row = this.getRow(i);
           if (row.length > 0) {
@@ -3477,7 +2240,7 @@ ${indentData}`);
         if (!Number.isFinite(min2)) throw new TypeError("min must be a number");
         if (!Number.isFinite(max2)) throw new TypeError("max must be a number");
         if (min2 >= max2) throw new RangeError("min must be smaller than max");
-        let newMatrix = new Matrix(this.rows, this.columns);
+        let newMatrix = new Matrix3(this.rows, this.columns);
         for (let i = 0; i < this.columns; i++) {
           const column = this.getColumn(i);
           if (column.length) {
@@ -3516,12 +2279,12 @@ ${indentData}`);
         return this;
       }
       kroneckerProduct(other) {
-        other = Matrix.checkMatrix(other);
+        other = Matrix3.checkMatrix(other);
         let m = this.rows;
         let n = this.columns;
         let p = other.rows;
         let q = other.columns;
-        let result = new Matrix(m * p, n * q);
+        let result = new Matrix3(m * p, n * q);
         for (let i = 0; i < m; i++) {
           for (let j = 0; j < n; j++) {
             for (let k = 0; k < p; k++) {
@@ -3534,18 +2297,18 @@ ${indentData}`);
         return result;
       }
       kroneckerSum(other) {
-        other = Matrix.checkMatrix(other);
+        other = Matrix3.checkMatrix(other);
         if (!this.isSquare() || !other.isSquare()) {
           throw new Error("Kronecker Sum needs two Square Matrices");
         }
         let m = this.rows;
         let n = other.rows;
-        let AxI = this.kroneckerProduct(Matrix.eye(n, n));
-        let IxB = Matrix.eye(m, m).kroneckerProduct(other);
+        let AxI = this.kroneckerProduct(Matrix3.eye(n, n));
+        let IxB = Matrix3.eye(m, m).kroneckerProduct(other);
         return AxI.add(IxB);
       }
       transpose() {
-        let result = new Matrix(this.columns, this.rows);
+        let result = new Matrix3(this.columns, this.rows);
         for (let i = 0; i < this.rows; i++) {
           for (let j = 0; j < this.columns; j++) {
             result.set(j, i, this.get(i, j));
@@ -3567,7 +2330,7 @@ ${indentData}`);
       }
       subMatrix(startRow, endRow, startColumn, endColumn) {
         checkRange(this, startRow, endRow, startColumn, endColumn);
-        let newMatrix = new Matrix(
+        let newMatrix = new Matrix3(
           endRow - startRow + 1,
           endColumn - startColumn + 1
         );
@@ -3584,7 +2347,7 @@ ${indentData}`);
         if (startColumn > endColumn || startColumn < 0 || startColumn >= this.columns || endColumn < 0 || endColumn >= this.columns) {
           throw new RangeError("Argument out of range");
         }
-        let newMatrix = new Matrix(indices.length, endColumn - startColumn + 1);
+        let newMatrix = new Matrix3(indices.length, endColumn - startColumn + 1);
         for (let i = 0; i < indices.length; i++) {
           for (let j = startColumn; j <= endColumn; j++) {
             if (indices[i] < 0 || indices[i] >= this.rows) {
@@ -3601,7 +2364,7 @@ ${indentData}`);
         if (startRow > endRow || startRow < 0 || startRow >= this.rows || endRow < 0 || endRow >= this.rows) {
           throw new RangeError("Argument out of range");
         }
-        let newMatrix = new Matrix(endRow - startRow + 1, indices.length);
+        let newMatrix = new Matrix3(endRow - startRow + 1, indices.length);
         for (let i = 0; i < indices.length; i++) {
           for (let j = startRow; j <= endRow; j++) {
             if (indices[i] < 0 || indices[i] >= this.columns) {
@@ -3612,17 +2375,17 @@ ${indentData}`);
         }
         return newMatrix;
       }
-      setSubMatrix(matrix, startRow, startColumn) {
-        matrix = Matrix.checkMatrix(matrix);
-        if (matrix.isEmpty()) {
+      setSubMatrix(matrix2, startRow, startColumn) {
+        matrix2 = Matrix3.checkMatrix(matrix2);
+        if (matrix2.isEmpty()) {
           return this;
         }
-        let endRow = startRow + matrix.rows - 1;
-        let endColumn = startColumn + matrix.columns - 1;
+        let endRow = startRow + matrix2.rows - 1;
+        let endColumn = startColumn + matrix2.columns - 1;
         checkRange(this, startRow, endRow, startColumn, endColumn);
-        for (let i = 0; i < matrix.rows; i++) {
-          for (let j = 0; j < matrix.columns; j++) {
-            this.set(startRow + i, startColumn + j, matrix.get(i, j));
+        for (let i = 0; i < matrix2.rows; i++) {
+          for (let j = 0; j < matrix2.columns; j++) {
+            this.set(startRow + i, startColumn + j, matrix2.get(i, j));
           }
         }
         return this;
@@ -3630,7 +2393,7 @@ ${indentData}`);
       selection(rowIndices, columnIndices) {
         checkRowIndices(this, rowIndices);
         checkColumnIndices(this, columnIndices);
-        let newMatrix = new Matrix(rowIndices.length, columnIndices.length);
+        let newMatrix = new Matrix3(rowIndices.length, columnIndices.length);
         for (let i = 0; i < rowIndices.length; i++) {
           let rowIndex = rowIndices[i];
           for (let j = 0; j < columnIndices.length; j++) {
@@ -3649,7 +2412,7 @@ ${indentData}`);
         return trace;
       }
       clone() {
-        return this.constructor.copy(this, new Matrix(this.rows, this.columns));
+        return this.constructor.copy(this, new Matrix3(this.rows, this.columns));
       }
       /**
        * @template {AbstractMatrix} M
@@ -3865,9 +2628,9 @@ ${indentData}`);
         }
       }
     };
-    AbstractMatrix.prototype.klass = "Matrix";
+    AbstractMatrix2.prototype.klass = "Matrix";
     if (typeof Symbol !== "undefined") {
-      AbstractMatrix.prototype[/* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom")] = inspectMatrix;
+      AbstractMatrix2.prototype[/* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom")] = inspectMatrix;
     }
     function compareNumbers(a, b) {
       return a - b;
@@ -3877,14 +2640,14 @@ ${indentData}`);
         return typeof element === "number";
       });
     }
-    AbstractMatrix.random = AbstractMatrix.rand;
-    AbstractMatrix.randomInt = AbstractMatrix.randInt;
-    AbstractMatrix.diagonal = AbstractMatrix.diag;
-    AbstractMatrix.prototype.diagonal = AbstractMatrix.prototype.diag;
-    AbstractMatrix.identity = AbstractMatrix.eye;
-    AbstractMatrix.prototype.negate = AbstractMatrix.prototype.neg;
-    AbstractMatrix.prototype.tensorProduct = AbstractMatrix.prototype.kroneckerProduct;
-    var Matrix = class _Matrix extends AbstractMatrix {
+    AbstractMatrix2.random = AbstractMatrix2.rand;
+    AbstractMatrix2.randomInt = AbstractMatrix2.randInt;
+    AbstractMatrix2.diagonal = AbstractMatrix2.diag;
+    AbstractMatrix2.prototype.diagonal = AbstractMatrix2.prototype.diag;
+    AbstractMatrix2.identity = AbstractMatrix2.eye;
+    AbstractMatrix2.prototype.negate = AbstractMatrix2.prototype.neg;
+    AbstractMatrix2.prototype.tensorProduct = AbstractMatrix2.prototype.kroneckerProduct;
+    var Matrix3 = class _Matrix extends AbstractMatrix2 {
       /**
        * @type {Float64Array[]}
        */
@@ -4002,8 +2765,8 @@ ${indentData}`);
         return this;
       }
     };
-    installMathOperations(AbstractMatrix, Matrix);
-    var SymmetricMatrix = class _SymmetricMatrix extends AbstractMatrix {
+    installMathOperations(AbstractMatrix2, Matrix3);
+    var SymmetricMatrix2 = class _SymmetricMatrix extends AbstractMatrix2 {
       /** @type {Matrix} */
       #matrix;
       get size() {
@@ -4026,7 +2789,7 @@ ${indentData}`);
        * @returns {boolean}
        */
       static isSymmetricMatrix(value) {
-        return Matrix.isMatrix(value) && value.klassType === "SymmetricMatrix";
+        return Matrix3.isMatrix(value) && value.klassType === "SymmetricMatrix";
       }
       /**
        * @param diagonalSize
@@ -4048,32 +2811,32 @@ ${indentData}`);
        */
       constructor(diagonalSize) {
         super();
-        if (Matrix.isMatrix(diagonalSize)) {
+        if (Matrix3.isMatrix(diagonalSize)) {
           if (!diagonalSize.isSymmetric()) {
             throw new TypeError("not symmetric data");
           }
-          this.#matrix = Matrix.copy(
+          this.#matrix = Matrix3.copy(
             diagonalSize,
-            new Matrix(diagonalSize.rows, diagonalSize.rows)
+            new Matrix3(diagonalSize.rows, diagonalSize.rows)
           );
         } else if (Number.isInteger(diagonalSize) && diagonalSize >= 0) {
-          this.#matrix = new Matrix(diagonalSize, diagonalSize);
+          this.#matrix = new Matrix3(diagonalSize, diagonalSize);
         } else {
-          this.#matrix = new Matrix(diagonalSize);
+          this.#matrix = new Matrix3(diagonalSize);
           if (!this.isSymmetric()) {
             throw new TypeError("not symmetric data");
           }
         }
       }
       clone() {
-        const matrix = new _SymmetricMatrix(this.diagonalSize);
+        const matrix2 = new _SymmetricMatrix(this.diagonalSize);
         for (const [row, col, value] of this.upperRightEntries()) {
-          matrix.set(row, col, value);
+          matrix2.set(row, col, value);
         }
-        return matrix;
+        return matrix2;
       }
       toMatrix() {
-        return new Matrix(this);
+        return new Matrix3(this);
       }
       get(rowIndex, columnIndex) {
         return this.#matrix.get(rowIndex, columnIndex);
@@ -4158,12 +2921,12 @@ ${indentData}`);
             )}`
           );
         }
-        const matrix = new _SymmetricMatrix(diagonalSize);
+        const matrix2 = new _SymmetricMatrix(diagonalSize);
         for (let col = 0, row = 0, index = 0; index < compactSize; index++) {
-          matrix.set(col, row, compact[index]);
+          matrix2.set(col, row, compact[index]);
           if (++col >= diagonalSize) col = ++row;
         }
-        return matrix;
+        return matrix2;
       }
       /**
        * half iterator upper-right-corner from left to right, from top to bottom
@@ -4192,8 +2955,8 @@ ${indentData}`);
         }
       }
     };
-    SymmetricMatrix.prototype.klassType = "SymmetricMatrix";
-    var DistanceMatrix = class _DistanceMatrix extends SymmetricMatrix {
+    SymmetricMatrix2.prototype.klassType = "SymmetricMatrix";
+    var DistanceMatrix2 = class _DistanceMatrix extends SymmetricMatrix2 {
       /**
        * not the same as matrix.isSymmetric()
        * Here is to check if it's instanceof SymmetricMatrix without bundling issues
@@ -4202,7 +2965,7 @@ ${indentData}`);
        * @returns {boolean}
        */
       static isDistanceMatrix(value) {
-        return SymmetricMatrix.isSymmetricMatrix(value) && value.klassSubType === "DistanceMatrix";
+        return SymmetricMatrix2.isSymmetricMatrix(value) && value.klassSubType === "DistanceMatrix";
       }
       constructor(sideSize) {
         super(sideSize);
@@ -4224,15 +2987,15 @@ ${indentData}`);
         return super.addCross(index, array2);
       }
       toSymmetricMatrix() {
-        return new SymmetricMatrix(this);
+        return new SymmetricMatrix2(this);
       }
       clone() {
-        const matrix = new _DistanceMatrix(this.diagonalSize);
+        const matrix2 = new _DistanceMatrix(this.diagonalSize);
         for (const [row, col, value] of this.upperRightEntries()) {
           if (row === col) continue;
-          matrix.set(row, col, value);
+          matrix2.set(row, col, value);
         }
-        return matrix;
+        return matrix2;
       }
       /**
        * Compact format upper-right corner of matrix
@@ -4279,27 +3042,27 @@ ${indentData}`);
             )}`
           );
         }
-        const matrix = new this(diagonalSize);
+        const matrix2 = new this(diagonalSize);
         for (let col = 1, row = 0, index = 0; index < compactSize; index++) {
-          matrix.set(col, row, compact[index]);
+          matrix2.set(col, row, compact[index]);
           if (++col >= diagonalSize) col = ++row + 1;
         }
-        return matrix;
+        return matrix2;
       }
     };
-    DistanceMatrix.prototype.klassSubType = "DistanceMatrix";
-    var BaseView = class extends AbstractMatrix {
-      constructor(matrix, rows, columns) {
+    DistanceMatrix2.prototype.klassSubType = "DistanceMatrix";
+    var BaseView = class extends AbstractMatrix2 {
+      constructor(matrix2, rows, columns) {
         super();
-        this.matrix = matrix;
+        this.matrix = matrix2;
         this.rows = rows;
         this.columns = columns;
       }
     };
-    var MatrixColumnView = class extends BaseView {
-      constructor(matrix, column) {
-        checkColumnIndex(matrix, column);
-        super(matrix, matrix.rows, 1);
+    var MatrixColumnView2 = class extends BaseView {
+      constructor(matrix2, column) {
+        checkColumnIndex(matrix2, column);
+        super(matrix2, matrix2.rows, 1);
         this.column = column;
       }
       set(rowIndex, columnIndex, value) {
@@ -4310,10 +3073,10 @@ ${indentData}`);
         return this.matrix.get(rowIndex, this.column);
       }
     };
-    var MatrixColumnSelectionView = class extends BaseView {
-      constructor(matrix, columnIndices) {
-        checkColumnIndices(matrix, columnIndices);
-        super(matrix, matrix.rows, columnIndices.length);
+    var MatrixColumnSelectionView2 = class extends BaseView {
+      constructor(matrix2, columnIndices) {
+        checkColumnIndices(matrix2, columnIndices);
+        super(matrix2, matrix2.rows, columnIndices.length);
         this.columnIndices = columnIndices;
       }
       set(rowIndex, columnIndex, value) {
@@ -4324,9 +3087,9 @@ ${indentData}`);
         return this.matrix.get(rowIndex, this.columnIndices[columnIndex]);
       }
     };
-    var MatrixFlipColumnView = class extends BaseView {
-      constructor(matrix) {
-        super(matrix, matrix.rows, matrix.columns);
+    var MatrixFlipColumnView2 = class extends BaseView {
+      constructor(matrix2) {
+        super(matrix2, matrix2.rows, matrix2.columns);
       }
       set(rowIndex, columnIndex, value) {
         this.matrix.set(rowIndex, this.columns - columnIndex - 1, value);
@@ -4336,9 +3099,9 @@ ${indentData}`);
         return this.matrix.get(rowIndex, this.columns - columnIndex - 1);
       }
     };
-    var MatrixFlipRowView = class extends BaseView {
-      constructor(matrix) {
-        super(matrix, matrix.rows, matrix.columns);
+    var MatrixFlipRowView2 = class extends BaseView {
+      constructor(matrix2) {
+        super(matrix2, matrix2.rows, matrix2.columns);
       }
       set(rowIndex, columnIndex, value) {
         this.matrix.set(this.rows - rowIndex - 1, columnIndex, value);
@@ -4348,10 +3111,10 @@ ${indentData}`);
         return this.matrix.get(this.rows - rowIndex - 1, columnIndex);
       }
     };
-    var MatrixRowView = class extends BaseView {
-      constructor(matrix, row) {
-        checkRowIndex(matrix, row);
-        super(matrix, 1, matrix.columns);
+    var MatrixRowView2 = class extends BaseView {
+      constructor(matrix2, row) {
+        checkRowIndex(matrix2, row);
+        super(matrix2, 1, matrix2.columns);
         this.row = row;
       }
       set(rowIndex, columnIndex, value) {
@@ -4362,10 +3125,10 @@ ${indentData}`);
         return this.matrix.get(this.row, columnIndex);
       }
     };
-    var MatrixRowSelectionView = class extends BaseView {
-      constructor(matrix, rowIndices) {
-        checkRowIndices(matrix, rowIndices);
-        super(matrix, rowIndices.length, matrix.columns);
+    var MatrixRowSelectionView2 = class extends BaseView {
+      constructor(matrix2, rowIndices) {
+        checkRowIndices(matrix2, rowIndices);
+        super(matrix2, rowIndices.length, matrix2.columns);
         this.rowIndices = rowIndices;
       }
       set(rowIndex, columnIndex, value) {
@@ -4376,11 +3139,11 @@ ${indentData}`);
         return this.matrix.get(this.rowIndices[rowIndex], columnIndex);
       }
     };
-    var MatrixSelectionView = class extends BaseView {
-      constructor(matrix, rowIndices, columnIndices) {
-        checkRowIndices(matrix, rowIndices);
-        checkColumnIndices(matrix, columnIndices);
-        super(matrix, rowIndices.length, columnIndices.length);
+    var MatrixSelectionView2 = class extends BaseView {
+      constructor(matrix2, rowIndices, columnIndices) {
+        checkRowIndices(matrix2, rowIndices);
+        checkColumnIndices(matrix2, columnIndices);
+        super(matrix2, rowIndices.length, columnIndices.length);
         this.rowIndices = rowIndices;
         this.columnIndices = columnIndices;
       }
@@ -4399,10 +3162,10 @@ ${indentData}`);
         );
       }
     };
-    var MatrixSubView = class extends BaseView {
-      constructor(matrix, startRow, endRow, startColumn, endColumn) {
-        checkRange(matrix, startRow, endRow, startColumn, endColumn);
-        super(matrix, endRow - startRow + 1, endColumn - startColumn + 1);
+    var MatrixSubView2 = class extends BaseView {
+      constructor(matrix2, startRow, endRow, startColumn, endColumn) {
+        checkRange(matrix2, startRow, endRow, startColumn, endColumn);
+        super(matrix2, endRow - startRow + 1, endColumn - startColumn + 1);
         this.startRow = startRow;
         this.startColumn = startColumn;
       }
@@ -4421,9 +3184,9 @@ ${indentData}`);
         );
       }
     };
-    var MatrixTransposeView = class extends BaseView {
-      constructor(matrix) {
-        super(matrix, matrix.columns, matrix.rows);
+    var MatrixTransposeView2 = class extends BaseView {
+      constructor(matrix2) {
+        super(matrix2, matrix2.columns, matrix2.rows);
       }
       set(rowIndex, columnIndex, value) {
         this.matrix.set(columnIndex, rowIndex, value);
@@ -4433,7 +3196,7 @@ ${indentData}`);
         return this.matrix.get(columnIndex, rowIndex);
       }
     };
-    var WrapperMatrix1D = class extends AbstractMatrix {
+    var WrapperMatrix1D2 = class extends AbstractMatrix2 {
       constructor(data, options = {}) {
         const { rows = 1 } = options;
         if (data.length % rows !== 0) {
@@ -4457,7 +3220,7 @@ ${indentData}`);
         return row * this.columns + column;
       }
     };
-    var WrapperMatrix2D = class extends AbstractMatrix {
+    var WrapperMatrix2D2 = class extends AbstractMatrix2 {
       constructor(data) {
         super();
         this.data = data;
@@ -4472,21 +3235,21 @@ ${indentData}`);
         return this.data[rowIndex][columnIndex];
       }
     };
-    function wrap(array2, options) {
+    function wrap2(array2, options) {
       if (isAnyArray.isAnyArray(array2)) {
         if (array2[0] && isAnyArray.isAnyArray(array2[0])) {
-          return new WrapperMatrix2D(array2);
+          return new WrapperMatrix2D2(array2);
         } else {
-          return new WrapperMatrix1D(array2, options);
+          return new WrapperMatrix1D2(array2, options);
         }
       } else {
         throw new Error("the argument is not an array");
       }
     }
-    var LuDecomposition = class {
-      constructor(matrix) {
-        matrix = WrapperMatrix2D.checkMatrix(matrix);
-        let lu = matrix.clone();
+    var LuDecomposition2 = class {
+      constructor(matrix2) {
+        matrix2 = WrapperMatrix2D2.checkMatrix(matrix2);
+        let lu = matrix2.clone();
         let rows = lu.rows;
         let columns = lu.columns;
         let pivotVector = new Float64Array(rows);
@@ -4548,7 +3311,7 @@ ${indentData}`);
         return false;
       }
       solve(value) {
-        value = Matrix.checkMatrix(value);
+        value = Matrix3.checkMatrix(value);
         let lu = this.LU;
         let rows = lu.rows;
         if (rows !== value.rows) {
@@ -4585,18 +3348,18 @@ ${indentData}`);
         if (!data.isSquare()) {
           throw new Error("Matrix must be square");
         }
-        let determinant2 = this.pivotSign;
+        let determinant3 = this.pivotSign;
         let col = data.columns;
         for (let j = 0; j < col; j++) {
-          determinant2 *= data.get(j, j);
+          determinant3 *= data.get(j, j);
         }
-        return determinant2;
+        return determinant3;
       }
       get lowerTriangularMatrix() {
         let data = this.LU;
         let rows = data.rows;
         let columns = data.columns;
-        let X2 = new Matrix(rows, columns);
+        let X2 = new Matrix3(rows, columns);
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < columns; j++) {
             if (i > j) {
@@ -4614,7 +3377,7 @@ ${indentData}`);
         let data = this.LU;
         let rows = data.rows;
         let columns = data.columns;
-        let X2 = new Matrix(rows, columns);
+        let X2 = new Matrix3(rows, columns);
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < columns; j++) {
             if (i <= j) {
@@ -4642,9 +3405,9 @@ ${indentData}`);
       }
       return 0;
     }
-    var QrDecomposition = class {
+    var QrDecomposition2 = class {
       constructor(value) {
-        value = WrapperMatrix2D.checkMatrix(value);
+        value = WrapperMatrix2D2.checkMatrix(value);
         let qr = value.clone();
         let m = value.rows;
         let n = value.columns;
@@ -4680,7 +3443,7 @@ ${indentData}`);
         this.Rdiag = rdiag;
       }
       solve(value) {
-        value = Matrix.checkMatrix(value);
+        value = Matrix3.checkMatrix(value);
         let qr = this.QR;
         let m = qr.rows;
         if (value.rows !== m) {
@@ -4729,7 +3492,7 @@ ${indentData}`);
       get upperTriangularMatrix() {
         let qr = this.QR;
         let n = qr.columns;
-        let X2 = new Matrix(n, n);
+        let X2 = new Matrix3(n, n);
         let i, j;
         for (i = 0; i < n; i++) {
           for (j = 0; j < n; j++) {
@@ -4748,7 +3511,7 @@ ${indentData}`);
         let qr = this.QR;
         let rows = qr.rows;
         let columns = qr.columns;
-        let X2 = new Matrix(rows, columns);
+        let X2 = new Matrix3(rows, columns);
         let i, j, k, s;
         for (k = columns - 1; k >= 0; k--) {
           for (i = 0; i < rows; i++) {
@@ -4771,9 +3534,9 @@ ${indentData}`);
         return X2;
       }
     };
-    var SingularValueDecomposition = class {
+    var SingularValueDecomposition2 = class {
       constructor(value, options = {}) {
-        value = WrapperMatrix2D.checkMatrix(value);
+        value = WrapperMatrix2D2.checkMatrix(value);
         if (value.isEmpty()) {
           throw new Error("Matrix must be non-empty");
         }
@@ -4809,8 +3572,8 @@ ${indentData}`);
         let nu = Math.min(m, n);
         let ni = Math.min(m + 1, n);
         let s = new Float64Array(ni);
-        let U = new Matrix(m, nu);
-        let V = new Matrix(n, n);
+        let U = new Matrix3(m, nu);
+        let V = new Matrix3(n, n);
         let e = new Float64Array(n);
         let work = new Float64Array(m);
         let si = new Float64Array(ni);
@@ -5154,7 +3917,7 @@ ${indentData}`);
         let Y2 = value;
         let e = this.threshold;
         let scols = this.s.length;
-        let Ls = Matrix.zeros(scols, scols);
+        let Ls = Matrix3.zeros(scols, scols);
         for (let i = 0; i < scols; i++) {
           if (Math.abs(this.s[i]) <= e) {
             Ls.set(i, i, 0);
@@ -5167,7 +3930,7 @@ ${indentData}`);
         let VL = V.mmul(Ls);
         let vrows = V.rows;
         let urows = U.rows;
-        let VLU = Matrix.zeros(vrows, urows);
+        let VLU = Matrix3.zeros(vrows, urows);
         for (let i = 0; i < vrows; i++) {
           for (let j = 0; j < urows; j++) {
             let sum = 0;
@@ -5180,14 +3943,14 @@ ${indentData}`);
         return VLU.mmul(Y2);
       }
       solveForDiagonal(value) {
-        return this.solve(Matrix.diag(value));
+        return this.solve(Matrix3.diag(value));
       }
       inverse() {
         let V = this.V;
         let e = this.threshold;
         let vrows = V.rows;
         let vcols = V.columns;
-        let X2 = new Matrix(vrows, this.s.length);
+        let X2 = new Matrix3(vrows, this.s.length);
         for (let i = 0; i < vrows; i++) {
           for (let j = 0; j < vcols; j++) {
             if (Math.abs(this.s[j]) > e) {
@@ -5198,7 +3961,7 @@ ${indentData}`);
         let U = this.U;
         let urows = U.rows;
         let ucols = U.columns;
-        let Y2 = new Matrix(vrows, urows);
+        let Y2 = new Matrix3(vrows, urows);
         for (let i = 0; i < vrows; i++) {
           for (let j = 0; j < urows; j++) {
             let sum = 0;
@@ -5240,69 +4003,69 @@ ${indentData}`);
         return this.V;
       }
       get diagonalMatrix() {
-        return Matrix.diag(this.s);
+        return Matrix3.diag(this.s);
       }
     };
-    function inverse(matrix, useSVD = false) {
-      matrix = WrapperMatrix2D.checkMatrix(matrix);
+    function inverse2(matrix2, useSVD = false) {
+      matrix2 = WrapperMatrix2D2.checkMatrix(matrix2);
       if (useSVD) {
-        return new SingularValueDecomposition(matrix).inverse();
+        return new SingularValueDecomposition2(matrix2).inverse();
       } else {
-        return solve(matrix, Matrix.eye(matrix.rows));
+        return solve2(matrix2, Matrix3.eye(matrix2.rows));
       }
     }
-    function solve(leftHandSide, rightHandSide, useSVD = false) {
-      leftHandSide = WrapperMatrix2D.checkMatrix(leftHandSide);
-      rightHandSide = WrapperMatrix2D.checkMatrix(rightHandSide);
+    function solve2(leftHandSide, rightHandSide, useSVD = false) {
+      leftHandSide = WrapperMatrix2D2.checkMatrix(leftHandSide);
+      rightHandSide = WrapperMatrix2D2.checkMatrix(rightHandSide);
       if (useSVD) {
-        return new SingularValueDecomposition(leftHandSide).solve(rightHandSide);
+        return new SingularValueDecomposition2(leftHandSide).solve(rightHandSide);
       } else {
-        return leftHandSide.isSquare() ? new LuDecomposition(leftHandSide).solve(rightHandSide) : new QrDecomposition(leftHandSide).solve(rightHandSide);
+        return leftHandSide.isSquare() ? new LuDecomposition2(leftHandSide).solve(rightHandSide) : new QrDecomposition2(leftHandSide).solve(rightHandSide);
       }
     }
-    function determinant(matrix) {
-      matrix = Matrix.checkMatrix(matrix);
-      if (matrix.isSquare()) {
-        if (matrix.columns === 0) {
+    function determinant2(matrix2) {
+      matrix2 = Matrix3.checkMatrix(matrix2);
+      if (matrix2.isSquare()) {
+        if (matrix2.columns === 0) {
           return 1;
         }
         let a, b, c, d;
-        if (matrix.columns === 2) {
-          a = matrix.get(0, 0);
-          b = matrix.get(0, 1);
-          c = matrix.get(1, 0);
-          d = matrix.get(1, 1);
+        if (matrix2.columns === 2) {
+          a = matrix2.get(0, 0);
+          b = matrix2.get(0, 1);
+          c = matrix2.get(1, 0);
+          d = matrix2.get(1, 1);
           return a * d - b * c;
-        } else if (matrix.columns === 3) {
+        } else if (matrix2.columns === 3) {
           let subMatrix0, subMatrix1, subMatrix2;
-          subMatrix0 = new MatrixSelectionView(matrix, [1, 2], [1, 2]);
-          subMatrix1 = new MatrixSelectionView(matrix, [1, 2], [0, 2]);
-          subMatrix2 = new MatrixSelectionView(matrix, [1, 2], [0, 1]);
-          a = matrix.get(0, 0);
-          b = matrix.get(0, 1);
-          c = matrix.get(0, 2);
-          return a * determinant(subMatrix0) - b * determinant(subMatrix1) + c * determinant(subMatrix2);
+          subMatrix0 = new MatrixSelectionView2(matrix2, [1, 2], [1, 2]);
+          subMatrix1 = new MatrixSelectionView2(matrix2, [1, 2], [0, 2]);
+          subMatrix2 = new MatrixSelectionView2(matrix2, [1, 2], [0, 1]);
+          a = matrix2.get(0, 0);
+          b = matrix2.get(0, 1);
+          c = matrix2.get(0, 2);
+          return a * determinant2(subMatrix0) - b * determinant2(subMatrix1) + c * determinant2(subMatrix2);
         } else {
-          return new LuDecomposition(matrix).determinant;
+          return new LuDecomposition2(matrix2).determinant;
         }
       } else {
         throw Error("determinant can only be calculated for a square matrix");
       }
     }
     function xrange(n, exception) {
-      let range = [];
+      let range2 = [];
       for (let i = 0; i < n; i++) {
         if (i !== exception) {
-          range.push(i);
+          range2.push(i);
         }
       }
-      return range;
+      return range2;
     }
-    function dependenciesOneRow(error, matrix, index, thresholdValue = 1e-9, thresholdError = 1e-9) {
+    function dependenciesOneRow(error, matrix2, index, thresholdValue = 1e-9, thresholdError = 1e-9) {
       if (error > thresholdError) {
-        return new Array(matrix.rows + 1).fill(0);
+        return new Array(matrix2.rows + 1).fill(0);
       } else {
-        let returnArray = matrix.addRow(index, [0]);
+        let returnArray = matrix2.addRow(index, [0]);
         for (let i = 0; i < returnArray.rows; i++) {
           if (Math.abs(returnArray.get(i, 0)) < thresholdValue) {
             returnArray.set(i, 0, 0);
@@ -5311,17 +4074,17 @@ ${indentData}`);
         return returnArray.to1DArray();
       }
     }
-    function linearDependencies(matrix, options = {}) {
+    function linearDependencies2(matrix2, options = {}) {
       const { thresholdValue = 1e-9, thresholdError = 1e-9 } = options;
-      matrix = Matrix.checkMatrix(matrix);
-      let n = matrix.rows;
-      let results = new Matrix(n, n);
+      matrix2 = Matrix3.checkMatrix(matrix2);
+      let n = matrix2.rows;
+      let results = new Matrix3(n, n);
       for (let i = 0; i < n; i++) {
-        let b = Matrix.columnVector(matrix.getRow(i));
-        let Abis = matrix.subMatrixRow(xrange(n, i)).transpose();
-        let svd = new SingularValueDecomposition(Abis);
+        let b = Matrix3.columnVector(matrix2.getRow(i));
+        let Abis = matrix2.subMatrixRow(xrange(n, i)).transpose();
+        let svd = new SingularValueDecomposition2(Abis);
         let x = svd.solve(b);
-        let error = Matrix.sub(b, Abis.mmul(x)).abs().max();
+        let error = Matrix3.sub(b, Abis.mmul(x)).abs().max();
         results.setRow(
           i,
           dependenciesOneRow(error, x, i, thresholdValue, thresholdError)
@@ -5329,12 +4092,12 @@ ${indentData}`);
       }
       return results;
     }
-    function pseudoInverse(matrix, threshold = Number.EPSILON) {
-      matrix = Matrix.checkMatrix(matrix);
-      if (matrix.isEmpty()) {
-        return matrix.transpose();
+    function pseudoInverse2(matrix2, threshold = Number.EPSILON) {
+      matrix2 = Matrix3.checkMatrix(matrix2);
+      if (matrix2.isEmpty()) {
+        return matrix2.transpose();
       }
-      let svdSolution = new SingularValueDecomposition(matrix, { autoTranspose: true });
+      let svdSolution = new SingularValueDecomposition2(matrix2, { autoTranspose: true });
       let U = svdSolution.leftSingularVectors;
       let V = svdSolution.rightSingularVectors;
       let s = svdSolution.diagonal;
@@ -5345,17 +4108,17 @@ ${indentData}`);
           s[i] = 0;
         }
       }
-      return V.mmul(Matrix.diag(s).mmul(U.transpose()));
+      return V.mmul(Matrix3.diag(s).mmul(U.transpose()));
     }
-    function covariance(xMatrix, yMatrix = xMatrix, options = {}) {
-      xMatrix = new Matrix(xMatrix);
+    function covariance2(xMatrix, yMatrix = xMatrix, options = {}) {
+      xMatrix = new Matrix3(xMatrix);
       let yIsSame = false;
-      if (typeof yMatrix === "object" && !Matrix.isMatrix(yMatrix) && !isAnyArray.isAnyArray(yMatrix)) {
+      if (typeof yMatrix === "object" && !Matrix3.isMatrix(yMatrix) && !isAnyArray.isAnyArray(yMatrix)) {
         options = yMatrix;
         yMatrix = xMatrix;
         yIsSame = true;
       } else {
-        yMatrix = new Matrix(yMatrix);
+        yMatrix = new Matrix3(yMatrix);
       }
       if (xMatrix.rows !== yMatrix.rows) {
         throw new TypeError("Both matrices must have the same number of rows");
@@ -5375,15 +4138,15 @@ ${indentData}`);
       }
       return cov;
     }
-    function correlation(xMatrix, yMatrix = xMatrix, options = {}) {
-      xMatrix = new Matrix(xMatrix);
+    function correlation2(xMatrix, yMatrix = xMatrix, options = {}) {
+      xMatrix = new Matrix3(xMatrix);
       let yIsSame = false;
-      if (typeof yMatrix === "object" && !Matrix.isMatrix(yMatrix) && !isAnyArray.isAnyArray(yMatrix)) {
+      if (typeof yMatrix === "object" && !Matrix3.isMatrix(yMatrix) && !isAnyArray.isAnyArray(yMatrix)) {
         options = yMatrix;
         yMatrix = xMatrix;
         yIsSame = true;
       } else {
-        yMatrix = new Matrix(yMatrix);
+        yMatrix = new Matrix3(yMatrix);
       }
       if (xMatrix.rows !== yMatrix.rows) {
         throw new TypeError("Both matrices must have the same number of rows");
@@ -5415,27 +4178,27 @@ ${indentData}`);
       }
       return corr;
     }
-    var EigenvalueDecomposition = class {
-      constructor(matrix, options = {}) {
+    var EigenvalueDecomposition2 = class {
+      constructor(matrix2, options = {}) {
         const { assumeSymmetric = false } = options;
-        matrix = WrapperMatrix2D.checkMatrix(matrix);
-        if (!matrix.isSquare()) {
+        matrix2 = WrapperMatrix2D2.checkMatrix(matrix2);
+        if (!matrix2.isSquare()) {
           throw new Error("Matrix is not a square matrix");
         }
-        if (matrix.isEmpty()) {
+        if (matrix2.isEmpty()) {
           throw new Error("Matrix must be non-empty");
         }
-        let n = matrix.columns;
-        let V = new Matrix(n, n);
+        let n = matrix2.columns;
+        let V = new Matrix3(n, n);
         let d = new Float64Array(n);
         let e = new Float64Array(n);
-        let value = matrix;
+        let value = matrix2;
         let i, j;
         let isSymmetric = false;
         if (assumeSymmetric) {
           isSymmetric = true;
         } else {
-          isSymmetric = matrix.isSymmetric();
+          isSymmetric = matrix2.isSymmetric();
         }
         if (isSymmetric) {
           for (i = 0; i < n; i++) {
@@ -5446,7 +4209,7 @@ ${indentData}`);
           tred2(n, e, d, V);
           tql2(n, e, d, V);
         } else {
-          let H = new Matrix(n, n);
+          let H = new Matrix3(n, n);
           let ort = new Float64Array(n);
           for (j = 0; j < n; j++) {
             for (i = 0; i < n; i++) {
@@ -5474,7 +4237,7 @@ ${indentData}`);
         let n = this.n;
         let e = this.e;
         let d = this.d;
-        let X2 = new Matrix(n, n);
+        let X2 = new Matrix3(n, n);
         let i, j;
         for (i = 0; i < n; i++) {
           for (j = 0; j < n; j++) {
@@ -6103,15 +4866,15 @@ ${indentData}`);
         return [(r * xr + xi) / d, (r * xi - xr) / d];
       }
     }
-    var CholeskyDecomposition = class {
+    var CholeskyDecomposition2 = class {
       constructor(value) {
-        value = WrapperMatrix2D.checkMatrix(value);
+        value = WrapperMatrix2D2.checkMatrix(value);
         if (!value.isSymmetric()) {
           throw new Error("Matrix is not symmetric");
         }
         let a = value;
         let dimension = a.rows;
-        let l = new Matrix(dimension, dimension);
+        let l = new Matrix3(dimension, dimension);
         let positiveDefinite = true;
         let i, j, k;
         for (j = 0; j < dimension; j++) {
@@ -6139,7 +4902,7 @@ ${indentData}`);
         return this.positiveDefinite;
       }
       solve(value) {
-        value = WrapperMatrix2D.checkMatrix(value);
+        value = WrapperMatrix2D2.checkMatrix(value);
         let l = this.L;
         let dimension = l.rows;
         if (value.rows !== dimension) {
@@ -6175,7 +4938,7 @@ ${indentData}`);
     };
     var nipals = class {
       constructor(X2, options = {}) {
-        X2 = WrapperMatrix2D.checkMatrix(X2);
+        X2 = WrapperMatrix2D2.checkMatrix(X2);
         let { Y: Y2 } = options;
         const {
           scaleScores = false,
@@ -6185,9 +4948,9 @@ ${indentData}`);
         let u;
         if (Y2) {
           if (isAnyArray.isAnyArray(Y2) && typeof Y2[0] === "number") {
-            Y2 = Matrix.columnVector(Y2);
+            Y2 = Matrix3.columnVector(Y2);
           } else {
-            Y2 = WrapperMatrix2D.checkMatrix(Y2);
+            Y2 = WrapperMatrix2D2.checkMatrix(Y2);
           }
           if (Y2.rows !== X2.rows) {
             throw new Error("Y should have the same number of rows as X");
@@ -6243,42 +5006,1279 @@ ${indentData}`);
         }
       }
     };
-    exports.AbstractMatrix = AbstractMatrix;
-    exports.CHO = CholeskyDecomposition;
-    exports.CholeskyDecomposition = CholeskyDecomposition;
-    exports.DistanceMatrix = DistanceMatrix;
-    exports.EVD = EigenvalueDecomposition;
-    exports.EigenvalueDecomposition = EigenvalueDecomposition;
-    exports.LU = LuDecomposition;
-    exports.LuDecomposition = LuDecomposition;
-    exports.Matrix = Matrix;
-    exports.MatrixColumnSelectionView = MatrixColumnSelectionView;
-    exports.MatrixColumnView = MatrixColumnView;
-    exports.MatrixFlipColumnView = MatrixFlipColumnView;
-    exports.MatrixFlipRowView = MatrixFlipRowView;
-    exports.MatrixRowSelectionView = MatrixRowSelectionView;
-    exports.MatrixRowView = MatrixRowView;
-    exports.MatrixSelectionView = MatrixSelectionView;
-    exports.MatrixSubView = MatrixSubView;
-    exports.MatrixTransposeView = MatrixTransposeView;
+    exports.AbstractMatrix = AbstractMatrix2;
+    exports.CHO = CholeskyDecomposition2;
+    exports.CholeskyDecomposition = CholeskyDecomposition2;
+    exports.DistanceMatrix = DistanceMatrix2;
+    exports.EVD = EigenvalueDecomposition2;
+    exports.EigenvalueDecomposition = EigenvalueDecomposition2;
+    exports.LU = LuDecomposition2;
+    exports.LuDecomposition = LuDecomposition2;
+    exports.Matrix = Matrix3;
+    exports.MatrixColumnSelectionView = MatrixColumnSelectionView2;
+    exports.MatrixColumnView = MatrixColumnView2;
+    exports.MatrixFlipColumnView = MatrixFlipColumnView2;
+    exports.MatrixFlipRowView = MatrixFlipRowView2;
+    exports.MatrixRowSelectionView = MatrixRowSelectionView2;
+    exports.MatrixRowView = MatrixRowView2;
+    exports.MatrixSelectionView = MatrixSelectionView2;
+    exports.MatrixSubView = MatrixSubView2;
+    exports.MatrixTransposeView = MatrixTransposeView2;
     exports.NIPALS = nipals;
     exports.Nipals = nipals;
-    exports.QR = QrDecomposition;
-    exports.QrDecomposition = QrDecomposition;
-    exports.SVD = SingularValueDecomposition;
-    exports.SingularValueDecomposition = SingularValueDecomposition;
-    exports.SymmetricMatrix = SymmetricMatrix;
-    exports.WrapperMatrix1D = WrapperMatrix1D;
-    exports.WrapperMatrix2D = WrapperMatrix2D;
-    exports.correlation = correlation;
-    exports.covariance = covariance;
-    exports.default = Matrix;
-    exports.determinant = determinant;
-    exports.inverse = inverse;
-    exports.linearDependencies = linearDependencies;
-    exports.pseudoInverse = pseudoInverse;
-    exports.solve = solve;
-    exports.wrap = wrap;
+    exports.QR = QrDecomposition2;
+    exports.QrDecomposition = QrDecomposition2;
+    exports.SVD = SingularValueDecomposition2;
+    exports.SingularValueDecomposition = SingularValueDecomposition2;
+    exports.SymmetricMatrix = SymmetricMatrix2;
+    exports.WrapperMatrix1D = WrapperMatrix1D2;
+    exports.WrapperMatrix2D = WrapperMatrix2D2;
+    exports.correlation = correlation2;
+    exports.covariance = covariance2;
+    exports.default = Matrix3;
+    exports.determinant = determinant2;
+    exports.inverse = inverse2;
+    exports.linearDependencies = linearDependencies2;
+    exports.pseudoInverse = pseudoInverse2;
+    exports.solve = solve2;
+    exports.wrap = wrap2;
+  }
+});
+
+// node_modules/umap-js/dist/utils.js
+var require_utils = __commonJS({
+  "node_modules/umap-js/dist/utils.js"(exports) {
+    "use strict";
+    var __values = exports && exports.__values || function(o) {
+      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+      if (m) return m.call(o);
+      if (o && typeof o.length === "number") return {
+        next: function() {
+          if (o && i >= o.length) o = void 0;
+          return { value: o && o[i++], done: !o };
+        }
+      };
+      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.reshape2d = exports.rejectionSample = exports.max2d = exports.max = exports.mean = exports.sum = exports.linear = exports.ones = exports.zeros = exports.filled = exports.range = exports.empty = exports.norm = exports.tauRand = exports.tauRandInt = void 0;
+    function tauRandInt(n, random2) {
+      return Math.floor(random2() * n);
+    }
+    exports.tauRandInt = tauRandInt;
+    function tauRand(random2) {
+      return random2();
+    }
+    exports.tauRand = tauRand;
+    function norm(vec) {
+      var e_1, _a;
+      var result = 0;
+      try {
+        for (var vec_1 = __values(vec), vec_1_1 = vec_1.next(); !vec_1_1.done; vec_1_1 = vec_1.next()) {
+          var item = vec_1_1.value;
+          result += Math.pow(item, 2);
+        }
+      } catch (e_1_1) {
+        e_1 = { error: e_1_1 };
+      } finally {
+        try {
+          if (vec_1_1 && !vec_1_1.done && (_a = vec_1.return)) _a.call(vec_1);
+        } finally {
+          if (e_1) throw e_1.error;
+        }
+      }
+      return Math.sqrt(result);
+    }
+    exports.norm = norm;
+    function empty2(n) {
+      var output = [];
+      for (var i = 0; i < n; i++) {
+        output.push(void 0);
+      }
+      return output;
+    }
+    exports.empty = empty2;
+    function range2(n) {
+      return empty2(n).map(function(_, i) {
+        return i;
+      });
+    }
+    exports.range = range2;
+    function filled(n, v) {
+      return empty2(n).map(function() {
+        return v;
+      });
+    }
+    exports.filled = filled;
+    function zeros(n) {
+      return filled(n, 0);
+    }
+    exports.zeros = zeros;
+    function ones(n) {
+      return filled(n, 1);
+    }
+    exports.ones = ones;
+    function linear2(a, b, len) {
+      return empty2(len).map(function(_, i) {
+        return a + i * ((b - a) / (len - 1));
+      });
+    }
+    exports.linear = linear2;
+    function sum(input) {
+      return input.reduce(function(sum2, val) {
+        return sum2 + val;
+      });
+    }
+    exports.sum = sum;
+    function mean(input) {
+      return sum(input) / input.length;
+    }
+    exports.mean = mean;
+    function max2(input) {
+      var max3 = 0;
+      for (var i = 0; i < input.length; i++) {
+        max3 = input[i] > max3 ? input[i] : max3;
+      }
+      return max3;
+    }
+    exports.max = max2;
+    function max2d(input) {
+      var max3 = 0;
+      for (var i = 0; i < input.length; i++) {
+        for (var j = 0; j < input[i].length; j++) {
+          max3 = input[i][j] > max3 ? input[i][j] : max3;
+        }
+      }
+      return max3;
+    }
+    exports.max2d = max2d;
+    function rejectionSample(nSamples, poolSize, random2) {
+      var result = zeros(nSamples);
+      for (var i = 0; i < nSamples; i++) {
+        var rejectSample = true;
+        while (rejectSample) {
+          var j = tauRandInt(poolSize, random2);
+          var broken = false;
+          for (var k = 0; k < i; k++) {
+            if (j === result[k]) {
+              broken = true;
+              break;
+            }
+          }
+          if (!broken) {
+            rejectSample = false;
+          }
+          result[i] = j;
+        }
+      }
+      return result;
+    }
+    exports.rejectionSample = rejectionSample;
+    function reshape2d(x, a, b) {
+      var rows = [];
+      var count = 0;
+      var index = 0;
+      if (x.length !== a * b) {
+        throw new Error("Array dimensions must match input length.");
+      }
+      for (var i = 0; i < a; i++) {
+        var col = [];
+        for (var j = 0; j < b; j++) {
+          col.push(x[index]);
+          index += 1;
+        }
+        rows.push(col);
+        count += 1;
+      }
+      return rows;
+    }
+    exports.reshape2d = reshape2d;
+  }
+});
+
+// node_modules/umap-js/dist/heap.js
+var require_heap = __commonJS({
+  "node_modules/umap-js/dist/heap.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports && exports.__importStar || function(mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.smallestFlagged = exports.deheapSort = exports.buildCandidates = exports.uncheckedHeapPush = exports.heapPush = exports.rejectionSample = exports.makeHeap = void 0;
+    var utils = __importStar(require_utils());
+    function makeHeap(nPoints, size) {
+      var makeArrays = function(fillValue) {
+        return utils.empty(nPoints).map(function() {
+          return utils.filled(size, fillValue);
+        });
+      };
+      var heap = [];
+      heap.push(makeArrays(-1));
+      heap.push(makeArrays(Infinity));
+      heap.push(makeArrays(0));
+      return heap;
+    }
+    exports.makeHeap = makeHeap;
+    function rejectionSample(nSamples, poolSize, random2) {
+      var result = utils.zeros(nSamples);
+      for (var i = 0; i < nSamples; i++) {
+        var rejectSample = true;
+        var j = 0;
+        while (rejectSample) {
+          j = utils.tauRandInt(poolSize, random2);
+          var broken = false;
+          for (var k = 0; k < i; k++) {
+            if (j === result[k]) {
+              broken = true;
+              break;
+            }
+          }
+          if (!broken)
+            rejectSample = false;
+        }
+        result[i] = j;
+      }
+      return result;
+    }
+    exports.rejectionSample = rejectionSample;
+    function heapPush(heap, row, weight, index, flag) {
+      row = Math.floor(row);
+      var indices = heap[0][row];
+      var weights = heap[1][row];
+      var isNew = heap[2][row];
+      if (weight >= weights[0]) {
+        return 0;
+      }
+      for (var i = 0; i < indices.length; i++) {
+        if (index === indices[i]) {
+          return 0;
+        }
+      }
+      return uncheckedHeapPush(heap, row, weight, index, flag);
+    }
+    exports.heapPush = heapPush;
+    function uncheckedHeapPush(heap, row, weight, index, flag) {
+      var indices = heap[0][row];
+      var weights = heap[1][row];
+      var isNew = heap[2][row];
+      if (weight >= weights[0]) {
+        return 0;
+      }
+      weights[0] = weight;
+      indices[0] = index;
+      isNew[0] = flag;
+      var i = 0;
+      var iSwap = 0;
+      while (true) {
+        var ic1 = 2 * i + 1;
+        var ic2 = ic1 + 1;
+        var heapShape2 = heap[0][0].length;
+        if (ic1 >= heapShape2) {
+          break;
+        } else if (ic2 >= heapShape2) {
+          if (weights[ic1] > weight) {
+            iSwap = ic1;
+          } else {
+            break;
+          }
+        } else if (weights[ic1] >= weights[ic2]) {
+          if (weight < weights[ic1]) {
+            iSwap = ic1;
+          } else {
+            break;
+          }
+        } else {
+          if (weight < weights[ic2]) {
+            iSwap = ic2;
+          } else {
+            break;
+          }
+        }
+        weights[i] = weights[iSwap];
+        indices[i] = indices[iSwap];
+        isNew[i] = isNew[iSwap];
+        i = iSwap;
+      }
+      weights[i] = weight;
+      indices[i] = index;
+      isNew[i] = flag;
+      return 1;
+    }
+    exports.uncheckedHeapPush = uncheckedHeapPush;
+    function buildCandidates(currentGraph, nVertices, nNeighbors, maxCandidates, random2) {
+      var candidateNeighbors = makeHeap(nVertices, maxCandidates);
+      for (var i = 0; i < nVertices; i++) {
+        for (var j = 0; j < nNeighbors; j++) {
+          if (currentGraph[0][i][j] < 0) {
+            continue;
+          }
+          var idx = currentGraph[0][i][j];
+          var isn = currentGraph[2][i][j];
+          var d = utils.tauRand(random2);
+          heapPush(candidateNeighbors, i, d, idx, isn);
+          heapPush(candidateNeighbors, idx, d, i, isn);
+          currentGraph[2][i][j] = 0;
+        }
+      }
+      return candidateNeighbors;
+    }
+    exports.buildCandidates = buildCandidates;
+    function deheapSort(heap) {
+      var indices = heap[0];
+      var weights = heap[1];
+      for (var i = 0; i < indices.length; i++) {
+        var indHeap = indices[i];
+        var distHeap = weights[i];
+        for (var j = 0; j < indHeap.length - 1; j++) {
+          var indHeapIndex = indHeap.length - j - 1;
+          var distHeapIndex = distHeap.length - j - 1;
+          var temp1 = indHeap[0];
+          indHeap[0] = indHeap[indHeapIndex];
+          indHeap[indHeapIndex] = temp1;
+          var temp2 = distHeap[0];
+          distHeap[0] = distHeap[distHeapIndex];
+          distHeap[distHeapIndex] = temp2;
+          siftDown(distHeap, indHeap, distHeapIndex, 0);
+        }
+      }
+      return { indices, weights };
+    }
+    exports.deheapSort = deheapSort;
+    function siftDown(heap1, heap2, ceiling, elt) {
+      while (elt * 2 + 1 < ceiling) {
+        var leftChild = elt * 2 + 1;
+        var rightChild = leftChild + 1;
+        var swap = elt;
+        if (heap1[swap] < heap1[leftChild]) {
+          swap = leftChild;
+        }
+        if (rightChild < ceiling && heap1[swap] < heap1[rightChild]) {
+          swap = rightChild;
+        }
+        if (swap === elt) {
+          break;
+        } else {
+          var temp1 = heap1[elt];
+          heap1[elt] = heap1[swap];
+          heap1[swap] = temp1;
+          var temp2 = heap2[elt];
+          heap2[elt] = heap2[swap];
+          heap2[swap] = temp2;
+          elt = swap;
+        }
+      }
+    }
+    function smallestFlagged(heap, row) {
+      var ind = heap[0][row];
+      var dist = heap[1][row];
+      var flag = heap[2][row];
+      var minDist = Infinity;
+      var resultIndex = -1;
+      for (var i = 0; i > ind.length; i++) {
+        if (flag[i] === 1 && dist[i] < minDist) {
+          minDist = dist[i];
+          resultIndex = i;
+        }
+      }
+      if (resultIndex >= 0) {
+        flag[resultIndex] = 0;
+        return Math.floor(ind[resultIndex]);
+      } else {
+        return -1;
+      }
+    }
+    exports.smallestFlagged = smallestFlagged;
+  }
+});
+
+// node_modules/umap-js/dist/matrix.js
+var require_matrix2 = __commonJS({
+  "node_modules/umap-js/dist/matrix.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports && exports.__importStar || function(mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    var __read = exports && exports.__read || function(o, n) {
+      var m = typeof Symbol === "function" && o[Symbol.iterator];
+      if (!m) return o;
+      var i = m.call(o), r, ar = [], e;
+      try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+      } catch (error) {
+        e = { error };
+      } finally {
+        try {
+          if (r && !r.done && (m = i["return"])) m.call(i);
+        } finally {
+          if (e) throw e.error;
+        }
+      }
+      return ar;
+    };
+    var __values = exports && exports.__values || function(o) {
+      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+      if (m) return m.call(o);
+      if (o && typeof o.length === "number") return {
+        next: function() {
+          if (o && i >= o.length) o = void 0;
+          return { value: o && o[i++], done: !o };
+        }
+      };
+      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    };
+    var _a;
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.getCSR = exports.normalize = exports.eliminateZeros = exports.multiplyScalar = exports.maximum = exports.subtract = exports.add = exports.pairwiseMultiply = exports.identity = exports.transpose = exports.SparseMatrix = void 0;
+    var utils = __importStar(require_utils());
+    var SparseMatrix = (function() {
+      function SparseMatrix2(rows, cols, values, dims) {
+        this.entries = /* @__PURE__ */ new Map();
+        this.nRows = 0;
+        this.nCols = 0;
+        if (rows.length !== cols.length || rows.length !== values.length) {
+          throw new Error("rows, cols and values arrays must all have the same length");
+        }
+        this.nRows = dims[0];
+        this.nCols = dims[1];
+        for (var i = 0; i < values.length; i++) {
+          var row = rows[i];
+          var col = cols[i];
+          this.checkDims(row, col);
+          var key = this.makeKey(row, col);
+          this.entries.set(key, { value: values[i], row, col });
+        }
+      }
+      SparseMatrix2.prototype.makeKey = function(row, col) {
+        return row + ":" + col;
+      };
+      SparseMatrix2.prototype.checkDims = function(row, col) {
+        var withinBounds = row < this.nRows && col < this.nCols;
+        if (!withinBounds) {
+          throw new Error("row and/or col specified outside of matrix dimensions");
+        }
+      };
+      SparseMatrix2.prototype.set = function(row, col, value) {
+        this.checkDims(row, col);
+        var key = this.makeKey(row, col);
+        if (!this.entries.has(key)) {
+          this.entries.set(key, { value, row, col });
+        } else {
+          this.entries.get(key).value = value;
+        }
+      };
+      SparseMatrix2.prototype.get = function(row, col, defaultValue) {
+        if (defaultValue === void 0) {
+          defaultValue = 0;
+        }
+        this.checkDims(row, col);
+        var key = this.makeKey(row, col);
+        if (this.entries.has(key)) {
+          return this.entries.get(key).value;
+        } else {
+          return defaultValue;
+        }
+      };
+      SparseMatrix2.prototype.getAll = function(ordered) {
+        if (ordered === void 0) {
+          ordered = true;
+        }
+        var rowColValues = [];
+        this.entries.forEach(function(value) {
+          rowColValues.push(value);
+        });
+        if (ordered) {
+          rowColValues.sort(function(a, b) {
+            if (a.row === b.row) {
+              return a.col - b.col;
+            } else {
+              return a.row - b.row;
+            }
+          });
+        }
+        return rowColValues;
+      };
+      SparseMatrix2.prototype.getDims = function() {
+        return [this.nRows, this.nCols];
+      };
+      SparseMatrix2.prototype.getRows = function() {
+        return Array.from(this.entries, function(_a2) {
+          var _b = __read(_a2, 2), key = _b[0], value = _b[1];
+          return value.row;
+        });
+      };
+      SparseMatrix2.prototype.getCols = function() {
+        return Array.from(this.entries, function(_a2) {
+          var _b = __read(_a2, 2), key = _b[0], value = _b[1];
+          return value.col;
+        });
+      };
+      SparseMatrix2.prototype.getValues = function() {
+        return Array.from(this.entries, function(_a2) {
+          var _b = __read(_a2, 2), key = _b[0], value = _b[1];
+          return value.value;
+        });
+      };
+      SparseMatrix2.prototype.forEach = function(fn) {
+        this.entries.forEach(function(value) {
+          return fn(value.value, value.row, value.col);
+        });
+      };
+      SparseMatrix2.prototype.map = function(fn) {
+        var vals = [];
+        this.entries.forEach(function(value) {
+          vals.push(fn(value.value, value.row, value.col));
+        });
+        var dims = [this.nRows, this.nCols];
+        return new SparseMatrix2(this.getRows(), this.getCols(), vals, dims);
+      };
+      SparseMatrix2.prototype.toArray = function() {
+        var _this = this;
+        var rows = utils.empty(this.nRows);
+        var output = rows.map(function() {
+          return utils.zeros(_this.nCols);
+        });
+        this.entries.forEach(function(value) {
+          output[value.row][value.col] = value.value;
+        });
+        return output;
+      };
+      return SparseMatrix2;
+    })();
+    exports.SparseMatrix = SparseMatrix;
+    function transpose(matrix2) {
+      var cols = [];
+      var rows = [];
+      var vals = [];
+      matrix2.forEach(function(value, row, col) {
+        cols.push(row);
+        rows.push(col);
+        vals.push(value);
+      });
+      var dims = [matrix2.nCols, matrix2.nRows];
+      return new SparseMatrix(rows, cols, vals, dims);
+    }
+    exports.transpose = transpose;
+    function identity3(size) {
+      var _a2 = __read(size, 1), rows = _a2[0];
+      var matrix2 = new SparseMatrix([], [], [], size);
+      for (var i = 0; i < rows; i++) {
+        matrix2.set(i, i, 1);
+      }
+      return matrix2;
+    }
+    exports.identity = identity3;
+    function pairwiseMultiply(a, b) {
+      return elementWise(a, b, function(x, y) {
+        return x * y;
+      });
+    }
+    exports.pairwiseMultiply = pairwiseMultiply;
+    function add(a, b) {
+      return elementWise(a, b, function(x, y) {
+        return x + y;
+      });
+    }
+    exports.add = add;
+    function subtract(a, b) {
+      return elementWise(a, b, function(x, y) {
+        return x - y;
+      });
+    }
+    exports.subtract = subtract;
+    function maximum(a, b) {
+      return elementWise(a, b, function(x, y) {
+        return x > y ? x : y;
+      });
+    }
+    exports.maximum = maximum;
+    function multiplyScalar(a, scalar) {
+      return a.map(function(value) {
+        return value * scalar;
+      });
+    }
+    exports.multiplyScalar = multiplyScalar;
+    function eliminateZeros(m) {
+      var zeroIndices = /* @__PURE__ */ new Set();
+      var values = m.getValues();
+      var rows = m.getRows();
+      var cols = m.getCols();
+      for (var i = 0; i < values.length; i++) {
+        if (values[i] === 0) {
+          zeroIndices.add(i);
+        }
+      }
+      var removeByZeroIndex = function(_, index) {
+        return !zeroIndices.has(index);
+      };
+      var nextValues = values.filter(removeByZeroIndex);
+      var nextRows = rows.filter(removeByZeroIndex);
+      var nextCols = cols.filter(removeByZeroIndex);
+      return new SparseMatrix(nextRows, nextCols, nextValues, m.getDims());
+    }
+    exports.eliminateZeros = eliminateZeros;
+    function normalize(m, normType) {
+      var e_1, _a2;
+      if (normType === void 0) {
+        normType = "l2";
+      }
+      var normFn = normFns[normType];
+      var colsByRow = /* @__PURE__ */ new Map();
+      m.forEach(function(_, row2, col) {
+        var cols = colsByRow.get(row2) || [];
+        cols.push(col);
+        colsByRow.set(row2, cols);
+      });
+      var nextMatrix = new SparseMatrix([], [], [], m.getDims());
+      var _loop_1 = function(row2) {
+        var cols = colsByRow.get(row2).sort();
+        var vals = cols.map(function(col) {
+          return m.get(row2, col);
+        });
+        var norm = normFn(vals);
+        for (var i = 0; i < norm.length; i++) {
+          nextMatrix.set(row2, cols[i], norm[i]);
+        }
+      };
+      try {
+        for (var _b = __values(colsByRow.keys()), _c = _b.next(); !_c.done; _c = _b.next()) {
+          var row = _c.value;
+          _loop_1(row);
+        }
+      } catch (e_1_1) {
+        e_1 = { error: e_1_1 };
+      } finally {
+        try {
+          if (_c && !_c.done && (_a2 = _b.return)) _a2.call(_b);
+        } finally {
+          if (e_1) throw e_1.error;
+        }
+      }
+      return nextMatrix;
+    }
+    exports.normalize = normalize;
+    var normFns = (_a = {}, _a["max"] = function(xs) {
+      var max2 = -Infinity;
+      for (var i = 0; i < xs.length; i++) {
+        max2 = xs[i] > max2 ? xs[i] : max2;
+      }
+      return xs.map(function(x) {
+        return x / max2;
+      });
+    }, _a["l1"] = function(xs) {
+      var sum = 0;
+      for (var i = 0; i < xs.length; i++) {
+        sum += xs[i];
+      }
+      return xs.map(function(x) {
+        return x / sum;
+      });
+    }, _a["l2"] = function(xs) {
+      var sum = 0;
+      for (var i = 0; i < xs.length; i++) {
+        sum += Math.pow(xs[i], 2);
+      }
+      return xs.map(function(x) {
+        return Math.sqrt(Math.pow(x, 2) / sum);
+      });
+    }, _a);
+    function elementWise(a, b, op) {
+      var visited = /* @__PURE__ */ new Set();
+      var rows = [];
+      var cols = [];
+      var vals = [];
+      var operate = function(row2, col2) {
+        rows.push(row2);
+        cols.push(col2);
+        var nextValue = op(a.get(row2, col2), b.get(row2, col2));
+        vals.push(nextValue);
+      };
+      var valuesA = a.getValues();
+      var rowsA = a.getRows();
+      var colsA = a.getCols();
+      for (var i = 0; i < valuesA.length; i++) {
+        var row = rowsA[i];
+        var col = colsA[i];
+        var key = row + ":" + col;
+        visited.add(key);
+        operate(row, col);
+      }
+      var valuesB = b.getValues();
+      var rowsB = b.getRows();
+      var colsB = b.getCols();
+      for (var i = 0; i < valuesB.length; i++) {
+        var row = rowsB[i];
+        var col = colsB[i];
+        var key = row + ":" + col;
+        if (visited.has(key))
+          continue;
+        operate(row, col);
+      }
+      var dims = [a.nRows, a.nCols];
+      return new SparseMatrix(rows, cols, vals, dims);
+    }
+    function getCSR(x) {
+      var entries = [];
+      x.forEach(function(value2, row2, col2) {
+        entries.push({ value: value2, row: row2, col: col2 });
+      });
+      entries.sort(function(a, b) {
+        if (a.row === b.row) {
+          return a.col - b.col;
+        } else {
+          return a.row - b.row;
+        }
+      });
+      var indices = [];
+      var values = [];
+      var indptr = [];
+      var currentRow = -1;
+      for (var i = 0; i < entries.length; i++) {
+        var _a2 = entries[i], row = _a2.row, col = _a2.col, value = _a2.value;
+        if (row !== currentRow) {
+          currentRow = row;
+          indptr.push(i);
+        }
+        indices.push(col);
+        values.push(value);
+      }
+      return { indices, values, indptr };
+    }
+    exports.getCSR = getCSR;
+  }
+});
+
+// node_modules/umap-js/dist/tree.js
+var require_tree = __commonJS({
+  "node_modules/umap-js/dist/tree.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports && exports.__importStar || function(mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    var __read = exports && exports.__read || function(o, n) {
+      var m = typeof Symbol === "function" && o[Symbol.iterator];
+      if (!m) return o;
+      var i = m.call(o), r, ar = [], e;
+      try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+      } catch (error) {
+        e = { error };
+      } finally {
+        try {
+          if (r && !r.done && (m = i["return"])) m.call(i);
+        } finally {
+          if (e) throw e.error;
+        }
+      }
+      return ar;
+    };
+    var __spread = exports && exports.__spread || function() {
+      for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+      return ar;
+    };
+    var __values = exports && exports.__values || function(o) {
+      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+      if (m) return m.call(o);
+      if (o && typeof o.length === "number") return {
+        next: function() {
+          if (o && i >= o.length) o = void 0;
+          return { value: o && o[i++], done: !o };
+        }
+      };
+      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.searchFlatTree = exports.makeLeafArray = exports.makeForest = exports.FlatTree = void 0;
+    var utils = __importStar(require_utils());
+    var FlatTree = /* @__PURE__ */ (function() {
+      function FlatTree2(hyperplanes, offsets, children2, indices) {
+        this.hyperplanes = hyperplanes;
+        this.offsets = offsets;
+        this.children = children2;
+        this.indices = indices;
+      }
+      return FlatTree2;
+    })();
+    exports.FlatTree = FlatTree;
+    function makeForest(data, nNeighbors, nTrees, random2) {
+      var leafSize = Math.max(10, nNeighbors);
+      var trees = utils.range(nTrees).map(function(_, i) {
+        return makeTree(data, leafSize, i, random2);
+      });
+      var forest = trees.map(function(tree) {
+        return flattenTree(tree, leafSize);
+      });
+      return forest;
+    }
+    exports.makeForest = makeForest;
+    function makeTree(data, leafSize, n, random2) {
+      if (leafSize === void 0) {
+        leafSize = 30;
+      }
+      var indices = utils.range(data.length);
+      var tree = makeEuclideanTree(data, indices, leafSize, n, random2);
+      return tree;
+    }
+    function makeEuclideanTree(data, indices, leafSize, q, random2) {
+      if (leafSize === void 0) {
+        leafSize = 30;
+      }
+      if (indices.length > leafSize) {
+        var splitResults = euclideanRandomProjectionSplit(data, indices, random2);
+        var indicesLeft = splitResults.indicesLeft, indicesRight = splitResults.indicesRight, hyperplane = splitResults.hyperplane, offset = splitResults.offset;
+        var leftChild = makeEuclideanTree(data, indicesLeft, leafSize, q + 1, random2);
+        var rightChild = makeEuclideanTree(data, indicesRight, leafSize, q + 1, random2);
+        var node = { leftChild, rightChild, isLeaf: false, hyperplane, offset };
+        return node;
+      } else {
+        var node = { indices, isLeaf: true };
+        return node;
+      }
+    }
+    function euclideanRandomProjectionSplit(data, indices, random2) {
+      var dim = data[0].length;
+      var leftIndex = utils.tauRandInt(indices.length, random2);
+      var rightIndex = utils.tauRandInt(indices.length, random2);
+      rightIndex += leftIndex === rightIndex ? 1 : 0;
+      rightIndex = rightIndex % indices.length;
+      var left = indices[leftIndex];
+      var right = indices[rightIndex];
+      var hyperplaneOffset = 0;
+      var hyperplaneVector = utils.zeros(dim);
+      for (var i = 0; i < hyperplaneVector.length; i++) {
+        hyperplaneVector[i] = data[left][i] - data[right][i];
+        hyperplaneOffset -= hyperplaneVector[i] * (data[left][i] + data[right][i]) / 2;
+      }
+      var nLeft = 0;
+      var nRight = 0;
+      var side = utils.zeros(indices.length);
+      for (var i = 0; i < indices.length; i++) {
+        var margin = hyperplaneOffset;
+        for (var d = 0; d < dim; d++) {
+          margin += hyperplaneVector[d] * data[indices[i]][d];
+        }
+        if (margin === 0) {
+          side[i] = utils.tauRandInt(2, random2);
+          if (side[i] === 0) {
+            nLeft += 1;
+          } else {
+            nRight += 1;
+          }
+        } else if (margin > 0) {
+          side[i] = 0;
+          nLeft += 1;
+        } else {
+          side[i] = 1;
+          nRight += 1;
+        }
+      }
+      var indicesLeft = utils.zeros(nLeft);
+      var indicesRight = utils.zeros(nRight);
+      nLeft = 0;
+      nRight = 0;
+      for (var i = 0; i < side.length; i++) {
+        if (side[i] === 0) {
+          indicesLeft[nLeft] = indices[i];
+          nLeft += 1;
+        } else {
+          indicesRight[nRight] = indices[i];
+          nRight += 1;
+        }
+      }
+      return {
+        indicesLeft,
+        indicesRight,
+        hyperplane: hyperplaneVector,
+        offset: hyperplaneOffset
+      };
+    }
+    function flattenTree(tree, leafSize) {
+      var nNodes = numNodes(tree);
+      var nLeaves = numLeaves(tree);
+      var hyperplanes = utils.range(nNodes).map(function() {
+        return utils.zeros(tree.hyperplane ? tree.hyperplane.length : 0);
+      });
+      var offsets = utils.zeros(nNodes);
+      var children2 = utils.range(nNodes).map(function() {
+        return [-1, -1];
+      });
+      var indices = utils.range(nLeaves).map(function() {
+        return utils.range(leafSize).map(function() {
+          return -1;
+        });
+      });
+      recursiveFlatten(tree, hyperplanes, offsets, children2, indices, 0, 0);
+      return new FlatTree(hyperplanes, offsets, children2, indices);
+    }
+    function recursiveFlatten(tree, hyperplanes, offsets, children2, indices, nodeNum, leafNum) {
+      var _a;
+      if (tree.isLeaf) {
+        children2[nodeNum][0] = -leafNum;
+        (_a = indices[leafNum]).splice.apply(_a, __spread([0, tree.indices.length], tree.indices));
+        leafNum += 1;
+        return { nodeNum, leafNum };
+      } else {
+        hyperplanes[nodeNum] = tree.hyperplane;
+        offsets[nodeNum] = tree.offset;
+        children2[nodeNum][0] = nodeNum + 1;
+        var oldNodeNum = nodeNum;
+        var res = recursiveFlatten(tree.leftChild, hyperplanes, offsets, children2, indices, nodeNum + 1, leafNum);
+        nodeNum = res.nodeNum;
+        leafNum = res.leafNum;
+        children2[oldNodeNum][1] = nodeNum + 1;
+        res = recursiveFlatten(tree.rightChild, hyperplanes, offsets, children2, indices, nodeNum + 1, leafNum);
+        return { nodeNum: res.nodeNum, leafNum: res.leafNum };
+      }
+    }
+    function numNodes(tree) {
+      if (tree.isLeaf) {
+        return 1;
+      } else {
+        return 1 + numNodes(tree.leftChild) + numNodes(tree.rightChild);
+      }
+    }
+    function numLeaves(tree) {
+      if (tree.isLeaf) {
+        return 1;
+      } else {
+        return numLeaves(tree.leftChild) + numLeaves(tree.rightChild);
+      }
+    }
+    function makeLeafArray(rpForest) {
+      var e_1, _a;
+      if (rpForest.length > 0) {
+        var output = [];
+        try {
+          for (var rpForest_1 = __values(rpForest), rpForest_1_1 = rpForest_1.next(); !rpForest_1_1.done; rpForest_1_1 = rpForest_1.next()) {
+            var tree = rpForest_1_1.value;
+            output.push.apply(output, __spread(tree.indices));
+          }
+        } catch (e_1_1) {
+          e_1 = { error: e_1_1 };
+        } finally {
+          try {
+            if (rpForest_1_1 && !rpForest_1_1.done && (_a = rpForest_1.return)) _a.call(rpForest_1);
+          } finally {
+            if (e_1) throw e_1.error;
+          }
+        }
+        return output;
+      } else {
+        return [[-1]];
+      }
+    }
+    exports.makeLeafArray = makeLeafArray;
+    function selectSide(hyperplane, offset, point, random2) {
+      var margin = offset;
+      for (var d = 0; d < point.length; d++) {
+        margin += hyperplane[d] * point[d];
+      }
+      if (margin === 0) {
+        var side = utils.tauRandInt(2, random2);
+        return side;
+      } else if (margin > 0) {
+        return 0;
+      } else {
+        return 1;
+      }
+    }
+    function searchFlatTree(point, tree, random2) {
+      var node = 0;
+      while (tree.children[node][0] > 0) {
+        var side = selectSide(tree.hyperplanes[node], tree.offsets[node], point, random2);
+        if (side === 0) {
+          node = tree.children[node][0];
+        } else {
+          node = tree.children[node][1];
+        }
+      }
+      var index = -1 * tree.children[node][0];
+      return tree.indices[index];
+    }
+    exports.searchFlatTree = searchFlatTree;
+  }
+});
+
+// node_modules/umap-js/dist/nn_descent.js
+var require_nn_descent = __commonJS({
+  "node_modules/umap-js/dist/nn_descent.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports && exports.__importStar || function(mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    var __values = exports && exports.__values || function(o) {
+      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+      if (m) return m.call(o);
+      if (o && typeof o.length === "number") return {
+        next: function() {
+          if (o && i >= o.length) o = void 0;
+          return { value: o && o[i++], done: !o };
+        }
+      };
+      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.initializeSearch = exports.makeInitializedNNSearch = exports.makeInitializations = exports.makeNNDescent = void 0;
+    var heap = __importStar(require_heap());
+    var matrix2 = __importStar(require_matrix2());
+    var tree = __importStar(require_tree());
+    var utils = __importStar(require_utils());
+    function makeNNDescent(distanceFn, random2) {
+      return function nNDescent(data, leafArray, nNeighbors, nIters, maxCandidates, delta, rho, rpTreeInit) {
+        if (nIters === void 0) {
+          nIters = 10;
+        }
+        if (maxCandidates === void 0) {
+          maxCandidates = 50;
+        }
+        if (delta === void 0) {
+          delta = 1e-3;
+        }
+        if (rho === void 0) {
+          rho = 0.5;
+        }
+        if (rpTreeInit === void 0) {
+          rpTreeInit = true;
+        }
+        var nVertices = data.length;
+        var currentGraph = heap.makeHeap(data.length, nNeighbors);
+        for (var i = 0; i < data.length; i++) {
+          var indices = heap.rejectionSample(nNeighbors, data.length, random2);
+          for (var j = 0; j < indices.length; j++) {
+            var d = distanceFn(data[i], data[indices[j]]);
+            heap.heapPush(currentGraph, i, d, indices[j], 1);
+            heap.heapPush(currentGraph, indices[j], d, i, 1);
+          }
+        }
+        if (rpTreeInit) {
+          for (var n = 0; n < leafArray.length; n++) {
+            for (var i = 0; i < leafArray[n].length; i++) {
+              if (leafArray[n][i] < 0) {
+                break;
+              }
+              for (var j = i + 1; j < leafArray[n].length; j++) {
+                if (leafArray[n][j] < 0) {
+                  break;
+                }
+                var d = distanceFn(data[leafArray[n][i]], data[leafArray[n][j]]);
+                heap.heapPush(currentGraph, leafArray[n][i], d, leafArray[n][j], 1);
+                heap.heapPush(currentGraph, leafArray[n][j], d, leafArray[n][i], 1);
+              }
+            }
+          }
+        }
+        for (var n = 0; n < nIters; n++) {
+          var candidateNeighbors = heap.buildCandidates(currentGraph, nVertices, nNeighbors, maxCandidates, random2);
+          var c = 0;
+          for (var i = 0; i < nVertices; i++) {
+            for (var j = 0; j < maxCandidates; j++) {
+              var p = Math.floor(candidateNeighbors[0][i][j]);
+              if (p < 0 || utils.tauRand(random2) < rho) {
+                continue;
+              }
+              for (var k = 0; k < maxCandidates; k++) {
+                var q = Math.floor(candidateNeighbors[0][i][k]);
+                var cj = candidateNeighbors[2][i][j];
+                var ck = candidateNeighbors[2][i][k];
+                if (q < 0 || !cj && !ck) {
+                  continue;
+                }
+                var d = distanceFn(data[p], data[q]);
+                c += heap.heapPush(currentGraph, p, d, q, 1);
+                c += heap.heapPush(currentGraph, q, d, p, 1);
+              }
+            }
+          }
+          if (c <= delta * nNeighbors * data.length) {
+            break;
+          }
+        }
+        var sorted = heap.deheapSort(currentGraph);
+        return sorted;
+      };
+    }
+    exports.makeNNDescent = makeNNDescent;
+    function makeInitializations(distanceFn) {
+      function initFromRandom(nNeighbors, data, queryPoints, _heap, random2) {
+        for (var i = 0; i < queryPoints.length; i++) {
+          var indices = utils.rejectionSample(nNeighbors, data.length, random2);
+          for (var j = 0; j < indices.length; j++) {
+            if (indices[j] < 0) {
+              continue;
+            }
+            var d = distanceFn(data[indices[j]], queryPoints[i]);
+            heap.heapPush(_heap, i, d, indices[j], 1);
+          }
+        }
+      }
+      function initFromTree(_tree, data, queryPoints, _heap, random2) {
+        for (var i = 0; i < queryPoints.length; i++) {
+          var indices = tree.searchFlatTree(queryPoints[i], _tree, random2);
+          for (var j = 0; j < indices.length; j++) {
+            if (indices[j] < 0) {
+              return;
+            }
+            var d = distanceFn(data[indices[j]], queryPoints[i]);
+            heap.heapPush(_heap, i, d, indices[j], 1);
+          }
+        }
+        return;
+      }
+      return { initFromRandom, initFromTree };
+    }
+    exports.makeInitializations = makeInitializations;
+    function makeInitializedNNSearch(distanceFn) {
+      return function nnSearchFn(data, graph, initialization, queryPoints) {
+        var e_1, _a;
+        var _b = matrix2.getCSR(graph), indices = _b.indices, indptr = _b.indptr;
+        for (var i = 0; i < queryPoints.length; i++) {
+          var tried = new Set(initialization[0][i]);
+          while (true) {
+            var vertex = heap.smallestFlagged(initialization, i);
+            if (vertex === -1) {
+              break;
+            }
+            var candidates = indices.slice(indptr[vertex], indptr[vertex + 1]);
+            try {
+              for (var candidates_1 = (e_1 = void 0, __values(candidates)), candidates_1_1 = candidates_1.next(); !candidates_1_1.done; candidates_1_1 = candidates_1.next()) {
+                var candidate = candidates_1_1.value;
+                if (candidate === vertex || candidate === -1 || tried.has(candidate)) {
+                  continue;
+                }
+                var d = distanceFn(data[candidate], queryPoints[i]);
+                heap.uncheckedHeapPush(initialization, i, d, candidate, 1);
+                tried.add(candidate);
+              }
+            } catch (e_1_1) {
+              e_1 = { error: e_1_1 };
+            } finally {
+              try {
+                if (candidates_1_1 && !candidates_1_1.done && (_a = candidates_1.return)) _a.call(candidates_1);
+              } finally {
+                if (e_1) throw e_1.error;
+              }
+            }
+          }
+        }
+        return initialization;
+      };
+    }
+    exports.makeInitializedNNSearch = makeInitializedNNSearch;
+    function initializeSearch(forest, data, queryPoints, nNeighbors, initFromRandom, initFromTree, random2) {
+      var e_2, _a;
+      var results = heap.makeHeap(queryPoints.length, nNeighbors);
+      initFromRandom(nNeighbors, data, queryPoints, results, random2);
+      if (forest) {
+        try {
+          for (var forest_1 = __values(forest), forest_1_1 = forest_1.next(); !forest_1_1.done; forest_1_1 = forest_1.next()) {
+            var tree_1 = forest_1_1.value;
+            initFromTree(tree_1, data, queryPoints, results, random2);
+          }
+        } catch (e_2_1) {
+          e_2 = { error: e_2_1 };
+        } finally {
+          try {
+            if (forest_1_1 && !forest_1_1.done && (_a = forest_1.return)) _a.call(forest_1);
+          } finally {
+            if (e_2) throw e_2.error;
+          }
+        }
+      }
+      return results;
+    }
+    exports.initializeSearch = initializeSearch;
+  }
+});
+
+// node_modules/is-any-array/lib/index.js
+var require_lib8 = __commonJS({
+  "node_modules/is-any-array/lib/index.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var toString = Object.prototype.toString;
+    function isAnyArray(object) {
+      return toString.call(object).endsWith("Array]");
+    }
+    exports.default = isAnyArray;
   }
 });
 
@@ -6289,8 +6289,8 @@ var require_lib9 = __commonJS({
     function _interopDefault(ex) {
       return ex && typeof ex === "object" && "default" in ex ? ex["default"] : ex;
     }
-    var isArray = _interopDefault(require_lib());
-    var mlMatrix = require_matrix2();
+    var isArray = _interopDefault(require_lib8());
+    var mlMatrix = require_matrix();
     function errorCalculation(data, parameters, parameterizedFunction) {
       let error = 0;
       const func = parameterizedFunction(parameters);
@@ -6322,7 +6322,7 @@ var require_lib9 = __commonJS({
       }
       return new mlMatrix.Matrix(ans);
     }
-    function step(data, params, damping, gradientDifference, parameterizedFunction) {
+    function step2(data, params, damping, gradientDifference, parameterizedFunction) {
       let value = damping * gradientDifference * gradientDifference;
       let identity3 = mlMatrix.Matrix.eye(params.length, params.length, value);
       const func = parameterizedFunction(params);
@@ -6382,7 +6382,7 @@ var require_lib9 = __commonJS({
       let converged = error <= errorTolerance;
       let iteration;
       for (iteration = 0; iteration < maxIterations && !converged; iteration++) {
-        parameters = step(
+        parameters = step2(
           data,
           parameters,
           damping,
@@ -6445,22 +6445,22 @@ var require_umap = __commonJS({
       return new (P || (P = Promise))(function(resolve, reject) {
         function fulfilled(value) {
           try {
-            step(generator.next(value));
+            step2(generator.next(value));
           } catch (e) {
             reject(e);
           }
         }
         function rejected(value) {
           try {
-            step(generator["throw"](value));
+            step2(generator["throw"](value));
           } catch (e) {
             reject(e);
           }
         }
-        function step(result) {
+        function step2(result) {
           result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
         }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
+        step2((generator = generator.apply(thisArg, _arguments || [])).next());
       });
     };
     var __generator = exports && exports.__generator || function(thisArg, body) {
@@ -6473,10 +6473,10 @@ var require_umap = __commonJS({
       }), g;
       function verb(n) {
         return function(v) {
-          return step([n, v]);
+          return step2([n, v]);
         };
       }
-      function step(op) {
+      function step2(op) {
         if (f) throw new TypeError("Generator is already executing.");
         while (_) try {
           if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
@@ -6559,7 +6559,7 @@ var require_umap = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.initTransform = exports.resetLocalConnectivity = exports.fastIntersection = exports.findABParams = exports.cosine = exports.euclidean = exports.UMAP = void 0;
     var heap = __importStar(require_heap());
-    var matrix = __importStar(require_matrix());
+    var matrix2 = __importStar(require_matrix2());
     var nnDescent = __importStar(require_nn_descent());
     var tree = __importStar(require_tree());
     var utils = __importStar(require_utils());
@@ -6683,7 +6683,7 @@ var require_umap = __commonJS({
         var knnIndices = this.knnIndices;
         var knnDistances = this.knnDistances;
         var dims = [X2.length, X2.length];
-        var searchGraph = new matrix.SparseMatrix([], [], [], dims);
+        var searchGraph = new matrix2.SparseMatrix([], [], [], dims);
         for (var i = 0; i < knnIndices.length; i++) {
           var knn = knnIndices[i];
           var distances = knnDistances[i];
@@ -6695,8 +6695,8 @@ var require_umap = __commonJS({
             }
           }
         }
-        var transpose = matrix.transpose(searchGraph);
-        return matrix.maximum(searchGraph, transpose);
+        var transpose = matrix2.transpose(searchGraph);
+        return matrix2.maximum(searchGraph, transpose);
       };
       UMAP3.prototype.transform = function(toTransform) {
         var _this = this;
@@ -6719,9 +6719,9 @@ var require_umap = __commonJS({
         var _b = this.smoothKNNDistance(distances, this.nNeighbors, adjustedLocalConnectivity), sigmas = _b.sigmas, rhos = _b.rhos;
         var _c = this.computeMembershipStrengths(indices, distances, sigmas, rhos), rows = _c.rows, cols = _c.cols, vals = _c.vals;
         var size = [toTransform.length, rawData.length];
-        var graph = new matrix.SparseMatrix(rows, cols, vals, size);
-        var normed = matrix.normalize(graph, "l1");
-        var csrMatrix = matrix.getCSR(normed);
+        var graph = new matrix2.SparseMatrix(rows, cols, vals, size);
+        var normed = matrix2.normalize(graph, "l1");
+        var csrMatrix = matrix2.getCSR(normed);
         var nPoints = toTransform.length;
         var eIndices = utils.reshape2d(csrMatrix.indices, nPoints, this.nNeighbors);
         var eWeights = utils.reshape2d(csrMatrix.values, nPoints, this.nNeighbors);
@@ -6733,7 +6733,7 @@ var require_umap = __commonJS({
         graph = graph.map(function(value) {
           return value < graphMax / nEpochs ? 0 : value;
         });
-        graph = matrix.eliminateZeros(graph);
+        graph = matrix2.eliminateZeros(graph);
         var epochsPerSample = this.makeEpochsPerSample(graph.getValues(), nEpochs);
         var head = graph.getRows();
         var tail = graph.getCols();
@@ -6797,13 +6797,13 @@ var require_umap = __commonJS({
         var _d = this.smoothKNNDistance(knnDistances, nNeighbors, localConnectivity), sigmas = _d.sigmas, rhos = _d.rhos;
         var _e = this.computeMembershipStrengths(knnIndices, knnDistances, sigmas, rhos), rows = _e.rows, cols = _e.cols, vals = _e.vals;
         var size = [X2.length, X2.length];
-        var sparseMatrix = new matrix.SparseMatrix(rows, cols, vals, size);
-        var transpose = matrix.transpose(sparseMatrix);
-        var prodMatrix = matrix.pairwiseMultiply(sparseMatrix, transpose);
-        var a = matrix.subtract(matrix.add(sparseMatrix, transpose), prodMatrix);
-        var b = matrix.multiplyScalar(a, setOpMixRatio);
-        var c = matrix.multiplyScalar(prodMatrix, 1 - setOpMixRatio);
-        var result = matrix.add(b, c);
+        var sparseMatrix = new matrix2.SparseMatrix(rows, cols, vals, size);
+        var transpose = matrix2.transpose(sparseMatrix);
+        var prodMatrix = matrix2.pairwiseMultiply(sparseMatrix, transpose);
+        var a = matrix2.subtract(matrix2.add(sparseMatrix, transpose), prodMatrix);
+        var b = matrix2.multiplyScalar(a, setOpMixRatio);
+        var c = matrix2.multiplyScalar(prodMatrix, 1 - setOpMixRatio);
+        var result = matrix2.add(b, c);
         return result;
       };
       UMAP3.prototype.categoricalSimplicialSetIntersection = function(simplicialSet, target, farDist, unknownDist) {
@@ -6811,7 +6811,7 @@ var require_umap = __commonJS({
           unknownDist = 1;
         }
         var intersection = fastIntersection(simplicialSet, target, unknownDist, farDist);
-        intersection = matrix.eliminateZeros(intersection);
+        intersection = matrix2.eliminateZeros(intersection);
         return resetLocalConnectivity(intersection);
       };
       UMAP3.prototype.smoothKNNDistance = function(distances, k, localConnectivity, nIter, bandwidth) {
@@ -7069,7 +7069,7 @@ var require_umap = __commonJS({
           };
         }
         return new Promise(function(resolve, reject) {
-          var step = function() {
+          var step2 = function() {
             return __awaiter(_this, void 0, void 0, function() {
               var _a, nEpochs, currentEpoch, epochCompleted, shouldStop, isFinished;
               return __generator(this, function(_b) {
@@ -7081,7 +7081,7 @@ var require_umap = __commonJS({
                   isFinished = epochCompleted === nEpochs;
                   if (!shouldStop && !isFinished) {
                     setTimeout(function() {
-                      return step();
+                      return step2();
                     }, 0);
                   } else {
                     return [2, resolve(isFinished)];
@@ -7094,7 +7094,7 @@ var require_umap = __commonJS({
             });
           };
           setTimeout(function() {
-            return step();
+            return step2();
           }, 0);
         });
       };
@@ -7245,11 +7245,11 @@ var require_umap = __commonJS({
     }
     exports.fastIntersection = fastIntersection;
     function resetLocalConnectivity(simplicialSet) {
-      simplicialSet = matrix.normalize(simplicialSet, "max");
-      var transpose = matrix.transpose(simplicialSet);
-      var prodMatrix = matrix.pairwiseMultiply(transpose, simplicialSet);
-      simplicialSet = matrix.add(simplicialSet, matrix.subtract(transpose, prodMatrix));
-      return matrix.eliminateZeros(simplicialSet);
+      simplicialSet = matrix2.normalize(simplicialSet, "max");
+      var transpose = matrix2.transpose(simplicialSet);
+      var prodMatrix = matrix2.pairwiseMultiply(transpose, simplicialSet);
+      simplicialSet = matrix2.add(simplicialSet, matrix2.subtract(transpose, prodMatrix));
+      return matrix2.eliminateZeros(simplicialSet);
     }
     exports.resetLocalConnectivity = resetLocalConnectivity;
     function initTransform(indices, weights, embedding) {
@@ -8150,24 +8150,13 @@ var Level1Pipeline = class {
   constructor(api, options = {}) {
     this.api = api;
     this.options = {
-      // N>maxSet이면 샘플링 경로. N≤maxSet은 전체 hclust.
-      // sampleSize와 같이 두면: N≤1500 전체, N>1500은 1500 sample
-      // quality(medoid 견고함, outlier 비율↓) 우선
-      maxSet: 1500,
-      sampleSize: 1500,
-      // rest medoid sim 임계값 — 한국어 키워드 sim 분포 폭이 좁아 빡빡한 임계값은 대다수를 outlier로 빠뜨림
-      // 0.40으로 낮춰 sim 부족한 rest도 일단 best cluster에 배정.
-      // 잘못 배정된 케이스는 4단계 LLM 레이블링이 outlier로 지목 → _rearrangeOutliers가 재분류.
-      // 즉 sim 임계값 단계와 LLM outlier 지목 단계가 중복이라 sim 단계를 느슨하게.
-      assignThreshold: 0.5,
+      maxSet: 1200,
+      sampleSize: 1e3,
+      assignThreshold: 0.8,
       clusterSimValue: 45,
       medoidK: 3,
-      // 임베딩 차원 — null이면 모델 기본값(예: text-embedding-3-small=1536)
-      // 768로 설정 시 distance 계산 ~2배 빨라짐 (정확도 거의 동일, Matryoshka)
-      embeddingDimensions: null,
       ...options
     };
-    this._embedDimReported = false;
   }
   /**
    * 1차 파이프라인 전체 실행
@@ -8212,16 +8201,6 @@ var Level1Pipeline = class {
   /**
    * 전체 임베딩 (배치 분할)
    */
-  _embedOpts() {
-    const d = this.options.embeddingDimensions;
-    return d ? { dimensions: d } : {};
-  }
-  // SDK가 dimensions 옵션을 무시해도 client에서 잘라 hclust 비용을 줄임.
-  // text-embedding-3-small은 Matryoshka 학습이라 앞 N차원만 사용해도 의미 보존됨.
-  _truncEmbed(e) {
-    const d = this.options.embeddingDimensions;
-    return d && e && e.length > d ? e.slice(0, d) : e;
-  }
   async _embedAll(chunkData, onProgress) {
     const embeddings = [];
     const batchSize = 200;
@@ -8230,16 +8209,10 @@ var Level1Pipeline = class {
     for (let i = 0; i < total; i += batchSize) {
       const batch = chunkData.slice(i, Math.min(i + batchSize, total));
       const stream = this.api.streamEmbeddings(
-        batch.map((d) => this._sanitizeText(d.text)),
-        this._embedOpts()
+        batch.map((d) => this._sanitizeText(d.text))
       );
       for await (const embedding of stream) {
-        const e = this._truncEmbed(embedding);
-        if (!this._embedDimReported) {
-          this._embedDimReported = true;
-          console.log(`[embedding] SDK \uC751\uB2F5 raw dim=${embedding.length}, hclust \uC0AC\uC6A9 dim=${e.length} (\uC694\uCCAD dimensions=${this.options.embeddingDimensions ?? "default"})`);
-        }
-        embeddings.push(e);
+        embeddings.push(embedding);
         const pct = Math.round(embeddings.length / total * 100);
         if (pct >= lastReportedPct + 5 || embeddings.length === total) {
           lastReportedPct = pct;
@@ -8274,14 +8247,9 @@ var Level1Pipeline = class {
     let lastReportedPct = -1;
     for (let i = 0; i < sample.length; i += batchSize) {
       const batch = sample.slice(i, Math.min(i + batchSize, sample.length));
-      const sampleStream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)), this._embedOpts());
+      const sampleStream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)));
       for await (const e of sampleStream) {
-        const trimmed = this._truncEmbed(e);
-        if (!this._embedDimReported) {
-          this._embedDimReported = true;
-          console.log(`[embedding] SDK \uC751\uB2F5 raw dim=${e.length}, hclust \uC0AC\uC6A9 dim=${trimmed.length} (\uC694\uCCAD dimensions=${this.options.embeddingDimensions ?? "default"})`);
-        }
-        sampleEmbeds.push(trimmed);
+        sampleEmbeds.push(e);
         const pct = Math.round(sampleEmbeds.length / sample.length * 30);
         if (pct >= lastReportedPct + 3 || sampleEmbeds.length === sample.length) {
           lastReportedPct = pct;
@@ -8308,21 +8276,11 @@ var Level1Pipeline = class {
     }));
     onProgress({ progress: 40, embeds: sampleWithEmbeds, message: "\uC784\uBCA0\uB529 \uC911... (40%)" });
     const clusterMedoids = this._computeMedoids(sampleWithEmbeds, this.options.medoidK);
-    const _sampleDim = sampleWithEmbeds[0]?.embed?.length;
-    const _medoidDim = clusterMedoids[0]?.medoids?.[0]?.embed?.length;
-    console.log(`[debug-dim] sample embed=${_sampleDim}, medoid=${_medoidDim}, medoid clusters=${clusterMedoids.length}`);
-    const sampleTextMap = /* @__PURE__ */ new Map();
-    for (const d of sampleWithEmbeds) {
-      if (d.cluster !== 999 && !sampleTextMap.has(d.text)) {
-        sampleTextMap.set(d.text, d.cluster);
-      }
-    }
     const restResult = await this._embedAndAssignRest(
       rest,
       clusterMedoids,
       assignThreshold,
-      (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds, message: p.message }),
-      sampleTextMap
+      (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds, message: p.message })
     );
     const mergedClusters = this._mergeClusters(
       sampleClusterResult.interimClusters,
@@ -8340,32 +8298,22 @@ var Level1Pipeline = class {
    * @param {number} threshold - 배정 임계값 (코사인 유사도)
    * @param {Function} onProgress - 진행률 콜백
    */
-  async _embedAndAssignRest(rest, clusterMedoids, threshold, onProgress, sampleTextMap = /* @__PURE__ */ new Map()) {
+  async _embedAndAssignRest(rest, clusterMedoids, threshold, onProgress) {
     const batchSize = 300;
     const allEmbeds = [];
-    const restTextMap = /* @__PURE__ */ new Map();
-    let textLockedCount = 0;
     for (let i = 0; i < rest.length; i += batchSize) {
       const batch = rest.slice(i, Math.min(i + batchSize, rest.length));
-      const stream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)), this._embedOpts());
+      const stream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)));
       const batchEmbeds = [];
-      for await (const e of stream) batchEmbeds.push(this._truncEmbed(e));
+      for await (const e of stream) batchEmbeds.push(e);
       for (let j = 0; j < batch.length; j++) {
         const embed = batchEmbeds[j];
-        const text = batch[j].text;
-        let cluster;
-        if (sampleTextMap.has(text)) {
-          cluster = sampleTextMap.get(text);
-          textLockedCount++;
-        } else if (restTextMap.has(text)) {
-          cluster = restTextMap.get(text);
-          textLockedCount++;
-        } else {
-          const best = this._findNearestMedoid(embed, clusterMedoids);
-          cluster = best.similarity >= threshold ? best.cluster : 999;
-          if (cluster !== 999) restTextMap.set(text, cluster);
-        }
-        const withEmbed = { ...batch[j], embed, cluster };
+        const best = this._findNearestMedoid(embed, clusterMedoids);
+        const withEmbed = {
+          ...batch[j],
+          embed,
+          cluster: best.similarity >= threshold ? best.cluster : 999
+        };
         allEmbeds.push(withEmbed);
       }
       onProgress({
@@ -8373,9 +8321,6 @@ var Level1Pipeline = class {
         allEmbeds,
         message: `\uB098\uBA38\uC9C0 \uC784\uBCA0\uB529 \uC911... (${allEmbeds.length}/${rest.length})`
       });
-    }
-    if (textLockedCount > 0) {
-      console.log(`[cluster] rest \uBC30\uC815 \uC911 \uB3D9\uC77C \uD14D\uC2A4\uD2B8 ${textLockedCount}\uAC74\uC740 sample/rest \uC77C\uAD00 cluster\uB85C \uACE0\uC815`);
     }
     return { allEmbeds };
   }
@@ -8385,12 +8330,11 @@ var Level1Pipeline = class {
   async doClustering(embeds, onProgress = () => {
   }) {
     const { clusterSimValue } = this.options;
-    const sim = (clusterSimValue ?? 70) / 100;
-    const Kmax = 60;
+    const threshold = embeds.length >= 300 ? 45 : clusterSimValue / 100;
     if (!this.makeCluster) {
       throw new Error("makeCluster function not provided");
     }
-    const clusterRaw = await this.makeCluster(embeds, { sim, Kmax });
+    const clusterRaw = await this.makeCluster(embeds, threshold);
     const clusters = clusterRaw.map(
       (c) => c.data.map((d) => ({ ...d, region: c.data[0].chunk }))
     );
@@ -8606,831 +8550,545 @@ var Level1Pipeline = class {
   }
 };
 
-// src/pipeline/level2.js
-var Level2Pipeline = class {
-  constructor(api, options = {}) {
-    this.api = api;
-    this.options = {
-      language: "Korean",
-      ...options
-    };
+// node_modules/ml-distance-euclidean/lib/euclidean.js
+function squaredEuclidean(p, q) {
+  let d = 0;
+  for (let i = 0; i < p.length; i++) {
+    d += (p[i] - q[i]) * (p[i] - q[i]);
   }
-  /**
-   * 2차 파이프라인 전체 실행
-   * @param {Array} level1Labels - 1차 레이블 배열 [{cluster, label, embed, ...}]
-   * @param {Object} context - 추가 컨텍스트 (selUsecase, bigLabelOption 등)
-   * @param {Function} onProgress - 진행률 콜백
-   * @returns {Promise<{bigLabels, bigLabelEmbeds, bigLabelClusters}>}
-   */
-  async run(labelClusters, context = {}, onProgress = () => {
-  }) {
-    const { selUsecase, bigLabelOption } = context;
-    onProgress({ stage: "topic_extraction", progress: 0, message: "\uC0C1\uC704 \uD1A0\uD53D \uCD94\uCD9C..." });
-    const bigLabels = await this.extractTopics(labelClusters, context);
-    onProgress({
-      stage: "topic_extraction",
-      progress: 50,
-      partialResult: { bigLabels }
-    });
-    onProgress({ stage: "topic_embedding", progress: 0, message: "\uD1A0\uD53D \uC784\uBCA0\uB529..." });
-    const bigLabelEmbeds = await this.embedTopics(bigLabels);
-    onProgress({
-      stage: "topic_embedding",
-      progress: 100,
-      partialResult: { bigLabels, bigLabelEmbeds }
-    });
-    onProgress({ stage: "classification", progress: 0, message: "\uBD84\uB958 \uC9C4\uD589..." });
-    const classificationResult = await this.classify(
-      labelClusters,
-      bigLabels,
-      (p) => {
-        const partialClusters = this._groupBigLabels(p.result, bigLabels, bigLabelEmbeds);
-        onProgress({
-          stage: "classification",
-          progress: p.progress,
-          message: p.message,
-          partialResult: { bigLabelClusters: partialClusters }
-        });
-      }
-    );
-    const bigLabelClusters = this._groupBigLabels(classificationResult, bigLabels, bigLabelEmbeds);
-    return {
-      bigLabels,
-      bigLabelClusters,
-      interimClusters: classificationResult
-    };
-  }
-  /**
-   * 상위 토픽 추출
-   */
-  async extractTopics(level1Labels, context = {}) {
-    const { selUsecase, bigLabelOption, selLabelLanguage } = context;
-    if (!this.getPromptResult) {
-      throw new Error("getPromptResult function not provided");
-    }
-    let userbigLabelOption = bigLabelOption && bigLabelOption.length > 1 ? bigLabelOption : "\uB370\uC774\uD130\uC758 \uC218\uC5D0 \uB530\uB77C 5-9\uAC1C \uC815\uB3C4\uC758 \uC801\uC808\uD55C \uAC2F\uC218\uAC00 \uB418\uB3C4\uB85D \uD574\uC918.";
-    if (selUsecase?.category === "\uC0AC\uC6A9\uC790 \uBAA9\uD45C") {
-      userbigLabelOption += " ~\uC6D0\uD568.~\uC2F6\uB2E4.~\uD558\uAE30.~\uD544\uC694 \uB4F1 \uC0AC\uC6A9\uC790 \uD575\uC2EC \uBAA9\uD45C\uB97C \uB098\uD0C0\uB0B4\uB294 7\uB2E8\uC5B4 \uC774\uB0B4\uC758 \uAC04\uACB0\uD55C \uBB38\uC7A5\uC73C\uB85C.";
-    } else if (selUsecase?.category === "\uB3C4\uBA54\uC778") {
-      userbigLabelOption += " 7\uB2E8\uC5B4 \uC774\uB0B4\uC758 \uAC04\uACB0\uD55C \uBB38\uC7A5\uC73C\uB85C.";
-    }
-    const textsForTopic = level1Labels.map((d) => d.label);
-    const userInput = {
-      service_type: this._getServiceType(selUsecase),
-      texts: textsForTopic.join("\n"),
-      language: selLabelLanguage || this.options.language,
-      labelOption: userbigLabelOption + " \uAD04\uD638\uB098 \uCF5C\uB860 \uC0AC\uC6A9\uD55C \uCD94\uAC00 \uC124\uBA85 \uAE08\uC9C0"
-    };
-    const response = await this.getPromptResult(userInput, null, selUsecase?.configId);
-    return (response.result || []).map(
-      (d) => d.replace(/\*/g, "").replace(/: .+$/, "").replace(/- .+$/, "").replace(/\([^\(]+\)$/, "").trim()
-    );
-  }
-  /**
-   * 상위 토픽 임베딩
-   */
-  async embedTopics(bigLabels) {
-    if (!this.api.getEmbeddings) return [];
-    const embeddings = await this.api.getEmbeddings(bigLabels);
-    return bigLabels.map((label, i) => ({
-      bigLabel: label,
-      embed: embeddings[i]
-    }));
-  }
-  /**
-   * 1차 레이블 → 2차 토픽 분류
-   */
-  async classify(labelClusters, bigLabels, onProgress = () => {
-  }) {
-    if (!this.classifyWithIdThreads) {
-      throw new Error("classifyWithIdThreads function not provided");
-    }
-    const labelClusterMap = new Map(
-      labelClusters.map((n) => [String(n.cluster), n])
-    );
-    const bigLabelIndexMap = new Map(
-      bigLabels.map((label, idx) => [label, idx])
-    );
-    const bigLabelNormMap = new Map(
-      bigLabels.map((bl) => [bl.trim().replace(/[.]/g, ""), bl])
-    );
-    const mapItem = (item) => {
-      let id2 = item.id;
-      if (id2 === void 0 && item.text) {
-        const idMatch = item.text.match(/^(\d+)\s*:/);
-        if (idMatch) id2 = idMatch[1];
-      }
-      const labelCluster = labelClusterMap.get(String(id2));
-      if (!labelCluster) return null;
-      let bigLabel = "\uAE30\uD0C0";
-      if (item.category) {
-        const trimmedCat = item.category.trim();
-        if (bigLabelIndexMap.has(item.category)) {
-          bigLabel = item.category;
-        } else if (bigLabelIndexMap.has(trimmedCat)) {
-          bigLabel = trimmedCat;
-        } else {
-          const normalized = trimmedCat.replace(/[.]/g, "");
-          const found = bigLabelNormMap.get(normalized);
-          if (found) bigLabel = found;
-        }
-      }
-      const bigClusterIdx = bigLabelIndexMap.get(bigLabel);
-      const bigCluster = bigClusterIdx !== void 0 ? bigClusterIdx + 1 : 999;
-      return { ...labelCluster, bigLabel, bigCluster };
-    };
-    let accumulated = [];
-    const result = await this.classifyWithIdThreads(
-      bigLabels,
-      labelClusters.map((d) => `${d.cluster} : ${d.label} ${d.description || ""}`),
-      10,
-      3,
-      (progress, chunk) => {
-        accumulated.push(...chunk);
-        const mappedPartial = accumulated.map(mapItem).filter(Boolean);
-        onProgress({
-          progress,
-          message: `\uBD84\uB958 \uC9C4\uD589 \uC911... (${Math.round(progress * 100)}%)`,
-          result: mappedPartial
-        });
-      }
-    );
-    return result.map(mapItem).filter(Boolean);
-  }
-  /**
-   * bigLabelClusters 그룹화
-   * @param {Array} flatClassifiedLabels - Result from classify
-   * @param {Array} bigLabels - List of topic strings
-   * @param {Array} bigLabelEmbeds - List of {bigLabel, embed}
-   */
-  _groupBigLabels(flatClassifiedLabels, bigLabels, bigLabelEmbeds) {
-    const groups = /* @__PURE__ */ new Map();
-    const embedMap = new Map((bigLabelEmbeds || []).map((d) => [d.bigLabel, d.embed]));
-    bigLabels.forEach((label, idx) => {
-      const id2 = idx + 1;
-      groups.set(id2, {
-        bigCluster: id2,
-        bigLabel: label,
-        embed: embedMap.get(label) || [],
-        clusters: []
-        // Renamed from labels to clusters as requested
-      });
-    });
-    if (!groups.has(999)) {
-      groups.set(999, { bigCluster: 999, bigLabel: "\uAE30\uD0C0", embed: [], clusters: [] });
-    }
-    flatClassifiedLabels.forEach((item) => {
-      const targetId = groups.has(item.bigCluster) ? item.bigCluster : 999;
-      if (groups.has(targetId)) {
-        groups.get(targetId).clusters.push(item);
-      }
-    });
-    return Array.from(groups.values()).filter((g) => g.clusters.length > 0 || g.bigCluster !== 999).sort((a, b) => a.bigCluster - b.bigCluster);
-  }
-  /**
-   * usecase에 따른 서비스 타입 결정
-   * 우선순위: selUsecase.serviceType (명시) > category 매핑 > 기본값
-   * 명시적 serviceType을 사용하면 새 분석 유형 추가 시 SDK 수정 불필요.
-   */
-  _getServiceType(selUsecase) {
-    if (selUsecase?.serviceType) return selUsecase.serviceType;
-    const category = selUsecase?.category;
-    if (category === "\uD37C\uC18C\uB098") return "extract_persona";
-    if (category === "\uB3C4\uBA54\uC778") return "extract_domain";
-    if (category === "\uC0AC\uC6A9\uC790 \uBAA9\uD45C") return "extract_user_goal";
-    return "extract_topics2";
-  }
-  /**
-   * 외부 의존성 주입
-   */
-  setGetPromptResult(fn) {
-    this.getPromptResult = fn;
-    return this;
-  }
-  setClassifyWithIdThreads(fn) {
-    this.classifyWithIdThreads = fn;
-    return this;
-  }
+  return d;
+}
+
+// node_modules/ml-nearest-vector/lib/index.js
+var defaultOptions = {
+  distanceFunction: squaredEuclidean
 };
-
-// src/pipeline/combine.js
-function combineAll(wordClusters, labelClusters, bigLabelClusters) {
-  let allWords = [];
-  if (wordClusters && wordClusters.length > 0) {
-    if (wordClusters[0].cellDatas) {
-      allWords = wordClusters.flatMap((c) => c.cellDatas);
-    } else {
-      allWords = wordClusters;
-    }
-  }
-  if (!allWords.length) return [];
-  const labelMap = /* @__PURE__ */ new Map();
-  if (labelClusters) {
-    labelClusters.forEach((lc) => {
-      labelMap.set(String(lc.cluster), {
-        label: lc.label
-      });
-    });
-  }
-  const bigLabelMap = /* @__PURE__ */ new Map();
-  if (bigLabelClusters) {
-    bigLabelClusters.forEach((bg) => {
-      const clusters = bg.clusters || bg.labels;
-      if (clusters) {
-        clusters.forEach((l) => {
-          if (l.cluster !== void 0) {
-            bigLabelMap.set(String(l.cluster), {
-              bigCluster: bg.bigCluster,
-              bigLabel: bg.bigLabel
-            });
-          }
-        });
+function nearestVector(listVectors, vector, options = defaultOptions) {
+  const distanceFunction = options.distanceFunction || defaultOptions.distanceFunction;
+  const similarityFunction = options.similarityFunction || defaultOptions.similarityFunction;
+  let vectorIndex = -1;
+  if (typeof similarityFunction === "function") {
+    let maxSim = Number.MIN_VALUE;
+    for (let j = 0; j < listVectors.length; j++) {
+      const sim = similarityFunction(vector, listVectors[j]);
+      if (sim > maxSim) {
+        maxSim = sim;
+        vectorIndex = j;
       }
-    });
+    }
+  } else if (typeof distanceFunction === "function") {
+    let minDist = Number.MAX_VALUE;
+    for (let i = 0; i < listVectors.length; i++) {
+      const dist = distanceFunction(vector, listVectors[i]);
+      if (dist < minDist) {
+        minDist = dist;
+        vectorIndex = i;
+      }
+    }
+  } else {
+    throw new Error("A similarity or distance function it's required");
   }
-  const enriched = allWords.map((word) => {
-    const clusterId = word.cluster;
-    const clusterKey = String(clusterId);
-    const labelInfo = labelMap.get(clusterKey);
-    const label = labelInfo?.label || word.cluster_keywords || `Cluster ${clusterId}`;
-    const bigInfo = bigLabelMap.get(clusterKey);
-    const bigCluster = bigInfo ? bigInfo.bigCluster : clusterId;
-    const bigLabel = bigInfo ? bigInfo.bigLabel : "";
-    return {
-      ...word,
-      label,
-      bigCluster,
-      bigLabel
-    };
-  });
-  const grouped = groupBy(enriched, (w) => w.bigLabel || `Cluster ${w.bigCluster}`);
-  const sorted = Object.entries(grouped).map(([key, words]) => ({
-    cluster: key,
-    // This is technically the group key
-    size: words.reduce((sum, w) => sum + (w.size || 1), 0),
-    // Use the bigCluster of the first word as the representative ID if possible
-    bigCluster: words[0].bigCluster,
-    bigLabel: words[0].bigLabel,
-    data: words
-  })).sort((a, b) => b.size - a.size);
-  return sorted.flatMap(
-    (group, idx) => group.data.map((word) => ({
-      ...word,
-      bigClusterOrder: idx
-    }))
-  );
-}
-async function createClusterWithLabel(tick, labelClusters, bigLabelClusters, wordClusters, d3, sortFunc) {
-  await tick();
-  try {
-    return combineAll(wordClusters, labelClusters, bigLabelClusters);
-  } catch (error) {
-    console.error("clusterWithLabel \uCC98\uB9AC \uC911 \uC624\uB958:", error);
-    return wordClusters;
-  }
-}
-function groupBy(arr, keyFn) {
-  return arr.reduce((acc, item) => {
-    const key = keyFn(item);
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(item);
-    return acc;
-  }, {});
+  return vectorIndex;
 }
 
-// src/state/index.js
-var PipelineState = class {
-  constructor() {
-    this.reset();
-  }
-  /**
-   * 상태 초기화
-   */
-  reset() {
-    this.cellData = {
-      embeds: []
-      // wordClusters 제거 (level1.interimClusters로 대체)
-    };
-    this.level1 = {
-      interimClusters: [],
-      // [{cluster:1, cellDatas:[..]}] - 초기 클러스터링
-      labels: [],
-      // Generated labels
-      labelClusters: []
-      // [{cluster:1, label:"..", cellDatas:[..]}] - Outlier 재배치 후 최종 클러스터
-    };
-    this.level2 = {
-      interimClusters: [],
-      // label의 embed를 이용한 클러스터링
-      bigLabels: [],
-      // bigLabelEmbeds removed (merged into bigLabelClusters)
-      bigLabelClusters: []
-      // [{bigCluster:1, bigLabel:"..", embed:[], clusters:[]}]
-    };
-    this.progress = {
-      stage: "idle",
-      percent: 0,
-      message: ""
-    };
-    this.cellPos = [];
-    this.labelPos = [];
-    this.bigLabelPos = [];
-    this.isComplete = false;
-    return this;
-  }
-  /**
-   * CellData 결과 설정 (Embeds)
-   */
-  setCellData(embeds) {
-    this.cellData.embeds = embeds;
-    return this;
-  }
-  /**
-   * Level 1 결과 설정
-   */
-  setLevel1(interimClusters, labels, labelClusters) {
-    if (interimClusters) this.level1.interimClusters = interimClusters;
-    if (labels) this.level1.labels = labels;
-    if (labelClusters) this.level1.labelClusters = labelClusters;
-    return this;
-  }
-  /**
-   * Level 1 레이블 추가/업데이트 (점진적 업데이트용)
-   */
-  addLabels(newLabels) {
-    const existing = new Map(this.level1.labels.map((l) => [l.cluster, l]));
-    for (const l of newLabels) {
-      existing.set(l.cluster, l);
-    }
-    this.level1.labels = Array.from(existing.values());
-    return this;
-  }
-  /**
-   * Level 2 결과 설정
-   */
-  setLevel2(interimClusters, bigLabels, bigLabelClusters) {
-    if (interimClusters) this.level2.interimClusters = interimClusters;
-    if (bigLabels) this.level2.bigLabels = bigLabels;
-    if (bigLabelClusters) this.level2.bigLabelClusters = bigLabelClusters;
-    return this;
-  }
-  /**
-   * 위치 정보 설정
-   */
-  setCellPos(cellPos) {
-    this.cellPos = cellPos;
-    return this;
-  }
-  setLabelPos(labelPos) {
-    this.labelPos = labelPos;
-    return this;
-  }
-  setBigLabelPos(bigLabelPos) {
-    this.bigLabelPos = bigLabelPos;
-    return this;
-  }
-  /**
-   * 진행 상태 업데이트
-   */
-  setProgress(stage, percent, message = "") {
-    this.progress = { stage, percent, message };
-    return this;
-  }
-  /**
-   * 완료 표시
-   */
-  complete() {
-    this.isComplete = true;
-    this.progress = { stage: "complete", percent: 100, message: "\uC644\uB8CC" };
-    return this;
-  }
-  getCombined() {
-    const activeLevel1Clusters = this.level1.labelClusters.length > 0 ? this.level1.labelClusters : this.level1.interimClusters;
-    if (!activeLevel1Clusters || !activeLevel1Clusters.length) return [];
-    const labelLookup = new Map(this.level1.labels.map((l) => [String(l.cluster), l.label]));
-    const bigLabelMap = /* @__PURE__ */ new Map();
-    if (this.level2.bigLabelClusters) {
-      this.level2.bigLabelClusters.forEach((bg) => {
-        const childClusters = bg.clusters || bg.labels;
-        if (childClusters) {
-          childClusters.forEach((l) => {
-            if (l.cluster !== void 0) {
-              bigLabelMap.set(String(l.cluster), { bigCluster: bg.bigCluster, bigLabel: bg.bigLabel });
-            }
-          });
-        }
-      });
-    }
-    const flattened = [];
-    activeLevel1Clusters.forEach((clusterObj) => {
-      const cluster = clusterObj.cluster;
-      const bigInfo = bigLabelMap.get(String(cluster));
-      let label = clusterObj.label;
-      if (!label || label.startsWith("Cluster")) {
-        label = labelLookup.get(String(cluster)) || label || `Cluster ${cluster}`;
+// node_modules/ml-kmeans/lib/utils.js
+function calculateDistanceMatrix(data, distance) {
+  const distanceMatrix = new Array(data.length);
+  for (let i = 0; i < data.length; ++i) {
+    for (let j = i; j < data.length; ++j) {
+      if (!distanceMatrix[i]) {
+        distanceMatrix[i] = new Array(data.length);
       }
-      if (clusterObj.cellDatas) {
-        clusterObj.cellDatas.forEach((cell) => {
-          flattened.push({
-            ...cell,
-            cluster,
-            label,
-            bigCluster: bigInfo?.bigCluster ?? cluster,
-            bigLabel: bigInfo?.bigLabel || ""
-          });
-        });
+      if (!distanceMatrix[j]) {
+        distanceMatrix[j] = new Array(data.length);
       }
+      const dist = distance(data[i], data[j]);
+      distanceMatrix[i][j] = dist;
+      distanceMatrix[j][i] = dist;
+    }
+  }
+  return distanceMatrix;
+}
+function updateClusterID(data, centers, clusterID, distance) {
+  for (let i = 0; i < data.length; i++) {
+    clusterID[i] = nearestVector(centers, data[i], {
+      distanceFunction: distance
     });
-    return flattened;
   }
-  /**
-   * 현재 상태 스냅샷
-   */
-  snapshot() {
-    return {
-      cellData: { ...this.cellData },
-      level1: { ...this.level1 },
-      level2: { ...this.level2 },
-      combined: this.getCombined(),
-      cellPos: [...this.cellPos],
-      labelPos: [...this.labelPos],
-      bigLabelPos: [...this.bigLabelPos],
-      progress: { ...this.progress },
-      isComplete: this.isComplete
-    };
+  return clusterID;
+}
+function updateCenters(prevCenters, data, clusterID, K) {
+  const nDim = data[0].length;
+  const centers = new Array(K);
+  const centersLen = new Array(K);
+  for (let i = 0; i < K; i++) {
+    centers[i] = new Array(nDim);
+    centersLen[i] = 0;
+    for (let j = 0; j < nDim; j++) {
+      centers[i][j] = 0;
+    }
   }
-  /**
-   * 스냅샷에서 복원
-   */
-  restore(snapshot) {
-    if (snapshot.cellData) this.cellData = { ...snapshot.cellData };
-    if (snapshot.level1) this.level1 = { ...snapshot.level1 };
-    if (snapshot.level2) this.level2 = { ...snapshot.level2 };
-    if (snapshot.cellPos) this.cellPos = [...snapshot.cellPos];
-    if (snapshot.labelPos) this.labelPos = [...snapshot.labelPos];
-    if (snapshot.bigLabelPos) this.bigLabelPos = [...snapshot.bigLabelPos];
-    this.isComplete = snapshot.isComplete ?? true;
-    return this;
+  for (let l = 0; l < data.length; l++) {
+    centersLen[clusterID[l]]++;
+    for (let dim = 0; dim < nDim; dim++) {
+      centers[clusterID[l]][dim] += data[l][dim];
+    }
   }
-  /**
-   * 통계 정보
-   */
-  getStats() {
-    const combined = this.getCombined();
-    return {
-      totalTexts: combined.length,
-      clusterCount: new Set(combined.map((d) => d.cluster)).size,
-      bigLabelCount: new Set(combined.map((d) => d.bigLabel).filter(Boolean)).size,
-      labelsCount: this.level1.labels.length
-    };
+  for (let id2 = 0; id2 < K; id2++) {
+    for (let d = 0; d < nDim; d++) {
+      if (centersLen[id2]) {
+        centers[id2][d] /= centersLen[id2];
+      } else {
+        centers[id2][d] = prevCenters[id2][d];
+      }
+    }
   }
-};
+  return centers;
+}
+function hasConverged(centers, oldCenters, distanceFunction, tolerance) {
+  for (let i = 0; i < centers.length; i++) {
+    if (distanceFunction(centers[i], oldCenters[i]) > tolerance) {
+      return false;
+    }
+  }
+  return true;
+}
 
-// src/state/history.js
-var HistoryManager = class {
-  constructor(options = {}) {
-    this.options = {
-      maxSnapshots: 10,
-      // 최대 저장 개수
-      storageKey: "affinitybubble_history",
-      ...options
-    };
-    this.snapshots = [];
-    this.currentIndex = -1;
-    this.compareTarget = null;
+// node_modules/ml-kmeans/lib/KMeansResult.js
+var KMeansResult = class {
+  /**
+   * Result of the kmeans algorithm
+   * @param clusters - the cluster identifier for each data dot
+   * @param centroids - the K centers in format [x,y,z,...], the error and size of the cluster
+   * @param converged - Converge criteria satisfied
+   * @param iterations - Current number of iterations
+   * @param distance - Distance function to use between the points
+   * @class
+   */
+  clusters;
+  centroids;
+  converged;
+  iterations;
+  distance;
+  constructor(clusters, centroids, converged, iterations, distance) {
+    this.clusters = clusters;
+    this.centroids = centroids;
+    this.converged = converged;
+    this.iterations = iterations;
+    this.distance = distance;
   }
   /**
-   * 스냅샷 저장
-   * @param {Object} options - 사용된 옵션 (labelOption, bigLabelOption 등)
-   * @param {Object} results - 결과 데이터 (level1, level1Labels, level2)
-   * @returns {Object} 저장된 스냅샷
+   * Allows to compute for a new array of points their cluster id
+   * @param data - the [x,y,z,...] points to cluster
+   * @returns - cluster id for each point
    */
-  /**
-   * @param {Object} options - 사용된 옵션
-   * @param {Object} results - 결과 데이터
-   * @param {Object} [meta] - 추가 메타데이터
-   * @param {SVGElement|HTMLCanvasElement} [meta.thumbnailEl] - 썸네일 캡처할 DOM 요소
-   * @param {string} [meta.memo] - 사용자 메모
-   */
-  async save(options, results, { thumbnailEl, memo = "" } = {}) {
-    const snapshot = {
-      id: `snapshot_${Date.now()}`,
-      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-      options: { ...options },
-      results: this._cloneResults(results),
-      stats: this._calculateStats(results),
-      thumbnail: thumbnailEl ? this._captureThumbnail(thumbnailEl) : null,
-      memo
-    };
-    this.snapshots = [snapshot, ...this.snapshots.slice(0, this.options.maxSnapshots - 1)];
-    this.currentIndex = -1;
-    await this._persistToStorage();
-    return snapshot;
+  nearest(data) {
+    const clusterID = new Array(data.length);
+    return updateClusterID(data, this.centroids, clusterID, this.distance);
   }
   /**
-   * 메모 업데이트
+   * Returns the error and size of each cluster
+   * @ignore
+   * @param data - the [x,y,z,...] points to cluster
+   * @returns
    */
-  async setMemo(snapshotId, memo) {
-    const snapshot = this.snapshots.find((s) => s.id === snapshotId);
-    if (snapshot) {
-      snapshot.memo = memo;
-      await this._persistToStorage();
-    }
-    return this;
-  }
-  /**
-   * 스냅샷 복원
-   * @param {string} snapshotId - 복원할 스냅샷 ID
-   * @returns {Object|null} 복원된 결과 데이터 (페이지 새로고침 후엔 null)
-   */
-  restore(snapshotId) {
-    const idx = this.snapshots.findIndex((s) => s.id === snapshotId);
-    if (idx === -1) return null;
-    this.currentIndex = idx;
-    return this.snapshots[idx].results;
-  }
-  /**
-   * 현재 스냅샷 가져오기
-   */
-  getCurrent() {
-    if (this.currentIndex === -1) {
-      return this.snapshots[0] || null;
-    }
-    return this.snapshots[this.currentIndex] || null;
-  }
-  /**
-   * 스냅샷 목록 가져오기
-   */
-  getList() {
-    return this.snapshots.map((s, idx) => ({
-      id: s.id,
-      timestamp: s.timestamp,
-      options: s.options,
-      stats: s.stats,
-      thumbnail: s.thumbnail || null,
-      memo: s.memo || "",
-      isCurrent: this.currentIndex === -1 ? idx === 0 : idx === this.currentIndex
-    }));
-  }
-  /**
-   * 두 스냅샷 비교
-   * @param {string} snapshotId1 
-   * @param {string} snapshotId2 
-   * @returns {Object} 비교 결과
-   */
-  compare(snapshotId1, snapshotId2) {
-    const s1 = this.snapshots.find((s) => s.id === snapshotId1);
-    const s2 = this.snapshots.find((s) => s.id === snapshotId2);
-    if (!s1 || !s2) return null;
-    return {
-      optionsDiff: this._diffObjects(s1.options, s2.options),
-      statsDiff: {
-        clusterDelta: s2.stats.clusterCount - s1.stats.clusterCount,
-        topicDelta: s2.stats.bigLabelCount - s1.stats.bigLabelCount,
-        textDelta: s2.stats.totalTexts - s1.stats.totalTexts
-      },
-      labelChanges: this._findLabelChanges(s1, s2),
-      snapshot1: s1,
-      snapshot2: s2
-    };
-  }
-  /**
-   * 비교 모드 설정
-   */
-  setCompareTarget(snapshotId) {
-    this.compareTarget = snapshotId;
-    return this;
-  }
-  /**
-   * 비교 모드 해제
-   */
-  clearCompare() {
-    this.compareTarget = null;
-    return this;
-  }
-  /**
-   * 스냅샷 삭제
-   */
-  async delete(snapshotId) {
-    const idx = this.snapshots.findIndex((s) => s.id === snapshotId);
-    if (idx !== -1) {
-      this.snapshots.splice(idx, 1);
-      if (this.currentIndex >= idx) {
-        this.currentIndex = Math.max(-1, this.currentIndex - 1);
-      }
-      await this._persistToStorage();
-    }
-    return this;
-  }
-  /**
-   * 전체 삭제
-   */
-  async clear() {
-    this.snapshots = [];
-    this.currentIndex = -1;
-    this.compareTarget = null;
-    await this._persistToStorage();
-    return this;
-  }
-  /**
-   * 통계 계산
-   */
-  _calculateStats(results) {
-    const combined = results.combined || [];
-    const bigLabels = new Set(combined.map((d) => d.bigLabel).filter(Boolean));
-    const clusters = new Set(combined.map((d) => d.cluster).filter(Boolean));
-    const clusterSizes = {};
-    for (const item of combined) {
-      const label = item.label || `Cluster ${item.cluster}`;
-      clusterSizes[label] = (clusterSizes[label] || 0) + (item.size || 1);
-    }
-    const topClusters = Object.entries(clusterSizes).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([label, size]) => ({ label, size }));
-    return {
-      totalTexts: combined.length,
-      clusterCount: clusters.size,
-      bigLabelCount: bigLabels.size,
-      topClusters
-    };
-  }
-  /**
-   * 결과 깊은 복사 (참조 끊기)
-   */
-  _cloneResults(results) {
-    const clone = (obj) => {
-      if (Array.isArray(obj)) {
-        return obj.map((item) => {
-          if (typeof item === "object" && item !== null) {
-            const { embed, ...rest } = item;
-            return rest;
-          }
-          return item;
-        });
-      }
-      return obj;
-    };
-    return {
-      level1: {
-        wordClusters: clone(results.level1?.wordClusters || [])
-      },
-      level1Labels: {
-        labels: clone(results.level1Labels?.labels || []),
-        labelClusters: clone(results.level1Labels?.labelClusters || [])
-      },
-      level2: {
-        bigLabels: [...results.level2?.bigLabels || []],
-        bigLabelClusters: clone(results.level2?.bigLabelClusters || [])
-      },
-      combined: clone(results.combined || []),
-      // 셀 위치 좌표 (VoronoiTreemap 복원 시 필요)
-      bigLabelPos: results.bigLabelPos ? JSON.parse(JSON.stringify(results.bigLabelPos)) : [],
-      labelPos: results.labelPos ? JSON.parse(JSON.stringify(results.labelPos)) : [],
-      cellPos: results.cellPos ? JSON.parse(JSON.stringify(results.cellPos)) : []
-    };
-  }
-  /**
-   * 객체 차이점 찾기
-   */
-  _diffObjects(obj1, obj2) {
-    const diffs = [];
-    const allKeys = /* @__PURE__ */ new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
-    for (const key of allKeys) {
-      const v1 = obj1?.[key];
-      const v2 = obj2?.[key];
-      if (JSON.stringify(v1) !== JSON.stringify(v2)) {
-        diffs.push({ key, before: v1, after: v2 });
-      }
-    }
-    return diffs;
-  }
-  /**
-   * 레이블 변경점 찾기
-   */
-  _findLabelChanges(snapshot1, snapshot2) {
-    const labels1 = new Set(
-      (snapshot1.results.level1Labels?.labels || []).map((d) => d.label)
-    );
-    const labels2 = new Set(
-      (snapshot2.results.level1Labels?.labels || []).map((d) => d.label)
-    );
-    const added = [...labels2].filter((l) => !labels1.has(l));
-    const removed = [...labels1].filter((l) => !labels2.has(l));
-    const common = [...labels1].filter((l) => labels2.has(l));
-    return { added, removed, common, changed: added.length + removed.length };
-  }
-  /**
-   * IndexedDB 열기
-   */
-  _openDB() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open("affinitybubble_history", 1);
-      req.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains("snapshots")) {
-          db.createObjectStore("snapshots", { keyPath: "id" });
-        }
+  computeInformation(data) {
+    const enrichedCentroids = this.centroids.map((centroid) => {
+      return {
+        centroid,
+        error: 0,
+        size: 0
       };
-      req.onsuccess = (e) => resolve(e.target.result);
-      req.onerror = (e) => reject(e.target.error);
     });
-  }
-  /**
-   * IndexedDB에 스냅샷 저장
-   * combined에서 chunk(원문)만 제외 — 용량 절감
-   */
-  async _persistToStorage() {
-    try {
-      const db = await this._openDB();
-      const tx = db.transaction("snapshots", "readwrite");
-      const store = tx.objectStore("snapshots");
-      store.clear();
-      for (const snapshot of this.snapshots) {
-        store.put({
-          ...snapshot,
-          results: snapshot.results ? this._slimResults(snapshot.results) : null
-        });
-      }
-      await new Promise((resolve, reject) => {
-        tx.oncomplete = resolve;
-        tx.onerror = (e) => reject(e.target.error);
-      });
-      db.close();
-    } catch (e) {
-      console.warn("History \uC800\uC7A5 \uC2E4\uD328:", e);
+    for (let i = 0; i < data.length; i++) {
+      enrichedCentroids[this.clusters[i]].error += this.distance(data[i], this.centroids[this.clusters[i]]);
+      enrichedCentroids[this.clusters[i]].size++;
     }
-  }
-  /**
-   * IndexedDB에서 복원
-   */
-  async loadFromStorage() {
-    try {
-      const db = await this._openDB();
-      const tx = db.transaction("snapshots", "readonly");
-      const store = tx.objectStore("snapshots");
-      const snapshots = await new Promise((resolve, reject) => {
-        const req = store.getAll();
-        req.onsuccess = (e) => resolve(e.target.result);
-        req.onerror = (e) => reject(e.target.error);
-      });
-      db.close();
-      if (snapshots.length > 0) {
-        this.snapshots = snapshots.sort(
-          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-        );
+    for (let j = 0; j < this.centroids.length; j++) {
+      let error = enrichedCentroids[j].error;
+      if (enrichedCentroids[j].size > 0 && error !== -1) {
+        error /= enrichedCentroids[j].size;
+      } else {
+        enrichedCentroids[j].error = -1;
       }
-    } catch (e) {
-      console.warn("History \uBCF5\uC6D0 \uC2E4\uD328:", e);
     }
-    return this;
-  }
-  /**
-   * SVG 또는 Canvas 요소를 JPEG data URL로 캡처 (300px 너비 썸네일)
-   */
-  _captureThumbnail(el) {
-    try {
-      const THUMB_W = 300;
-      if (el instanceof SVGElement || el.tagName?.toLowerCase() === "svg") {
-        const svg = el.cloneNode(true);
-        const bbox = el.getBoundingClientRect();
-        const ratio = bbox.height / (bbox.width || 1);
-        svg.setAttribute("width", THUMB_W);
-        svg.setAttribute("height", Math.round(THUMB_W * ratio));
-        const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" });
-        return URL.createObjectURL(blob);
-      }
-      if (el instanceof HTMLCanvasElement) {
-        const ratio = el.height / (el.width || 1);
-        const canvas = document.createElement("canvas");
-        canvas.width = THUMB_W;
-        canvas.height = Math.round(THUMB_W * ratio);
-        canvas.getContext("2d").drawImage(el, 0, 0, canvas.width, canvas.height);
-        return canvas.toDataURL("image/jpeg", 0.7);
-      }
-    } catch (e) {
-      console.warn("\uC378\uB124\uC77C \uCEA1\uCC98 \uC2E4\uD328:", e);
-    }
-    return null;
-  }
-  /**
-   * 저장용 결과 경량화 — combined에서 chunk 제외
-   */
-  _slimResults(results) {
-    const slim = (arr) => (arr || []).map(({ chunk, ...rest }) => rest);
-    return {
-      level1: {
-        wordClusters: slim(results.level1?.wordClusters)
-      },
-      level1Labels: {
-        labels: results.level1Labels?.labels || [],
-        labelClusters: slim(results.level1Labels?.labelClusters)
-      },
-      level2: {
-        bigLabels: results.level2?.bigLabels || [],
-        bigLabelClusters: slim(results.level2?.bigLabelClusters)
-      },
-      combined: slim(results.combined)
-    };
+    return enrichedCentroids;
   }
 };
+
+// node_modules/ml-kmeans/lib/assert.js
+function assertUnreachable(x, message) {
+  throw new Error(`${message}: "${String(x)}"`);
+}
+function validateKmeansInput(data, K) {
+  if (K <= 0 || K > data.length || !Number.isInteger(K)) {
+    throw new Error("K should be a positive integer smaller than the number of points");
+  }
+}
+
+// node_modules/ml-matrix/matrix.mjs
+var matrix = __toESM(require_matrix(), 1);
+var Matrix2 = matrix.Matrix;
+var matrix_default = matrix.default.Matrix ? matrix.default.Matrix : matrix.Matrix;
+
+// node_modules/ml-xsadd/lib-esm/XSadd.js
+var LOOP = 8;
+var FLOAT_MUL = 1 / 16777216;
+var sh1 = 15;
+var sh2 = 18;
+var sh3 = 11;
+function multiplyUint32(n, m) {
+  n >>>= 0;
+  m >>>= 0;
+  const nlo = n & 65535;
+  const nhi = n - nlo;
+  return (nhi * m >>> 0) + nlo * m >>> 0;
+}
+var XSadd = class {
+  random;
+  state;
+  /**
+   * create an instance of XSadd with the specified seed
+   * @param [seed=Date.now()]
+   */
+  constructor(seed = Date.now()) {
+    this.state = new Uint32Array(4);
+    this.init(seed);
+    this.random = this.getFloat.bind(this);
+  }
+  /**
+   * Returns a 32-bit integer r (0 <= r < 2^32)
+   */
+  getUint32() {
+    this.nextState();
+    return this.state[3] + this.state[2] >>> 0;
+  }
+  /**
+   * Returns a floating point number r (0.0 <= r < 1.0)
+   */
+  getFloat() {
+    return (this.getUint32() >>> 8) * FLOAT_MUL;
+  }
+  init(seed) {
+    if (!Number.isInteger(seed)) {
+      throw new TypeError("seed must be an integer");
+    }
+    this.state[0] = seed;
+    this.state[1] = 0;
+    this.state[2] = 0;
+    this.state[3] = 0;
+    for (let i = 1; i < LOOP; i++) {
+      this.state[i & 3] ^= i + multiplyUint32(1812433253, this.state[i - 1 & 3] ^ this.state[i - 1 & 3] >>> 30 >>> 0) >>> 0;
+    }
+    this.periodCertification();
+    for (let i = 0; i < LOOP; i++) {
+      this.nextState();
+    }
+  }
+  periodCertification() {
+    if (this.state[0] === 0 && this.state[1] === 0 && this.state[2] === 0 && this.state[3] === 0) {
+      this.state[0] = 88;
+      this.state[1] = 83;
+      this.state[2] = 65;
+      this.state[3] = 68;
+    }
+  }
+  nextState() {
+    let t = this.state[0];
+    t ^= t << sh1;
+    t ^= t >>> sh2;
+    t ^= this.state[3] << sh3;
+    this.state[0] = this.state[1];
+    this.state[1] = this.state[2];
+    this.state[2] = this.state[3];
+    this.state[3] = t;
+  }
+};
+
+// node_modules/ml-random/lib-esm/choice.js
+var PROB_TOLERANCE = 1e-8;
+function randomChoice(values, options = {}, random2 = Math.random) {
+  const { size = 1, replace = false, probabilities } = options;
+  let valuesArr;
+  let cumSum2;
+  if (typeof values === "number") {
+    valuesArr = getArray(values);
+  } else {
+    valuesArr = values.slice();
+  }
+  if (probabilities) {
+    if (!replace) {
+      throw new Error("choice with probabilities and no replacement is not implemented");
+    }
+    if (probabilities.length !== valuesArr.length) {
+      throw new Error("the length of probabilities option should be equal to the number of choices");
+    }
+    cumSum2 = [probabilities[0]];
+    for (let i = 1; i < probabilities.length; i++) {
+      cumSum2[i] = cumSum2[i - 1] + probabilities[i];
+    }
+    if (Math.abs(1 - cumSum2.at(-1)) > PROB_TOLERANCE) {
+      throw new Error(`probabilities should sum to 1, but instead sums to ${cumSum2.at(-1)}`);
+    }
+  }
+  if (!replace && size > valuesArr.length) {
+    throw new Error("size option is too large");
+  }
+  const result = [];
+  for (let i = 0; i < size; i++) {
+    const index = randomIndex(valuesArr.length, random2, cumSum2);
+    result.push(valuesArr[index]);
+    if (!replace) {
+      valuesArr.splice(index, 1);
+    }
+  }
+  return result;
+}
+function getArray(n) {
+  const arr = [];
+  for (let i = 0; i < n; i++) {
+    arr.push(i);
+  }
+  return arr;
+}
+function randomIndex(n, random2, cumSum2) {
+  const rand = random2();
+  if (!cumSum2) {
+    return Math.floor(rand * n);
+  } else {
+    let idx = 0;
+    while (rand > cumSum2[idx]) {
+      idx++;
+    }
+    return idx;
+  }
+}
+var choice_default = randomChoice;
+
+// node_modules/ml-random/lib-esm/Random.js
+var Random = class {
+  randomGenerator;
+  /**
+   * @param [seedOrRandom=Math.random] - Control the random number generator used by the Random class instance. Pass a random number generator function with a uniform distribution over the half-open interval [0, 1[. If seed will pass it to ml-xsadd to create a seeded random number generator. If undefined will use Math.random.
+   */
+  constructor(seedOrRandom = Math.random) {
+    if (typeof seedOrRandom === "number") {
+      const xsadd = new XSadd(seedOrRandom);
+      this.randomGenerator = xsadd.random;
+    } else {
+      this.randomGenerator = seedOrRandom;
+    }
+  }
+  choice(values, options) {
+    if (typeof values === "number") {
+      return choice_default(values, options, this.randomGenerator);
+    }
+    return choice_default(values, options, this.randomGenerator);
+  }
+  /**
+   * Draw a random number from a uniform distribution on [0,1)
+   * @returns The random number
+   */
+  random() {
+    return this.randomGenerator();
+  }
+  /**
+   * Draw a random integer from a uniform distribution on [low, high). If only low is specified, the number is drawn on [0, low)
+   * @param low - The lower bound of the uniform distribution interval.
+   * @param high - The higher bound of the uniform distribution interval.
+   */
+  randInt(low, high) {
+    if (high === void 0) {
+      high = low;
+      low = 0;
+    }
+    return low + Math.floor(this.randomGenerator() * (high - low));
+  }
+  /**
+   * Draw several random number from a uniform distribution on [0, 1)
+   * @param size - The number of number to draw
+   * @returns - The list of drawn numbers.
+   */
+  randomSample(size) {
+    const result = [];
+    for (let i = 0; i < size; i++) {
+      result.push(this.random());
+    }
+    return result;
+  }
+};
+
+// node_modules/ml-kmeans/lib/initialization.js
+function random(data, K, seed) {
+  const random2 = new Random(seed);
+  return random2.choice(data, { size: K });
+}
+function mostDistant(data, K, distanceMatrix, seed) {
+  const random2 = new Random(seed);
+  const ans = new Array(K);
+  ans[0] = Math.floor(random2.random() * data.length);
+  if (K > 1) {
+    const maxDist = { dist: -1, index: -1 };
+    for (let l = 0; l < data.length; ++l) {
+      if (distanceMatrix[ans[0]][l] > maxDist.dist) {
+        maxDist.dist = distanceMatrix[ans[0]][l];
+        maxDist.index = l;
+      }
+    }
+    ans[1] = maxDist.index;
+    if (K > 2) {
+      for (let k = 2; k < K; ++k) {
+        let center = { dist: -1, index: -1 };
+        for (let m = 0; m < data.length; ++m) {
+          let minDistCent = { dist: Number.MAX_VALUE, index: -1 };
+          for (let n = 0; n < k; ++n) {
+            if (distanceMatrix[n][m] < minDistCent.dist && !ans.includes(m)) {
+              minDistCent = {
+                dist: distanceMatrix[n][m],
+                index: m
+              };
+            }
+          }
+          if (minDistCent.dist !== Number.MAX_VALUE && minDistCent.dist > center.dist) {
+            center = { ...minDistCent };
+          }
+        }
+        ans[k] = center.index;
+      }
+    }
+  }
+  return ans.map((index) => data[index]);
+}
+function kmeanspp(X2, K, options = {}) {
+  const m = new Matrix2(X2);
+  const nSamples = m.rows;
+  const random2 = new Random(options.seed);
+  const centers = [];
+  const localTrials = options.localTrials || 2 + Math.floor(Math.log(K));
+  const firstCenterIdx = random2.randInt(nSamples);
+  centers.push(m.getRow(firstCenterIdx));
+  let closestDistSquared = new Matrix2(1, m.rows);
+  for (let i = 0; i < m.rows; i++) {
+    closestDistSquared.set(0, i, squaredEuclidean(m.getRow(i), centers[0]));
+  }
+  let cumSumClosestDistSquared = [cumSum(closestDistSquared.getRow(0))];
+  const factor = 1 / cumSumClosestDistSquared[0][nSamples - 1];
+  let probabilities = Matrix2.mul(closestDistSquared, factor);
+  for (let i = 1; i < K; i++) {
+    const candidateIdx = random2.choice(nSamples, {
+      replace: true,
+      size: localTrials,
+      probabilities: probabilities.getRow(0)
+    });
+    const candidates = m.selection(candidateIdx, range(m.columns));
+    const distanceToCandidates = euclideanDistances(candidates, m);
+    let bestCandidate = Infinity;
+    let bestPot = Infinity;
+    let bestDistSquared = closestDistSquared;
+    for (let j = 0; j < localTrials; j++) {
+      const newDistSquared = Matrix2.min(closestDistSquared, [
+        distanceToCandidates.getRow(j)
+      ]);
+      const newPot = newDistSquared.sum();
+      if (newPot < bestPot) {
+        bestCandidate = candidateIdx[j];
+        bestPot = newPot;
+        bestDistSquared = newDistSquared;
+      }
+    }
+    centers[i] = m.getRow(bestCandidate);
+    closestDistSquared = bestDistSquared;
+    cumSumClosestDistSquared = [cumSum(closestDistSquared.getRow(0))];
+    probabilities = Matrix2.mul(closestDistSquared, 1 / cumSumClosestDistSquared[0][nSamples - 1]);
+  }
+  return centers;
+}
+function euclideanDistances(A, B) {
+  const result = new Matrix2(A.rows, B.rows);
+  for (let i = 0; i < A.rows; i++) {
+    for (let j = 0; j < B.rows; j++) {
+      result.set(i, j, squaredEuclidean(A.getRow(i), B.getRow(j)));
+    }
+  }
+  return result;
+}
+function range(l) {
+  const r = [];
+  for (let i = 0; i < l; i++) {
+    r.push(i);
+  }
+  return r;
+}
+function cumSum(arr) {
+  const cumSum2 = [arr[0]];
+  for (let i = 1; i < arr.length; i++) {
+    cumSum2[i] = cumSum2[i - 1] + arr[i];
+  }
+  return cumSum2;
+}
+
+// node_modules/ml-kmeans/lib/kmeans.js
+var defaultOptions2 = {
+  maxIterations: 100,
+  tolerance: 1e-6,
+  initialization: "kmeans++",
+  distanceFunction: squaredEuclidean
+};
+function step(centers, data, clusterID, K, options, iterations) {
+  clusterID = updateClusterID(data, centers, clusterID, options.distanceFunction);
+  const newCenters = updateCenters(centers, data, clusterID, K);
+  const converged = hasConverged(newCenters, centers, options.distanceFunction, options.tolerance);
+  return new KMeansResult(clusterID, newCenters, converged, iterations, options.distanceFunction);
+}
+function kmeans(data, K, options) {
+  const definedOptions = getDefinedOptions(options);
+  validateKmeansInput(data, K);
+  let centers = initializeCenters(data, K, definedOptions);
+  if (definedOptions.maxIterations === 0) {
+    definedOptions.maxIterations = Number.MAX_VALUE;
+  }
+  const clusterID = new Array(data.length);
+  let converged = false;
+  let stepNumber = 0;
+  let stepResult;
+  while (!converged && stepNumber < definedOptions.maxIterations) {
+    stepResult = step(centers, data, clusterID, K, definedOptions, ++stepNumber);
+    converged = stepResult.converged;
+    centers = stepResult.centroids;
+  }
+  if (!stepResult) {
+    throw new Error("unreachable: no kmeans step executed");
+  }
+  return stepResult;
+}
+function initializeCenters(data, K, options) {
+  let centers;
+  if (Array.isArray(options.initialization)) {
+    if (options.initialization.length !== K) {
+      throw new Error("The initial centers should have the same length as K");
+    } else {
+      centers = options.initialization;
+    }
+  } else {
+    switch (options.initialization) {
+      case "kmeans++":
+        centers = kmeanspp(data, K, options);
+        break;
+      case "random":
+        centers = random(data, K, options.seed);
+        break;
+      case "mostDistant":
+        centers = mostDistant(data, K, calculateDistanceMatrix(data, options.distanceFunction), options.seed);
+        break;
+      default:
+        assertUnreachable(options.initialization, "Unknown initialization method");
+    }
+  }
+  return centers;
+}
+function getDefinedOptions(options) {
+  return { ...defaultOptions2, ...options };
+}
 
 // src/utils/index.js
 var import_umap_js = __toESM(require_dist(), 1);
@@ -11779,14 +11437,14 @@ function cossim(a, b, w) {
   return p / (ma ** 0.5 * mb ** 0.5);
 }
 function euclidean(p, q) {
-  function squaredEuclidean(p2, q2) {
+  function squaredEuclidean2(p2, q2) {
     let d = 0;
     for (let i = 0; i < p2.length; i++) {
       d += (p2[i] - q2[i]) * (p2[i] - q2[i]);
     }
     return d;
   }
-  return Math.sqrt(squaredEuclidean(p, q));
+  return Math.sqrt(squaredEuclidean2(p, q));
 }
 function countLeaves(node) {
   if (node.isLeaf) return 1;
@@ -11795,10 +11453,6 @@ function countLeaves(node) {
 function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc = "cossim", hclust) {
   if (arrayWithEmbed.length === 0) return [];
   if (!hclust) throw new Error("hclust (ml-hclust) is required for clustering");
-  const N = arrayWithEmbed.length;
-  const D = arrayWithEmbed[0]?.embed?.length || 0;
-  console.time(`[hclust] total (N=${N}, D=${D})`);
-  console.time(`[hclust] agnes (distance+merge)`);
   const tree = hclust.agnes(
     arrayWithEmbed.map((e) => e.embed),
     {
@@ -11806,34 +11460,14 @@ function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc
       distanceFunction: distFunc === "cossim" ? (a, b) => 1 - cossim(a, b) : (a, b) => euclidean(a, b)
     }
   );
-  console.timeEnd(`[hclust] agnes (distance+merge)`);
-  console.time(`[hclust] cut`);
-  let subtrees;
-  let isHybridSim = false;
-  if (nCluster && typeof nCluster === "object") {
-    const { sim = 0.7, Kmax = 50 } = nCluster;
-    subtrees = tree.cut(sim);
-    const simBased = subtrees.length;
-    if (simBased > Kmax) {
-      subtrees = tree.group(Kmax).children;
-      isHybridSim = false;
-    } else {
-      isHybridSim = true;
-    }
-    console.log(`[cluster] \uC720\uC0AC\uB3C4 ${sim} \uAE30\uC900 ${simBased}\uAC1C \u2192 \uCD5C\uC885 ${subtrees.length}\uAC1C (Kmax=${Kmax})`);
-  } else {
-    subtrees = nCluster < 1 ? tree.cut(nCluster) : tree.group(nCluster).children;
-  }
-  console.timeEnd(`[hclust] cut`);
-  console.time(`[hclust] post-process (break-big + traverse)`);
+  const subtrees = nCluster < 1 ? tree.cut(nCluster) : tree.group(nCluster).children;
   const totalItems = arrayWithEmbed.length;
   const threshold = totalItems * 0.2;
   const finalClusters = [];
   let nextClusterId = 0;
-  const breakBigActive = isHybridSim || typeof nCluster === "number" && nCluster < 1;
   subtrees.forEach((subtree) => {
     const leafCount = countLeaves(subtree);
-    if (breakBigActive && leafCount > threshold && leafCount >= 8) {
+    if (nCluster < 1 && leafCount > threshold && leafCount >= 8) {
       const numSubClusters = Math.ceil(leafCount / threshold);
       subtree.group(numSubClusters).children.forEach((sub) => {
         const data = [];
@@ -11852,8 +11486,6 @@ function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc
       if (data.length) finalClusters.push({ cid: nextClusterId++, data });
     }
   });
-  console.timeEnd(`[hclust] post-process (break-big + traverse)`);
-  console.timeEnd(`[hclust] total (N=${N}, D=${D})`);
   return finalClusters.sort((a, b) => b.data.length - a.data.length).map((d, i) => ({
     cid: i + 1,
     data: d.data.map((t) => ({ ...t, cluster: i + 1 }))
@@ -11969,6 +11601,8 @@ var SERVICE_TIMEOUTS = {
   get_label: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
   get_label_voice: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
   get_label_outlier_sentiment: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
+  get_label_with_stance: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
+  refine_subcluster: { totalMs: 12e4, firstChunkMs: 6e4, idleMs: 2e4, retries: 2 },
   // 토픽/페르소나/도메인 추출: 중간
   extract_topic: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
   extract_persona: { totalMs: 24e4, firstChunkMs: 12e4, idleMs: 3e4, retries: 2 },
@@ -12064,15 +11698,25 @@ async function _runPromptOnce(api, userInput, promptId, configId, onPartial, tot
   return response;
 }
 async function getLabels(clusters, language, { datasetInfo, text_id, labelOption, api, tick, reportPartial } = {}) {
-  const cluster_data = clusters.map(
-    (cluster) => `
-Cluster ${cluster.clusterId}:
-${cluster.sentences.slice(0, 40).map((d, i) => `${cluster.textids[i]}: ${d.slice(0, 256)}`).join("\n")}
-`
-  ).join("\n");
+  const hasStanceHint = clusters.some((c) => c.stance_hint);
+  const cluster_data = clusters.map((cluster) => {
+    const hint = cluster.stance_hint ? ` (stance_hint: ${cluster.stance_hint})` : "";
+    return `
+Cluster ${cluster.clusterId}${hint}:
+${cluster.sentences.slice(0, 20).map((d, i) => `${cluster.textids[i]}: ${d.slice(0, 256)}`).join("\n")}
+`;
+  }).join("\n");
   const option = datasetInfo?.data_type?.match(/키워드/) ? " \uBD80\uC815 \uC758\uBBF8\uC778 \uACBD\uC6B0 \uC774\uC720\uB97C \uC124\uBA85\uD558\uB294 \uD0A4\uC6CC\uB4DC\uB3C4 \uCD94\uAC00\uD574\uC918." : " \uBD80\uC815 \uC758\uBBF8\uC778 \uACBD\uC6B0 \uC774\uC720\uB97C \uC124\uBA85\uD558\uB294 \uD0A4\uC6CC\uB4DC\uB3C4 \uCD94\uAC00\uD574\uC918. \uC758\uBBF8\uB97C \uAD6C\uCCB4\uC801\uC73C\uB85C \uB4DC\uB7EC\uB0B4\uB294 \uC9E7\uC740 \uBB38\uC7A5\uC73C\uB85C.";
+  let serviceType;
+  if (hasStanceHint) {
+    serviceType = "get_label_with_stance";
+  } else if (datasetInfo?.data_type?.match(/사용자 목표/)) {
+    serviceType = "get_label_voice";
+  } else {
+    serviceType = "get_label_outlier_sentiment";
+  }
   const userInput = {
-    service_type: datasetInfo?.data_type?.match(/사용자 목표/) ? "get_label_voice" : "get_label_outlier_sentiment",
+    service_type: serviceType,
     text_id,
     clusters: cluster_data,
     language,
@@ -12168,6 +11812,1071 @@ function makeEmbedPos(embList, minDist = 0.1, nNeighbors = 10, seedValue = 1) {
   });
 }
 
+// src/pipeline/level1_v2.js
+var REFINE_CONCURRENCY = 10;
+var COARSE_K_DIVISOR = 50;
+var COARSE_K_MIN = 7;
+var COARSE_K_MAX = 200;
+var LLM_SKIP_THRESHOLD = 2;
+var OUTLIER_CLUSTER = 999;
+var Level1PipelineV2 = class {
+  constructor(api, options = {}) {
+    this.api = api;
+    this.options = {
+      kmeansSeed: 0,
+      maxIterations: 100,
+      ...options
+    };
+  }
+  /**
+   * V2 파이프라인 전체 실행
+   * @param {Array} chunkData - 분석할 텍스트 데이터
+   * @param {Function} onProgress - 진행률 콜백 ({stage, progress, partialResult, message})
+   * @returns {Promise<{embeds, interimClusters}>}
+   */
+  async run(chunkData, onProgress = () => {
+  }) {
+    onProgress({ stage: "embedding", progress: 0, message: "\uC784\uBCA0\uB529 \uC2DC\uC791..." });
+    const embeds = await this._embedAll(chunkData, (p) => {
+      onProgress({
+        stage: "embedding",
+        progress: p.progress,
+        partialResult: p.embeds,
+        message: p.message
+      });
+    });
+    this._normalizeEmbeddings(embeds);
+    onProgress({ stage: "clustering", progress: 0, message: "K-means \uD074\uB7EC\uC2A4\uD130\uB9C1..." });
+    const N = embeds.length;
+    const K = Math.min(Math.max(Math.ceil(N / COARSE_K_DIVISOR), COARSE_K_MIN), COARSE_K_MAX);
+    console.log(`[Level1V2] K-means N=${N}, K=${K}`);
+    const vectors = embeds.map((d) => d.embed);
+    const kmResult = kmeans(vectors, K, {
+      initialization: "kmeans++",
+      seed: this.options.kmeansSeed,
+      maxIterations: this.options.maxIterations
+    });
+    const coarseGroups = /* @__PURE__ */ new Map();
+    for (let i = 0; i < kmResult.clusters.length; i++) {
+      const cid = kmResult.clusters[i];
+      if (!coarseGroups.has(cid)) coarseGroups.set(cid, []);
+      coarseGroups.get(cid).push(i);
+    }
+    const liveCoarses = [...coarseGroups.entries()].filter(([_, members]) => members.length > 0);
+    console.log(`[Level1V2] coarse clusters: ${liveCoarses.length} / ${K} (empty skipped)`);
+    onProgress({ stage: "clustering", progress: 30, message: `LLM \uC815\uB3C8 \uC911... (0/${liveCoarses.length})` });
+    const subGroups = [];
+    const outlierGlobalIds = [];
+    let refinedDone = 0;
+    const refineOne = async ([coarseId, members]) => {
+      let refined;
+      if (members.length <= LLM_SKIP_THRESHOLD) {
+        refined = {
+          sub_groups: [{ stance_hint: "", textids: members.map((_, i) => i) }],
+          outliers: []
+        };
+      } else {
+        refined = await this._callRefine(coarseId, members, embeds);
+      }
+      for (const sg of refined.sub_groups) {
+        const globalMembers = (sg.textids || []).filter((i) => Number.isInteger(i) && i >= 0 && i < members.length).map((i) => members[i]);
+        if (globalMembers.length > 0) {
+          subGroups.push({
+            members: globalMembers,
+            stance_hint: (sg.stance_hint || "").trim()
+          });
+        }
+      }
+      for (const i of refined.outliers || []) {
+        if (Number.isInteger(i) && i >= 0 && i < members.length) {
+          outlierGlobalIds.push(members[i]);
+        }
+      }
+      refinedDone += 1;
+      const progress = 30 + refinedDone / liveCoarses.length * 70;
+      onProgress({
+        stage: "clustering",
+        progress,
+        message: `LLM \uC815\uB3C8 \uC911... (${refinedDone}/${liveCoarses.length})`
+      });
+    };
+    await this._runWithConcurrency(liveCoarses, REFINE_CONCURRENCY, refineOne);
+    subGroups.sort((a, b) => b.members.length - a.members.length);
+    const clusterAssignment = /* @__PURE__ */ new Map();
+    subGroups.forEach((sg, idx) => {
+      const clusterId = idx + 1;
+      sg.cluster = clusterId;
+      sg.members.forEach((globalIdx) => clusterAssignment.set(globalIdx, clusterId));
+    });
+    outlierGlobalIds.forEach((globalIdx) => {
+      if (!clusterAssignment.has(globalIdx)) {
+        clusterAssignment.set(globalIdx, OUTLIER_CLUSTER);
+      }
+    });
+    for (let i = 0; i < embeds.length; i++) {
+      if (!clusterAssignment.has(i)) {
+        clusterAssignment.set(i, OUTLIER_CLUSTER);
+      }
+    }
+    const enrichedEmbeds = embeds.map((d, i) => ({
+      ...d,
+      cluster: clusterAssignment.get(i)
+    }));
+    const groupByCluster = /* @__PURE__ */ new Map();
+    for (const item of enrichedEmbeds) {
+      const cid = item.cluster;
+      if (!groupByCluster.has(cid)) {
+        groupByCluster.set(cid, { cluster: cid, stance_hint: "", cellDatas: [] });
+      }
+      groupByCluster.get(cid).cellDatas.push(item);
+    }
+    for (const sg of subGroups) {
+      const grp = groupByCluster.get(sg.cluster);
+      if (grp) grp.stance_hint = sg.stance_hint;
+    }
+    const interimClusters = [...groupByCluster.values()].sort((a, b) => a.cluster - b.cluster);
+    onProgress({ stage: "clustering", progress: 100, partialResult: interimClusters });
+    return {
+      embeds: enrichedEmbeds,
+      interimClusters
+    };
+  }
+  // ═══════════════════════════════════════════════════════
+  // 내부 메서드
+  // ═══════════════════════════════════════════════════════
+  /**
+   * 전체 임베딩 (배치 200, 스트리밍, 5% 단위 progress)
+   * @returns {Array<{...chunkData, embed: number[]}>}
+   */
+  async _embedAll(chunkData, onProgress) {
+    const embeddings = [];
+    const batchSize = 200;
+    const total = chunkData.length;
+    let lastReportedPct = -1;
+    for (let i = 0; i < total; i += batchSize) {
+      const batch = chunkData.slice(i, Math.min(i + batchSize, total));
+      const stream = this.api.streamEmbeddings(
+        batch.map((d) => this._sanitizeText(d.text))
+      );
+      for await (const embedding of stream) {
+        embeddings.push(embedding);
+        const pct = Math.round(embeddings.length / total * 100);
+        if (pct >= lastReportedPct + 5 || embeddings.length === total) {
+          lastReportedPct = pct;
+          onProgress({
+            progress: pct,
+            embeds: chunkData.slice(0, embeddings.length).map((d, j) => ({ ...d, embed: embeddings[j] })),
+            message: `\uC784\uBCA0\uB529 \uC911... (${embeddings.length}/${total})`
+          });
+        }
+      }
+    }
+    if (embeddings.length !== total) {
+      console.warn(`[Level1V2] \uC784\uBCA0\uB529 \uC218 \uBD88\uC77C\uCE58: \uC694\uCCAD ${total}, \uC218\uC2E0 ${embeddings.length}`);
+    }
+    return chunkData.map((d, i) => ({ ...d, embed: embeddings[i] }));
+  }
+  /**
+   * L2 정규화 (in-place) — K-means의 cosine 등가성을 위해 필수
+   */
+  _normalizeEmbeddings(embeds) {
+    for (const item of embeds) {
+      const v = item.embed;
+      if (!v) continue;
+      let normSq = 0;
+      for (let i = 0; i < v.length; i++) normSq += v[i] * v[i];
+      if (normSq === 0) continue;
+      const inv = 1 / Math.sqrt(normSq);
+      for (let i = 0; i < v.length; i++) v[i] *= inv;
+    }
+  }
+  /**
+   * refine_subcluster LLM 호출
+   * @returns {{sub_groups: [...], outliers: [...]}}
+   */
+  async _callRefine(coarseId, members, embeds) {
+    const discussions = members.map(
+      (globalIdx, localIdx) => `${localIdx}: ${this._sanitizeText(embeds[globalIdx].text).slice(0, 500)}`
+    );
+    const userInput = {
+      service_type: "refine_subcluster",
+      cluster_id: coarseId,
+      discussions
+    };
+    try {
+      const response = await getPromptResult(this.api, userInput, "refine_subcluster", "Production");
+      const result = response?.result;
+      if (!result || !Array.isArray(result.sub_groups)) {
+        console.warn(`[Level1V2] refine_subcluster #${coarseId} \uBE48 \uC751\uB2F5, fallback \uB2E8\uC77C sub`);
+        return this._fallbackSingle(members);
+      }
+      return {
+        sub_groups: result.sub_groups,
+        outliers: Array.isArray(result.outliers) ? result.outliers : []
+      };
+    } catch (e) {
+      console.warn(`[Level1V2] refine_subcluster #${coarseId} \uC2E4\uD328: ${e.message}. fallback \uB2E8\uC77C sub`);
+      return this._fallbackSingle(members);
+    }
+  }
+  _fallbackSingle(members) {
+    return {
+      sub_groups: [{ stance_hint: "\uBD84\uD560 \uC2E4\uD328", textids: members.map((_, i) => i) }],
+      outliers: []
+    };
+  }
+  /**
+   * 동시 실행 제한 (p-limit 대용)
+   */
+  async _runWithConcurrency(items, concurrency, worker) {
+    const queue = items.slice();
+    const running = /* @__PURE__ */ new Set();
+    while (queue.length > 0 || running.size > 0) {
+      while (running.size < concurrency && queue.length > 0) {
+        const item = queue.shift();
+        const p = worker(item).finally(() => running.delete(p));
+        running.add(p);
+      }
+      if (running.size > 0) {
+        await Promise.race(running);
+      }
+    }
+  }
+  /**
+   * 임베딩 API에 보낼 텍스트 정제
+   */
+  _sanitizeText(text) {
+    if (!text || !String(text).trim()) return " ";
+    return String(text);
+  }
+};
+
+// src/pipeline/level2.js
+var Level2Pipeline = class {
+  constructor(api, options = {}) {
+    this.api = api;
+    this.options = {
+      language: "Korean",
+      ...options
+    };
+  }
+  /**
+   * 2차 파이프라인 전체 실행
+   * @param {Array} level1Labels - 1차 레이블 배열 [{cluster, label, embed, ...}]
+   * @param {Object} context - 추가 컨텍스트 (selUsecase, bigLabelOption 등)
+   * @param {Function} onProgress - 진행률 콜백
+   * @returns {Promise<{bigLabels, bigLabelEmbeds, bigLabelClusters}>}
+   */
+  async run(labelClusters, context = {}, onProgress = () => {
+  }) {
+    const { selUsecase, bigLabelOption } = context;
+    onProgress({ stage: "topic_extraction", progress: 0, message: "\uC0C1\uC704 \uD1A0\uD53D \uCD94\uCD9C..." });
+    const bigLabels = await this.extractTopics(labelClusters, context);
+    onProgress({
+      stage: "topic_extraction",
+      progress: 50,
+      partialResult: { bigLabels }
+    });
+    onProgress({ stage: "topic_embedding", progress: 0, message: "\uD1A0\uD53D \uC784\uBCA0\uB529..." });
+    const bigLabelEmbeds = await this.embedTopics(bigLabels);
+    onProgress({
+      stage: "topic_embedding",
+      progress: 100,
+      partialResult: { bigLabels, bigLabelEmbeds }
+    });
+    onProgress({ stage: "classification", progress: 0, message: "\uBD84\uB958 \uC9C4\uD589..." });
+    const classificationResult = await this.classify(
+      labelClusters,
+      bigLabels,
+      (p) => {
+        const partialClusters = this._groupBigLabels(p.result, bigLabels, bigLabelEmbeds);
+        onProgress({
+          stage: "classification",
+          progress: p.progress,
+          message: p.message,
+          partialResult: { bigLabelClusters: partialClusters }
+        });
+      }
+    );
+    const bigLabelClusters = this._groupBigLabels(classificationResult, bigLabels, bigLabelEmbeds);
+    return {
+      bigLabels,
+      bigLabelClusters,
+      interimClusters: classificationResult
+    };
+  }
+  /**
+   * 상위 토픽 추출
+   */
+  async extractTopics(level1Labels, context = {}) {
+    const { selUsecase, bigLabelOption, selLabelLanguage } = context;
+    if (!this.getPromptResult) {
+      throw new Error("getPromptResult function not provided");
+    }
+    let userbigLabelOption = bigLabelOption && bigLabelOption.length > 1 ? bigLabelOption : "\uB370\uC774\uD130\uC758 \uC218\uC5D0 \uB530\uB77C 5-9\uAC1C \uC815\uB3C4\uC758 \uC801\uC808\uD55C \uAC2F\uC218\uAC00 \uB418\uB3C4\uB85D \uD574\uC918.";
+    if (selUsecase?.category === "\uC0AC\uC6A9\uC790 \uBAA9\uD45C") {
+      userbigLabelOption += " ~\uC6D0\uD568.~\uC2F6\uB2E4.~\uD558\uAE30.~\uD544\uC694 \uB4F1 \uC0AC\uC6A9\uC790 \uD575\uC2EC \uBAA9\uD45C\uB97C \uB098\uD0C0\uB0B4\uB294 7\uB2E8\uC5B4 \uC774\uB0B4\uC758 \uAC04\uACB0\uD55C \uBB38\uC7A5\uC73C\uB85C.";
+    } else if (selUsecase?.category === "\uB3C4\uBA54\uC778") {
+      userbigLabelOption += " 7\uB2E8\uC5B4 \uC774\uB0B4\uC758 \uAC04\uACB0\uD55C \uBB38\uC7A5\uC73C\uB85C.";
+    }
+    const textsForTopic = level1Labels.map((d) => d.label);
+    const userInput = {
+      service_type: this._getServiceType(selUsecase),
+      texts: textsForTopic.join("\n"),
+      language: selLabelLanguage || this.options.language,
+      labelOption: userbigLabelOption + " \uAD04\uD638\uB098 \uCF5C\uB860 \uC0AC\uC6A9\uD55C \uCD94\uAC00 \uC124\uBA85 \uAE08\uC9C0"
+    };
+    const response = await this.getPromptResult(userInput, null, selUsecase?.configId);
+    return (response.result || []).map(
+      (d) => d.replace(/\*/g, "").replace(/: .+$/, "").replace(/- .+$/, "").replace(/\([^\(]+\)$/, "").trim()
+    );
+  }
+  /**
+   * 상위 토픽 임베딩
+   */
+  async embedTopics(bigLabels) {
+    if (!this.api.getEmbeddings) return [];
+    const embeddings = await this.api.getEmbeddings(bigLabels);
+    return bigLabels.map((label, i) => ({
+      bigLabel: label,
+      embed: embeddings[i]
+    }));
+  }
+  /**
+   * 1차 레이블 → 2차 토픽 분류
+   */
+  async classify(labelClusters, bigLabels, onProgress = () => {
+  }) {
+    if (!this.classifyWithIdThreads) {
+      throw new Error("classifyWithIdThreads function not provided");
+    }
+    const labelClusterMap = new Map(
+      labelClusters.map((n) => [String(n.cluster), n])
+    );
+    const bigLabelIndexMap = new Map(
+      bigLabels.map((label, idx) => [label, idx])
+    );
+    const bigLabelNormMap = new Map(
+      bigLabels.map((bl) => [bl.trim().replace(/[.]/g, ""), bl])
+    );
+    const mapItem = (item) => {
+      let id2 = item.id;
+      if (id2 === void 0 && item.text) {
+        const idMatch = item.text.match(/^(\d+)\s*:/);
+        if (idMatch) id2 = idMatch[1];
+      }
+      const labelCluster = labelClusterMap.get(String(id2));
+      if (!labelCluster) return null;
+      let bigLabel = "\uAE30\uD0C0";
+      if (item.category) {
+        const trimmedCat = item.category.trim();
+        if (bigLabelIndexMap.has(item.category)) {
+          bigLabel = item.category;
+        } else if (bigLabelIndexMap.has(trimmedCat)) {
+          bigLabel = trimmedCat;
+        } else {
+          const normalized = trimmedCat.replace(/[.]/g, "");
+          const found = bigLabelNormMap.get(normalized);
+          if (found) bigLabel = found;
+        }
+      }
+      const bigClusterIdx = bigLabelIndexMap.get(bigLabel);
+      const bigCluster = bigClusterIdx !== void 0 ? bigClusterIdx + 1 : 999;
+      return { ...labelCluster, bigLabel, bigCluster };
+    };
+    let accumulated = [];
+    const result = await this.classifyWithIdThreads(
+      bigLabels,
+      labelClusters.map((d) => `${d.cluster} : ${d.label} ${d.description || ""}`),
+      10,
+      3,
+      (progress, chunk) => {
+        accumulated.push(...chunk);
+        const mappedPartial = accumulated.map(mapItem).filter(Boolean);
+        onProgress({
+          progress,
+          message: `\uBD84\uB958 \uC9C4\uD589 \uC911... (${Math.round(progress * 100)}%)`,
+          result: mappedPartial
+        });
+      }
+    );
+    return result.map(mapItem).filter(Boolean);
+  }
+  /**
+   * bigLabelClusters 그룹화
+   * @param {Array} flatClassifiedLabels - Result from classify
+   * @param {Array} bigLabels - List of topic strings
+   * @param {Array} bigLabelEmbeds - List of {bigLabel, embed}
+   */
+  _groupBigLabels(flatClassifiedLabels, bigLabels, bigLabelEmbeds) {
+    const groups = /* @__PURE__ */ new Map();
+    const embedMap = new Map((bigLabelEmbeds || []).map((d) => [d.bigLabel, d.embed]));
+    bigLabels.forEach((label, idx) => {
+      const id2 = idx + 1;
+      groups.set(id2, {
+        bigCluster: id2,
+        bigLabel: label,
+        embed: embedMap.get(label) || [],
+        clusters: []
+        // Renamed from labels to clusters as requested
+      });
+    });
+    if (!groups.has(999)) {
+      groups.set(999, { bigCluster: 999, bigLabel: "\uAE30\uD0C0", embed: [], clusters: [] });
+    }
+    flatClassifiedLabels.forEach((item) => {
+      const targetId = groups.has(item.bigCluster) ? item.bigCluster : 999;
+      if (groups.has(targetId)) {
+        groups.get(targetId).clusters.push(item);
+      }
+    });
+    return Array.from(groups.values()).filter((g) => g.clusters.length > 0 || g.bigCluster !== 999).sort((a, b) => a.bigCluster - b.bigCluster);
+  }
+  /**
+   * usecase에 따른 서비스 타입 결정
+   * 우선순위: selUsecase.serviceType (명시) > category 매핑 > 기본값
+   * 명시적 serviceType을 사용하면 새 분석 유형 추가 시 SDK 수정 불필요.
+   */
+  _getServiceType(selUsecase) {
+    if (selUsecase?.serviceType) return selUsecase.serviceType;
+    const category = selUsecase?.category;
+    if (category === "\uD37C\uC18C\uB098") return "extract_persona";
+    if (category === "\uB3C4\uBA54\uC778") return "extract_domain";
+    if (category === "\uC0AC\uC6A9\uC790 \uBAA9\uD45C") return "extract_user_goal";
+    return "extract_topics2";
+  }
+  /**
+   * 외부 의존성 주입
+   */
+  setGetPromptResult(fn) {
+    this.getPromptResult = fn;
+    return this;
+  }
+  setClassifyWithIdThreads(fn) {
+    this.classifyWithIdThreads = fn;
+    return this;
+  }
+};
+
+// src/pipeline/combine.js
+function combineAll(wordClusters, labelClusters, bigLabelClusters) {
+  let allWords = [];
+  if (wordClusters && wordClusters.length > 0) {
+    if (wordClusters[0].cellDatas) {
+      allWords = wordClusters.flatMap((c) => c.cellDatas);
+    } else {
+      allWords = wordClusters;
+    }
+  }
+  if (!allWords.length) return [];
+  const labelMap = /* @__PURE__ */ new Map();
+  if (labelClusters) {
+    labelClusters.forEach((lc) => {
+      labelMap.set(String(lc.cluster), {
+        label: lc.label
+      });
+    });
+  }
+  const bigLabelMap = /* @__PURE__ */ new Map();
+  if (bigLabelClusters) {
+    bigLabelClusters.forEach((bg) => {
+      const clusters = bg.clusters || bg.labels;
+      if (clusters) {
+        clusters.forEach((l) => {
+          if (l.cluster !== void 0) {
+            bigLabelMap.set(String(l.cluster), {
+              bigCluster: bg.bigCluster,
+              bigLabel: bg.bigLabel
+            });
+          }
+        });
+      }
+    });
+  }
+  const enriched = allWords.map((word) => {
+    const clusterId = word.cluster;
+    const clusterKey = String(clusterId);
+    const labelInfo = labelMap.get(clusterKey);
+    const label = labelInfo?.label || word.cluster_keywords || `Cluster ${clusterId}`;
+    const bigInfo = bigLabelMap.get(clusterKey);
+    const bigCluster = bigInfo ? bigInfo.bigCluster : clusterId;
+    const bigLabel = bigInfo ? bigInfo.bigLabel : "";
+    return {
+      ...word,
+      label,
+      bigCluster,
+      bigLabel
+    };
+  });
+  const grouped = groupBy(enriched, (w) => w.bigLabel || `Cluster ${w.bigCluster}`);
+  const sorted = Object.entries(grouped).map(([key, words]) => ({
+    cluster: key,
+    // This is technically the group key
+    size: words.reduce((sum, w) => sum + (w.size || 1), 0),
+    // Use the bigCluster of the first word as the representative ID if possible
+    bigCluster: words[0].bigCluster,
+    bigLabel: words[0].bigLabel,
+    data: words
+  })).sort((a, b) => b.size - a.size);
+  return sorted.flatMap(
+    (group, idx) => group.data.map((word) => ({
+      ...word,
+      bigClusterOrder: idx
+    }))
+  );
+}
+async function createClusterWithLabel(tick, labelClusters, bigLabelClusters, wordClusters, d3, sortFunc) {
+  await tick();
+  try {
+    return combineAll(wordClusters, labelClusters, bigLabelClusters);
+  } catch (error) {
+    console.error("clusterWithLabel \uCC98\uB9AC \uC911 \uC624\uB958:", error);
+    return wordClusters;
+  }
+}
+function groupBy(arr, keyFn) {
+  return arr.reduce((acc, item) => {
+    const key = keyFn(item);
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+}
+
+// src/state/index.js
+var PipelineState = class {
+  constructor() {
+    this.reset();
+  }
+  /**
+   * 상태 초기화
+   */
+  reset() {
+    this.cellData = {
+      embeds: []
+      // wordClusters 제거 (level1.interimClusters로 대체)
+    };
+    this.level1 = {
+      interimClusters: [],
+      // [{cluster:1, cellDatas:[..]}] - 초기 클러스터링
+      labels: [],
+      // Generated labels
+      labelClusters: []
+      // [{cluster:1, label:"..", cellDatas:[..]}] - Outlier 재배치 후 최종 클러스터
+    };
+    this.level2 = {
+      interimClusters: [],
+      // label의 embed를 이용한 클러스터링
+      bigLabels: [],
+      // bigLabelEmbeds removed (merged into bigLabelClusters)
+      bigLabelClusters: []
+      // [{bigCluster:1, bigLabel:"..", embed:[], clusters:[]}]
+    };
+    this.progress = {
+      stage: "idle",
+      percent: 0,
+      message: ""
+    };
+    this.cellPos = [];
+    this.labelPos = [];
+    this.bigLabelPos = [];
+    this.isComplete = false;
+    return this;
+  }
+  /**
+   * CellData 결과 설정 (Embeds)
+   */
+  setCellData(embeds) {
+    this.cellData.embeds = embeds;
+    return this;
+  }
+  /**
+   * Level 1 결과 설정
+   */
+  setLevel1(interimClusters, labels, labelClusters) {
+    if (interimClusters) this.level1.interimClusters = interimClusters;
+    if (labels) this.level1.labels = labels;
+    if (labelClusters) this.level1.labelClusters = labelClusters;
+    return this;
+  }
+  /**
+   * Level 1 레이블 추가/업데이트 (점진적 업데이트용)
+   */
+  addLabels(newLabels) {
+    const existing = new Map(this.level1.labels.map((l) => [l.cluster, l]));
+    for (const l of newLabels) {
+      existing.set(l.cluster, l);
+    }
+    this.level1.labels = Array.from(existing.values());
+    return this;
+  }
+  /**
+   * Level 2 결과 설정
+   */
+  setLevel2(interimClusters, bigLabels, bigLabelClusters) {
+    if (interimClusters) this.level2.interimClusters = interimClusters;
+    if (bigLabels) this.level2.bigLabels = bigLabels;
+    if (bigLabelClusters) this.level2.bigLabelClusters = bigLabelClusters;
+    return this;
+  }
+  /**
+   * 위치 정보 설정
+   */
+  setCellPos(cellPos) {
+    this.cellPos = cellPos;
+    return this;
+  }
+  setLabelPos(labelPos) {
+    this.labelPos = labelPos;
+    return this;
+  }
+  setBigLabelPos(bigLabelPos) {
+    this.bigLabelPos = bigLabelPos;
+    return this;
+  }
+  /**
+   * 진행 상태 업데이트
+   */
+  setProgress(stage, percent, message = "") {
+    this.progress = { stage, percent, message };
+    return this;
+  }
+  /**
+   * 완료 표시
+   */
+  complete() {
+    this.isComplete = true;
+    this.progress = { stage: "complete", percent: 100, message: "\uC644\uB8CC" };
+    return this;
+  }
+  getCombined() {
+    const activeLevel1Clusters = this.level1.labelClusters.length > 0 ? this.level1.labelClusters : this.level1.interimClusters;
+    if (!activeLevel1Clusters || !activeLevel1Clusters.length) return [];
+    const labelLookup = new Map(this.level1.labels.map((l) => [String(l.cluster), l.label]));
+    const bigLabelMap = /* @__PURE__ */ new Map();
+    if (this.level2.bigLabelClusters) {
+      this.level2.bigLabelClusters.forEach((bg) => {
+        const childClusters = bg.clusters || bg.labels;
+        if (childClusters) {
+          childClusters.forEach((l) => {
+            if (l.cluster !== void 0) {
+              bigLabelMap.set(String(l.cluster), { bigCluster: bg.bigCluster, bigLabel: bg.bigLabel });
+            }
+          });
+        }
+      });
+    }
+    const flattened = [];
+    activeLevel1Clusters.forEach((clusterObj) => {
+      const cluster = clusterObj.cluster;
+      const bigInfo = bigLabelMap.get(String(cluster));
+      let label = clusterObj.label;
+      if (!label || label.startsWith("Cluster")) {
+        label = labelLookup.get(String(cluster)) || label || `Cluster ${cluster}`;
+      }
+      if (clusterObj.cellDatas) {
+        clusterObj.cellDatas.forEach((cell) => {
+          flattened.push({
+            ...cell,
+            cluster,
+            label,
+            bigCluster: bigInfo?.bigCluster ?? cluster,
+            bigLabel: bigInfo?.bigLabel || ""
+          });
+        });
+      }
+    });
+    return flattened;
+  }
+  /**
+   * 현재 상태 스냅샷
+   */
+  snapshot() {
+    return {
+      cellData: { ...this.cellData },
+      level1: { ...this.level1 },
+      level2: { ...this.level2 },
+      combined: this.getCombined(),
+      cellPos: [...this.cellPos],
+      labelPos: [...this.labelPos],
+      bigLabelPos: [...this.bigLabelPos],
+      progress: { ...this.progress },
+      isComplete: this.isComplete
+    };
+  }
+  /**
+   * 스냅샷에서 복원
+   */
+  restore(snapshot) {
+    if (snapshot.cellData) this.cellData = { ...snapshot.cellData };
+    if (snapshot.level1) this.level1 = { ...snapshot.level1 };
+    if (snapshot.level2) this.level2 = { ...snapshot.level2 };
+    if (snapshot.cellPos) this.cellPos = [...snapshot.cellPos];
+    if (snapshot.labelPos) this.labelPos = [...snapshot.labelPos];
+    if (snapshot.bigLabelPos) this.bigLabelPos = [...snapshot.bigLabelPos];
+    this.isComplete = snapshot.isComplete ?? true;
+    return this;
+  }
+  /**
+   * 통계 정보
+   */
+  getStats() {
+    const combined = this.getCombined();
+    return {
+      totalTexts: combined.length,
+      clusterCount: new Set(combined.map((d) => d.cluster)).size,
+      bigLabelCount: new Set(combined.map((d) => d.bigLabel).filter(Boolean)).size,
+      labelsCount: this.level1.labels.length
+    };
+  }
+};
+
+// src/state/history.js
+var HistoryManager = class {
+  constructor(options = {}) {
+    this.options = {
+      maxSnapshots: 10,
+      // 최대 저장 개수
+      storageKey: "affinitybubble_history",
+      ...options
+    };
+    this.snapshots = [];
+    this.currentIndex = -1;
+    this.compareTarget = null;
+  }
+  /**
+   * 스냅샷 저장
+   * @param {Object} options - 사용된 옵션 (labelOption, bigLabelOption 등)
+   * @param {Object} results - 결과 데이터 (level1, level1Labels, level2)
+   * @returns {Object} 저장된 스냅샷
+   */
+  /**
+   * @param {Object} options - 사용된 옵션
+   * @param {Object} results - 결과 데이터
+   * @param {Object} [meta] - 추가 메타데이터
+   * @param {SVGElement|HTMLCanvasElement} [meta.thumbnailEl] - 썸네일 캡처할 DOM 요소
+   * @param {string} [meta.memo] - 사용자 메모
+   */
+  async save(options, results, { thumbnailEl, memo = "" } = {}) {
+    const snapshot = {
+      id: `snapshot_${Date.now()}`,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      options: { ...options },
+      results: this._cloneResults(results),
+      stats: this._calculateStats(results),
+      thumbnail: thumbnailEl ? this._captureThumbnail(thumbnailEl) : null,
+      memo
+    };
+    this.snapshots = [snapshot, ...this.snapshots.slice(0, this.options.maxSnapshots - 1)];
+    this.currentIndex = -1;
+    await this._persistToStorage();
+    return snapshot;
+  }
+  /**
+   * 메모 업데이트
+   */
+  async setMemo(snapshotId, memo) {
+    const snapshot = this.snapshots.find((s) => s.id === snapshotId);
+    if (snapshot) {
+      snapshot.memo = memo;
+      await this._persistToStorage();
+    }
+    return this;
+  }
+  /**
+   * 스냅샷 복원
+   * @param {string} snapshotId - 복원할 스냅샷 ID
+   * @returns {Object|null} 복원된 결과 데이터 (페이지 새로고침 후엔 null)
+   */
+  restore(snapshotId) {
+    const idx = this.snapshots.findIndex((s) => s.id === snapshotId);
+    if (idx === -1) return null;
+    this.currentIndex = idx;
+    return this.snapshots[idx].results;
+  }
+  /**
+   * 현재 스냅샷 가져오기
+   */
+  getCurrent() {
+    if (this.currentIndex === -1) {
+      return this.snapshots[0] || null;
+    }
+    return this.snapshots[this.currentIndex] || null;
+  }
+  /**
+   * 스냅샷 목록 가져오기
+   */
+  getList() {
+    return this.snapshots.map((s, idx) => ({
+      id: s.id,
+      timestamp: s.timestamp,
+      options: s.options,
+      stats: s.stats,
+      thumbnail: s.thumbnail || null,
+      memo: s.memo || "",
+      isCurrent: this.currentIndex === -1 ? idx === 0 : idx === this.currentIndex
+    }));
+  }
+  /**
+   * 두 스냅샷 비교
+   * @param {string} snapshotId1 
+   * @param {string} snapshotId2 
+   * @returns {Object} 비교 결과
+   */
+  compare(snapshotId1, snapshotId2) {
+    const s1 = this.snapshots.find((s) => s.id === snapshotId1);
+    const s2 = this.snapshots.find((s) => s.id === snapshotId2);
+    if (!s1 || !s2) return null;
+    return {
+      optionsDiff: this._diffObjects(s1.options, s2.options),
+      statsDiff: {
+        clusterDelta: s2.stats.clusterCount - s1.stats.clusterCount,
+        topicDelta: s2.stats.bigLabelCount - s1.stats.bigLabelCount,
+        textDelta: s2.stats.totalTexts - s1.stats.totalTexts
+      },
+      labelChanges: this._findLabelChanges(s1, s2),
+      snapshot1: s1,
+      snapshot2: s2
+    };
+  }
+  /**
+   * 비교 모드 설정
+   */
+  setCompareTarget(snapshotId) {
+    this.compareTarget = snapshotId;
+    return this;
+  }
+  /**
+   * 비교 모드 해제
+   */
+  clearCompare() {
+    this.compareTarget = null;
+    return this;
+  }
+  /**
+   * 스냅샷 삭제
+   */
+  async delete(snapshotId) {
+    const idx = this.snapshots.findIndex((s) => s.id === snapshotId);
+    if (idx !== -1) {
+      this.snapshots.splice(idx, 1);
+      if (this.currentIndex >= idx) {
+        this.currentIndex = Math.max(-1, this.currentIndex - 1);
+      }
+      await this._persistToStorage();
+    }
+    return this;
+  }
+  /**
+   * 전체 삭제
+   */
+  async clear() {
+    this.snapshots = [];
+    this.currentIndex = -1;
+    this.compareTarget = null;
+    await this._persistToStorage();
+    return this;
+  }
+  /**
+   * 통계 계산
+   */
+  _calculateStats(results) {
+    const combined = results.combined || [];
+    const bigLabels = new Set(combined.map((d) => d.bigLabel).filter(Boolean));
+    const clusters = new Set(combined.map((d) => d.cluster).filter(Boolean));
+    const clusterSizes = {};
+    for (const item of combined) {
+      const label = item.label || `Cluster ${item.cluster}`;
+      clusterSizes[label] = (clusterSizes[label] || 0) + (item.size || 1);
+    }
+    const topClusters = Object.entries(clusterSizes).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([label, size]) => ({ label, size }));
+    return {
+      totalTexts: combined.length,
+      clusterCount: clusters.size,
+      bigLabelCount: bigLabels.size,
+      topClusters
+    };
+  }
+  /**
+   * 결과 깊은 복사 (참조 끊기)
+   */
+  _cloneResults(results) {
+    const clone = (obj) => {
+      if (Array.isArray(obj)) {
+        return obj.map((item) => {
+          if (typeof item === "object" && item !== null) {
+            const { embed, ...rest } = item;
+            return rest;
+          }
+          return item;
+        });
+      }
+      return obj;
+    };
+    return {
+      level1: {
+        wordClusters: clone(results.level1?.wordClusters || [])
+      },
+      level1Labels: {
+        labels: clone(results.level1Labels?.labels || []),
+        labelClusters: clone(results.level1Labels?.labelClusters || [])
+      },
+      level2: {
+        bigLabels: [...results.level2?.bigLabels || []],
+        bigLabelClusters: clone(results.level2?.bigLabelClusters || [])
+      },
+      combined: clone(results.combined || []),
+      // 셀 위치 좌표 (VoronoiTreemap 복원 시 필요)
+      bigLabelPos: results.bigLabelPos ? JSON.parse(JSON.stringify(results.bigLabelPos)) : [],
+      labelPos: results.labelPos ? JSON.parse(JSON.stringify(results.labelPos)) : [],
+      cellPos: results.cellPos ? JSON.parse(JSON.stringify(results.cellPos)) : []
+    };
+  }
+  /**
+   * 객체 차이점 찾기
+   */
+  _diffObjects(obj1, obj2) {
+    const diffs = [];
+    const allKeys = /* @__PURE__ */ new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
+    for (const key of allKeys) {
+      const v1 = obj1?.[key];
+      const v2 = obj2?.[key];
+      if (JSON.stringify(v1) !== JSON.stringify(v2)) {
+        diffs.push({ key, before: v1, after: v2 });
+      }
+    }
+    return diffs;
+  }
+  /**
+   * 레이블 변경점 찾기
+   */
+  _findLabelChanges(snapshot1, snapshot2) {
+    const labels1 = new Set(
+      (snapshot1.results.level1Labels?.labels || []).map((d) => d.label)
+    );
+    const labels2 = new Set(
+      (snapshot2.results.level1Labels?.labels || []).map((d) => d.label)
+    );
+    const added = [...labels2].filter((l) => !labels1.has(l));
+    const removed = [...labels1].filter((l) => !labels2.has(l));
+    const common = [...labels1].filter((l) => labels2.has(l));
+    return { added, removed, common, changed: added.length + removed.length };
+  }
+  /**
+   * IndexedDB 열기
+   */
+  _openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("affinitybubble_history", 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("snapshots")) {
+          db.createObjectStore("snapshots", { keyPath: "id" });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+  /**
+   * IndexedDB에 스냅샷 저장
+   * combined에서 chunk(원문)만 제외 — 용량 절감
+   */
+  async _persistToStorage() {
+    try {
+      const db = await this._openDB();
+      const tx = db.transaction("snapshots", "readwrite");
+      const store = tx.objectStore("snapshots");
+      store.clear();
+      for (const snapshot of this.snapshots) {
+        store.put({
+          ...snapshot,
+          results: snapshot.results ? this._slimResults(snapshot.results) : null
+        });
+      }
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = (e) => reject(e.target.error);
+      });
+      db.close();
+    } catch (e) {
+      console.warn("History \uC800\uC7A5 \uC2E4\uD328:", e);
+    }
+  }
+  /**
+   * IndexedDB에서 복원
+   */
+  async loadFromStorage() {
+    try {
+      const db = await this._openDB();
+      const tx = db.transaction("snapshots", "readonly");
+      const store = tx.objectStore("snapshots");
+      const snapshots = await new Promise((resolve, reject) => {
+        const req = store.getAll();
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+      db.close();
+      if (snapshots.length > 0) {
+        this.snapshots = snapshots.sort(
+          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        );
+      }
+    } catch (e) {
+      console.warn("History \uBCF5\uC6D0 \uC2E4\uD328:", e);
+    }
+    return this;
+  }
+  /**
+   * SVG 또는 Canvas 요소를 JPEG data URL로 캡처 (300px 너비 썸네일)
+   */
+  _captureThumbnail(el) {
+    try {
+      const THUMB_W = 300;
+      if (el instanceof SVGElement || el.tagName?.toLowerCase() === "svg") {
+        const svg = el.cloneNode(true);
+        const bbox = el.getBoundingClientRect();
+        const ratio = bbox.height / (bbox.width || 1);
+        svg.setAttribute("width", THUMB_W);
+        svg.setAttribute("height", Math.round(THUMB_W * ratio));
+        const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" });
+        return URL.createObjectURL(blob);
+      }
+      if (el instanceof HTMLCanvasElement) {
+        const ratio = el.height / (el.width || 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = THUMB_W;
+        canvas.height = Math.round(THUMB_W * ratio);
+        canvas.getContext("2d").drawImage(el, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL("image/jpeg", 0.7);
+      }
+    } catch (e) {
+      console.warn("\uC378\uB124\uC77C \uCEA1\uCC98 \uC2E4\uD328:", e);
+    }
+    return null;
+  }
+  /**
+   * 저장용 결과 경량화 — combined에서 chunk 제외
+   */
+  _slimResults(results) {
+    const slim = (arr) => (arr || []).map(({ chunk, ...rest }) => rest);
+    return {
+      level1: {
+        wordClusters: slim(results.level1?.wordClusters)
+      },
+      level1Labels: {
+        labels: results.level1Labels?.labels || [],
+        labelClusters: slim(results.level1Labels?.labelClusters)
+      },
+      level2: {
+        bigLabels: results.level2?.bigLabels || [],
+        bigLabelClusters: slim(results.level2?.bigLabelClusters)
+      },
+      combined: slim(results.combined)
+    };
+  }
+};
+
 // src/pipeline/full.js
 var AffinityBubblePipeline = class {
   constructor(api, dependencies = {}) {
@@ -12212,16 +12921,8 @@ var AffinityBubblePipeline = class {
       selUsecase,
       selLabelLanguage,
       clusterSimValue,
-      clusterSimValue2,
-      embeddingDimensions,
-      maxSet,
-      sampleSize
+      clusterSimValue2
     } = options;
-    if (embeddingDimensions !== void 0) {
-      this.level1.options.embeddingDimensions = embeddingDimensions;
-    }
-    if (maxSet !== void 0) this.level1.options.maxSet = maxSet;
-    if (sampleSize !== void 0) this.level1.options.sampleSize = sampleSize;
     const startStage = this._determineStartStage(chunkData, options);
     console.log(`[Pipeline] Starting from stage: ${startStage}`);
     this.state.reset();
@@ -12271,27 +12972,11 @@ var AffinityBubblePipeline = class {
       if (startStage === "embedding" || startStage === "clustering" || startStage === "labeling") {
         this.state.setProgress("labeling", 30, "\uB808\uC774\uBE14 \uC0DD\uC131...");
         onProgress(this.state.progress, this.state.snapshot());
-        const interleaveCellDatas = (cellDatas) => {
-          if (!cellDatas || cellDatas.length === 0) return [];
-          const sorted = [...cellDatas].sort((a, b) => (b.size || 1) - (a.size || 1));
-          const half = Math.ceil(sorted.length / 2);
-          const top = sorted.slice(0, half);
-          const bottom = sorted.slice(half).reverse();
-          const out = [];
-          for (let i = 0; i < Math.max(top.length, bottom.length); i++) {
-            if (i < top.length) out.push(top[i]);
-            if (i < bottom.length) out.push(bottom[i]);
-          }
-          return out;
-        };
-        const clustersForLabeling = level1Result.interimClusters.map((c) => {
-          const ordered = interleaveCellDatas(c.cellDatas);
-          return {
-            clusterId: c.cluster,
-            sentences: ordered.map((d) => d.text),
-            textids: ordered.map((d) => d.textid)
-          };
-        });
+        const clustersForLabeling = level1Result.interimClusters.map((c) => ({
+          clusterId: c.cluster,
+          sentences: c.cellDatas.map((d) => d.text),
+          textids: c.cellDatas.map((d) => d.textid)
+        }));
         labels = await this._doLabeling(
           clustersForLabeling,
           { labelOption, selLabelLanguage },
@@ -12453,10 +13138,8 @@ var AffinityBubblePipeline = class {
       }
     );
     if (labels.length && this.api.getEmbeddings) {
-      const dim = this.level1?.options?.embeddingDimensions;
-      const embeddings = await this.api.getEmbeddings(labels.map((d) => d.label), dim ? { dimensions: dim } : {});
-      const trimmed = dim ? embeddings.map((e) => e && e.length > dim ? e.slice(0, dim) : e) : embeddings;
-      return labels.map((d, i) => ({ ...d, embed: trimmed[i] }));
+      const embeddings = await this.api.getEmbeddings(labels.map((d) => d.label));
+      return labels.map((d, i) => ({ ...d, embed: embeddings[i] }));
     }
     return labels;
   }
@@ -12565,6 +13248,7 @@ var AffinityBubblePipeline = class {
    */
   async _rearrangeOutliers(labels, interimClusters, options, onProgress = () => {
   }) {
+    const skipStage1 = options?.skipStage1 === true;
     const allCells = interimClusters.flatMap((c) => c.cellDatas);
     const wordClusterMap = new Map(allCells.map((d) => [d.textid, d]));
     const labelMap = new Map(labels.map((d) => [d.label, d.cluster]));
@@ -12622,13 +13306,6 @@ var AffinityBubblePipeline = class {
         };
       });
     }).filter((d) => d && d.item);
-    const llmFlaggedCount = outliers.length;
-    const restEtcCount = etcCells.length;
-    console.log(`[outlier] LLM \uC9C0\uBAA9 ${llmFlaggedCount}, rest 999 (sim \uBBF8\uB2EC) ${restEtcCount}`);
-    const _outlierSample = outliers[0]?.item?.embed?.length;
-    const _labelSample = labels[0]?.embed?.length;
-    const _interimSample = interimClusters[0]?.cellDatas?.[0]?.embed?.length;
-    console.log(`[debug-dim] outlier=${_outlierSample}, label=${_labelSample}, interim cellData=${_interimSample}`);
     outliers = [...outliers, ...etcCells.map((c) => ({
       textid: c.textid,
       text: c.text,
@@ -12640,108 +13317,73 @@ var AffinityBubblePipeline = class {
       console.log(`Re-classifying ${outliers.length} outliers...`);
       const totalOutliers = outliers.length;
       onProgress(0, { phase: "classify", total: totalOutliers, done: 0 });
-      const EMBED_AUTO_THRESHOLD = 0.7;
-      const clusterCentroids = /* @__PURE__ */ new Map();
-      for (const c of interimClusters) {
-        if (!c.cellDatas?.length) continue;
-        const firstEmbed = c.cellDatas.find((d) => d.embed && d.embed.length)?.embed;
-        if (!firstEmbed) continue;
-        const dim = firstEmbed.length;
-        const cent = new Array(dim).fill(0);
-        let n = 0;
-        for (const item of c.cellDatas) {
-          if (!item.embed || item.embed.length !== dim) continue;
-          for (let i = 0; i < dim; i++) cent[i] += item.embed[i];
-          n++;
-        }
-        if (n > 0) {
-          for (let i = 0; i < dim; i++) cent[i] /= n;
-          clusterCentroids.set(c.cluster, cent);
-        }
-      }
-      const labelsWithEmbed = labels.filter((l) => {
-        const cent = clusterCentroids.get(l.cluster);
-        return cent && cent.length > 0 || l.embed && l.embed.length > 0;
-      });
-      const labelPool = labelsWithEmbed.map((l) => {
-        const e = clusterCentroids.get(l.cluster) || l.embed;
-        let normSq = 0;
-        for (let i = 0; i < e.length; i++) normSq += e[i] * e[i];
-        return {
-          cluster: l.cluster,
-          label: l.label,
-          embed: e,
-          invNorm: normSq > 0 ? 1 / Math.sqrt(normSq) : 0
-        };
-      }).filter((l) => l.invNorm > 0);
+      const EMBED_AUTO_THRESHOLD = 0.8;
       const needsLLM = [];
       let autoAssigned = 0;
-      for (const o of outliers) {
-        const itemEmbed = o.item?.embed;
-        if (!itemEmbed || itemEmbed.length === 0 || labelPool.length === 0) {
-          needsLLM.push(o);
-          continue;
-        }
-        let embedNormSq = 0;
-        for (let i = 0; i < itemEmbed.length; i++) embedNormSq += itemEmbed[i] * itemEmbed[i];
-        if (embedNormSq === 0) {
-          needsLLM.push(o);
-          continue;
-        }
-        const itemInvNorm = 1 / Math.sqrt(embedNormSq);
-        let bestSim = -1;
-        let bestCluster = null;
-        for (const l of labelPool) {
-          let dot = 0;
-          for (let i = 0; i < itemEmbed.length; i++) dot += itemEmbed[i] * l.embed[i];
-          const sim = dot * itemInvNorm * l.invNorm;
-          if (sim > bestSim) {
-            bestSim = sim;
-            bestCluster = l.cluster;
+      if (skipStage1) {
+        needsLLM.push(...outliers);
+        console.log(`Stage 1 (embed): SKIPPED, all ${totalOutliers} outliers \u2192 Stage 2 LLM`);
+      } else {
+        const labelsWithEmbed = labels.filter((l) => l.embed && l.embed.length > 0);
+        const labelPool = labelsWithEmbed.map((l) => {
+          const e = l.embed;
+          let normSq = 0;
+          for (let i = 0; i < e.length; i++) normSq += e[i] * e[i];
+          return {
+            cluster: l.cluster,
+            label: l.label,
+            embed: e,
+            invNorm: normSq > 0 ? 1 / Math.sqrt(normSq) : 0
+          };
+        }).filter((l) => l.invNorm > 0);
+        for (const o of outliers) {
+          const itemEmbed = o.item?.embed;
+          if (!itemEmbed || itemEmbed.length === 0 || labelPool.length === 0) {
+            needsLLM.push(o);
+            continue;
+          }
+          let embedNormSq = 0;
+          for (let i = 0; i < itemEmbed.length; i++) embedNormSq += itemEmbed[i] * itemEmbed[i];
+          if (embedNormSq === 0) {
+            needsLLM.push(o);
+            continue;
+          }
+          const itemInvNorm = 1 / Math.sqrt(embedNormSq);
+          let bestSim = -1;
+          let bestCluster = null;
+          for (const l of labelPool) {
+            let dot = 0;
+            for (let i = 0; i < itemEmbed.length; i++) dot += itemEmbed[i] * l.embed[i];
+            const sim = dot * itemInvNorm * l.invNorm;
+            if (sim > bestSim) {
+              bestSim = sim;
+              bestCluster = l.cluster;
+            }
+          }
+          if (bestSim >= EMBED_AUTO_THRESHOLD && bestCluster !== null) {
+            remappingMap.set(o.textid, bestCluster);
+            autoAssigned++;
+          } else {
+            needsLLM.push(o);
           }
         }
-        if (bestSim >= EMBED_AUTO_THRESHOLD && bestCluster !== null) {
-          remappingMap.set(o.textid, bestCluster);
-          autoAssigned++;
-        } else {
-          needsLLM.push(o);
-        }
+        console.log(`Stage 1 (embed): auto-assigned ${autoAssigned}/${totalOutliers}`);
       }
-      console.log(`Stage 1 (embed): auto-assigned ${autoAssigned}/${totalOutliers}`);
       onProgress(autoAssigned / totalOutliers, {
         phase: "classify",
         total: totalOutliers,
         done: autoAssigned
       });
       if (needsLLM.length > 0) {
-        const TOP_K_PER_CLUSTER = 5;
-        const labelTopWords = /* @__PURE__ */ new Map();
-        for (const c of interimClusters) {
-          const sorted = [...c.cellDatas || []].sort((a, b) => (b.size || 1) - (a.size || 1));
-          const seen = /* @__PURE__ */ new Set();
-          const top = [];
-          for (const item of sorted) {
-            const t = (item.text || "").trim();
-            if (!t || seen.has(t)) continue;
-            seen.add(t);
-            top.push(t);
-            if (top.length >= TOP_K_PER_CLUSTER) break;
-          }
-          labelTopWords.set(c.cluster, top);
-        }
-        const augmentedCategories = labels.map((l) => {
-          const top = labelTopWords.get(l.cluster) || [];
-          return top.length ? `${l.label} (\uC608: ${top.join(", ")})` : l.label;
-        });
-        const augToLabel = new Map(augmentedCategories.map((c, i) => [c, labels[i]]));
+        const allLabelTexts = labels.map((d) => d.label);
         try {
           const result = await this.deps.classifyWithIdThreads(
-            augmentedCategories,
+            allLabelTexts,
             needsLLM.map((d) => `${d.textid} : ${d.text}`),
-            20,
-            // chunkSize: 10 → 20 (LLM 호출 횟수 절반)
+            10,
+            // chunkSize: 25 → 10 (LLM 집중도 향상)
             5,
-            // maxConcurrent: 5 유지 (rate limit 안전)
+            // maxConcurrent: 3 → 5 (call 단축 이득 활용)
             (p) => {
               const clamped = Math.max(0, Math.min(1, p));
               const llmDone = Math.round(clamped * needsLLM.length);
@@ -12755,41 +13397,18 @@ var AffinityBubblePipeline = class {
               );
             }
           );
-          const norm = (s) => (s || "").replace(/\s+/g, "");
-          const findLabel = (cat) => {
-            const c = (cat || "").trim();
-            if (!c) return null;
-            if (augToLabel.has(c)) return augToLabel.get(c);
-            let m = labels.find((l) => l.label === c);
-            if (m) return m;
-            m = labels.find((l) => c.startsWith(l.label));
-            if (m) return m;
-            const ncat = norm(c);
-            m = labels.find((l) => ncat.startsWith(norm(l.label)));
-            if (m) return m;
-            m = labels.find((l) => l.label.includes(c) && c.length >= 4);
-            if (m) return m;
-            return null;
-          };
           if (result && result.length > 0) {
             const outlierMap = new Map(needsLLM.map((d) => [d.textid, d]));
-            let unmatched = 0;
             result.forEach((d) => {
               const originalId = d.id;
               const match = outlierMap.get(originalId);
               if (match && d.category) {
-                const matchedLabel = findLabel(d.category);
-                if (matchedLabel) {
-                  remappingMap.set(originalId, matchedLabel.cluster);
-                } else {
-                  unmatched++;
-                  console.warn(`[cluster] LLM \uBD84\uB958 \uB9E4\uCE6D \uC2E4\uD328: "${d.category}" (id ${originalId})`);
+                const newClusterId = labelMap.get(d.category);
+                if (newClusterId !== void 0) {
+                  remappingMap.set(originalId, newClusterId);
                 }
               }
             });
-            if (unmatched > 0) {
-              console.warn(`[cluster] Stage 2 LLM \uACB0\uACFC \uB9E4\uCE6D \uC2E4\uD328 ${unmatched}/${result.length}\uAC74 \u2014 cluster 999\uB85C fallback`);
-            }
           }
         } catch (e) {
           console.error("Error during _rearrangeOutliers:", e);
@@ -12864,6 +13483,39 @@ var AffinityBubblePipeline = class {
     if (deps.getPromptResult) this.level2.setGetPromptResult(deps.getPromptResult);
     if (deps.classifyWithIdThreads) this.level2.setClassifyWithIdThreads(deps.classifyWithIdThreads);
     return this;
+  }
+};
+
+// src/pipeline/full_v2.js
+var AffinityBubblePipelineV2 = class extends AffinityBubblePipeline {
+  constructor(api, dependencies = {}) {
+    super(api, dependencies);
+    this.level1 = new Level1PipelineV2(api, dependencies.level1Options);
+    console.log("[Pipeline V2] AffinityBubblePipelineV2 initialized (K-means + stance refine)");
+  }
+  /**
+   * _rearrangeOutliers override — Stage 1(임베딩 자동 흡수) skip 강제
+   */
+  async _rearrangeOutliers(labels, interimClusters, options, onProgress = () => {
+  }) {
+    return super._rearrangeOutliers(
+      labels,
+      interimClusters,
+      { ...options, skipStage1: true },
+      onProgress
+    );
+  }
+  /**
+   * _determineStartStage override — V2는 doClustering 메서드 없음,
+   * 'clustering' 단계 진입 시 'embedding'으로 fallback
+   */
+  _determineStartStage(chunkData, options) {
+    const stage = super._determineStartStage(chunkData, options);
+    if (stage === "clustering") {
+      console.log("[Pipeline V2] clustering stage \u2192 embedding (V2 has no separate doClustering)");
+      return "embedding";
+    }
+    return stage;
   }
 };
 
@@ -13493,9 +14145,11 @@ function getInsightStyles() {
 }
 export {
   AffinityBubblePipeline,
+  AffinityBubblePipelineV2,
   DataInput,
   HistoryManager,
   Level1Pipeline,
+  Level1PipelineV2,
   Level2Pipeline,
   PipelineState,
   REPORT_TYPES,
