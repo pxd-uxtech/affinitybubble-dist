@@ -11883,9 +11883,42 @@ var Level1PipelineV2 = class {
     });
     const subGroups = [];
     const outlierGlobalIds = [];
+    const idToPartialCluster = /* @__PURE__ */ new Map();
+    let nextPartialId = 1;
     let refinedDone = 0;
     let fallbackCount = 0;
     let skipCount = 0;
+    let lastEmittedPct = 0;
+    const buildPartialSnapshot = () => {
+      const partialEmbeds = embeds.map((d, i) => ({
+        ...d,
+        cluster: idToPartialCluster.get(i) ?? OUTLIER_CLUSTER
+      }));
+      const grpByC = /* @__PURE__ */ new Map();
+      for (const item of partialEmbeds) {
+        if (!grpByC.has(item.cluster)) {
+          grpByC.set(item.cluster, { cluster: item.cluster, stance_hint: "", label: "", cellDatas: [] });
+        }
+        grpByC.get(item.cluster).cellDatas.push(item);
+      }
+      for (const sg of subGroups) {
+        const grp = grpByC.get(sg._partialId);
+        if (grp) {
+          grp.stance_hint = sg.stance_hint;
+          grp.label = sg.label;
+        }
+      }
+      const partialInterim = [...grpByC.values()].sort((a, b) => a.cluster - b.cluster);
+      const partialLabels = subGroups.filter((sg) => sg.label).map((sg) => ({
+        cluster: sg._partialId,
+        label: sg.label,
+        description: "",
+        sentimentScore: 3,
+        outliers: [],
+        keywords: []
+      }));
+      return { partialEmbeds, partialInterim, partialLabels };
+    };
     const refineOne = async ([coarseId, members]) => {
       let refined;
       if (members.length <= LLM_SKIP_THRESHOLD) {
@@ -11915,11 +11948,14 @@ var Level1PipelineV2 = class {
       for (const sg of refined.sub_groups) {
         const globalMembers = (sg.textids || []).filter((i) => Number.isInteger(i) && i >= 0 && i < members.length).map((i) => members[i]);
         if (globalMembers.length > 0) {
+          const pid = nextPartialId++;
           subGroups.push({
             members: globalMembers,
             stance_hint: (sg.stance_hint || "").trim(),
-            label: (sg.label || "").trim()
+            label: (sg.label || "").trim(),
+            _partialId: pid
           });
+          globalMembers.forEach((g) => idToPartialCluster.set(g, pid));
         }
       }
       for (const i of refined.outliers || []) {
@@ -11929,11 +11965,27 @@ var Level1PipelineV2 = class {
       }
       refinedDone += 1;
       const progress = 30 + refinedDone / liveCoarses.length * 70;
-      onProgress({
-        stage: "clustering",
-        progress,
-        message: `\uD074\uB7EC\uC2A4\uD130\uB9C1 \uC138\uBD84\uD654 \uC911... (${refinedDone}/${liveCoarses.length})`
-      });
+      const pct = Math.round(refinedDone / liveCoarses.length * 100);
+      const isFinal = refinedDone === liveCoarses.length;
+      const shouldEmitPartial = !isFinal && pct >= lastEmittedPct + 10;
+      if (shouldEmitPartial) {
+        lastEmittedPct = Math.floor(pct / 10) * 10;
+        const snap = buildPartialSnapshot();
+        onProgress({
+          stage: "clustering",
+          progress,
+          partialResult: snap.partialEmbeds,
+          partialInterimClusters: snap.partialInterim,
+          partialRefineLabels: snap.partialLabels,
+          message: `\uD074\uB7EC\uC2A4\uD130\uB9C1 \uC138\uBD84\uD654 \uC911... (${refinedDone}/${liveCoarses.length}, ${subGroups.length}\uAC1C sub-cluster)`
+        });
+      } else {
+        onProgress({
+          stage: "clustering",
+          progress,
+          message: `\uD074\uB7EC\uC2A4\uD130\uB9C1 \uC138\uBD84\uD654 \uC911... (${refinedDone}/${liveCoarses.length})`
+        });
+      }
     };
     await this._runWithConcurrency(liveCoarses, REFINE_CONCURRENCY, refineOne);
     console.log(
