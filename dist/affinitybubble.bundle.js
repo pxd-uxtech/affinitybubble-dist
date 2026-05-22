@@ -11869,10 +11869,16 @@ var Level1PipelineV2 = class {
       ...d,
       cluster: coarseOrdinal.get(kmResult.clusters[i]) ?? OUTLIER_CLUSTER
     }));
+    const partialInterimClusters = liveCoarses.map(([coarseId, members], idx) => ({
+      cluster: idx + 1,
+      stance_hint: "",
+      cellDatas: members.map((globalIdx) => partialCoarseEmbeds[globalIdx])
+    }));
     onProgress({
       stage: "clustering",
       progress: 30,
       partialResult: partialCoarseEmbeds,
+      partialInterimClusters,
       message: `1\uCC28 \uD074\uB7EC\uC2A4\uD130\uB9C1 \uC644\uB8CC (${liveCoarses.length}\uAC1C \uADF8\uB8F9) \u2014 \uC815\uB3C8 \uC911...`
     });
     const subGroups = [];
@@ -12985,6 +12991,9 @@ var AffinityBubblePipeline = class {
           this.state.setProgress("level1", p.progress * 0.3, p.message);
           if ((p.stage === "embedding" || p.stage === "clustering") && p.partialResult) {
             this.state.setCellData(p.partialResult);
+          }
+          if (p.stage === "clustering" && p.partialInterimClusters) {
+            this.state.setLevel1(p.partialInterimClusters, [], []);
           }
           onProgress(this.state.progress, this.state.snapshot());
         });
