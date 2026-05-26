@@ -8150,13 +8150,24 @@ var Level1Pipeline = class {
   constructor(api, options = {}) {
     this.api = api;
     this.options = {
-      maxSet: 1200,
-      sampleSize: 1e3,
-      assignThreshold: 0.8,
+      // N>maxSet이면 샘플링 경로. N≤maxSet은 전체 hclust.
+      // sampleSize와 같이 두면: N≤1500 전체, N>1500은 1500 sample
+      // quality(medoid 견고함, outlier 비율↓) 우선
+      maxSet: 1500,
+      sampleSize: 1500,
+      // rest medoid sim 임계값 — 한국어 키워드 sim 분포 폭이 좁아 빡빡한 임계값은 대다수를 outlier로 빠뜨림
+      // 0.40으로 낮춰 sim 부족한 rest도 일단 best cluster에 배정.
+      // 잘못 배정된 케이스는 4단계 LLM 레이블링이 outlier로 지목 → _rearrangeOutliers가 재분류.
+      // 즉 sim 임계값 단계와 LLM outlier 지목 단계가 중복이라 sim 단계를 느슨하게.
+      assignThreshold: 0.5,
       clusterSimValue: 45,
       medoidK: 3,
+      // 임베딩 차원 — null이면 모델 기본값(예: text-embedding-3-small=1536)
+      // 768로 설정 시 distance 계산 ~2배 빨라짐 (정확도 거의 동일, Matryoshka)
+      embeddingDimensions: null,
       ...options
     };
+    this._embedDimReported = false;
   }
   /**
    * 1차 파이프라인 전체 실행
@@ -8201,6 +8212,16 @@ var Level1Pipeline = class {
   /**
    * 전체 임베딩 (배치 분할)
    */
+  _embedOpts() {
+    const d = this.options.embeddingDimensions;
+    return d ? { dimensions: d } : {};
+  }
+  // SDK가 dimensions 옵션을 무시해도 client에서 잘라 hclust 비용을 줄임.
+  // text-embedding-3-small은 Matryoshka 학습이라 앞 N차원만 사용해도 의미 보존됨.
+  _truncEmbed(e) {
+    const d = this.options.embeddingDimensions;
+    return d && e && e.length > d ? e.slice(0, d) : e;
+  }
   async _embedAll(chunkData, onProgress) {
     const embeddings = [];
     const batchSize = 200;
@@ -8209,10 +8230,16 @@ var Level1Pipeline = class {
     for (let i = 0; i < total; i += batchSize) {
       const batch = chunkData.slice(i, Math.min(i + batchSize, total));
       const stream = this.api.streamEmbeddings(
-        batch.map((d) => this._sanitizeText(d.text))
+        batch.map((d) => this._sanitizeText(d.text)),
+        this._embedOpts()
       );
       for await (const embedding of stream) {
-        embeddings.push(embedding);
+        const e = this._truncEmbed(embedding);
+        if (!this._embedDimReported) {
+          this._embedDimReported = true;
+          console.log(`[embedding] SDK \uC751\uB2F5 raw dim=${embedding.length}, hclust \uC0AC\uC6A9 dim=${e.length} (\uC694\uCCAD dimensions=${this.options.embeddingDimensions ?? "default"})`);
+        }
+        embeddings.push(e);
         const pct = Math.round(embeddings.length / total * 100);
         if (pct >= lastReportedPct + 5 || embeddings.length === total) {
           lastReportedPct = pct;
@@ -8247,9 +8274,14 @@ var Level1Pipeline = class {
     let lastReportedPct = -1;
     for (let i = 0; i < sample.length; i += batchSize) {
       const batch = sample.slice(i, Math.min(i + batchSize, sample.length));
-      const sampleStream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)));
+      const sampleStream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)), this._embedOpts());
       for await (const e of sampleStream) {
-        sampleEmbeds.push(e);
+        const trimmed = this._truncEmbed(e);
+        if (!this._embedDimReported) {
+          this._embedDimReported = true;
+          console.log(`[embedding] SDK \uC751\uB2F5 raw dim=${e.length}, hclust \uC0AC\uC6A9 dim=${trimmed.length} (\uC694\uCCAD dimensions=${this.options.embeddingDimensions ?? "default"})`);
+        }
+        sampleEmbeds.push(trimmed);
         const pct = Math.round(sampleEmbeds.length / sample.length * 30);
         if (pct >= lastReportedPct + 3 || sampleEmbeds.length === sample.length) {
           lastReportedPct = pct;
@@ -8276,11 +8308,21 @@ var Level1Pipeline = class {
     }));
     onProgress({ progress: 40, embeds: sampleWithEmbeds, message: "\uC784\uBCA0\uB529 \uC911... (40%)" });
     const clusterMedoids = this._computeMedoids(sampleWithEmbeds, this.options.medoidK);
+    const _sampleDim = sampleWithEmbeds[0]?.embed?.length;
+    const _medoidDim = clusterMedoids[0]?.medoids?.[0]?.embed?.length;
+    console.log(`[debug-dim] sample embed=${_sampleDim}, medoid=${_medoidDim}, medoid clusters=${clusterMedoids.length}`);
+    const sampleTextMap = /* @__PURE__ */ new Map();
+    for (const d of sampleWithEmbeds) {
+      if (d.cluster !== 999 && !sampleTextMap.has(d.text)) {
+        sampleTextMap.set(d.text, d.cluster);
+      }
+    }
     const restResult = await this._embedAndAssignRest(
       rest,
       clusterMedoids,
       assignThreshold,
-      (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds, message: p.message })
+      (p) => onProgress({ progress: 40 + p.progress * 60, embeds: p.allEmbeds, message: p.message }),
+      sampleTextMap
     );
     const mergedClusters = this._mergeClusters(
       sampleClusterResult.interimClusters,
@@ -8298,22 +8340,32 @@ var Level1Pipeline = class {
    * @param {number} threshold - 배정 임계값 (코사인 유사도)
    * @param {Function} onProgress - 진행률 콜백
    */
-  async _embedAndAssignRest(rest, clusterMedoids, threshold, onProgress) {
+  async _embedAndAssignRest(rest, clusterMedoids, threshold, onProgress, sampleTextMap = /* @__PURE__ */ new Map()) {
     const batchSize = 300;
     const allEmbeds = [];
+    const restTextMap = /* @__PURE__ */ new Map();
+    let textLockedCount = 0;
     for (let i = 0; i < rest.length; i += batchSize) {
       const batch = rest.slice(i, Math.min(i + batchSize, rest.length));
-      const stream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)));
+      const stream = this.api.streamEmbeddings(batch.map((d) => this._sanitizeText(d.text)), this._embedOpts());
       const batchEmbeds = [];
-      for await (const e of stream) batchEmbeds.push(e);
+      for await (const e of stream) batchEmbeds.push(this._truncEmbed(e));
       for (let j = 0; j < batch.length; j++) {
         const embed = batchEmbeds[j];
-        const best = this._findNearestMedoid(embed, clusterMedoids);
-        const withEmbed = {
-          ...batch[j],
-          embed,
-          cluster: best.similarity >= threshold ? best.cluster : 999
-        };
+        const text = batch[j].text;
+        let cluster;
+        if (sampleTextMap.has(text)) {
+          cluster = sampleTextMap.get(text);
+          textLockedCount++;
+        } else if (restTextMap.has(text)) {
+          cluster = restTextMap.get(text);
+          textLockedCount++;
+        } else {
+          const best = this._findNearestMedoid(embed, clusterMedoids);
+          cluster = best.similarity >= threshold ? best.cluster : 999;
+          if (cluster !== 999) restTextMap.set(text, cluster);
+        }
+        const withEmbed = { ...batch[j], embed, cluster };
         allEmbeds.push(withEmbed);
       }
       onProgress({
@@ -8321,6 +8373,9 @@ var Level1Pipeline = class {
         allEmbeds,
         message: `\uB098\uBA38\uC9C0 \uC784\uBCA0\uB529 \uC911... (${allEmbeds.length}/${rest.length})`
       });
+    }
+    if (textLockedCount > 0) {
+      console.log(`[cluster] rest \uBC30\uC815 \uC911 \uB3D9\uC77C \uD14D\uC2A4\uD2B8 ${textLockedCount}\uAC74\uC740 sample/rest \uC77C\uAD00 cluster\uB85C \uACE0\uC815`);
     }
     return { allEmbeds };
   }
@@ -8330,11 +8385,12 @@ var Level1Pipeline = class {
   async doClustering(embeds, onProgress = () => {
   }) {
     const { clusterSimValue } = this.options;
-    const threshold = embeds.length >= 300 ? 45 : clusterSimValue / 100;
+    const sim = (clusterSimValue ?? 70) / 100;
+    const Kmax = 60;
     if (!this.makeCluster) {
       throw new Error("makeCluster function not provided");
     }
-    const clusterRaw = await this.makeCluster(embeds, threshold);
+    const clusterRaw = await this.makeCluster(embeds, { sim, Kmax });
     const clusters = clusterRaw.map(
       (c) => c.data.map((d) => ({ ...d, region: c.data[0].chunk }))
     );
@@ -11453,6 +11509,10 @@ function countLeaves(node) {
 function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc = "cossim", hclust) {
   if (arrayWithEmbed.length === 0) return [];
   if (!hclust) throw new Error("hclust (ml-hclust) is required for clustering");
+  const N = arrayWithEmbed.length;
+  const D = arrayWithEmbed[0]?.embed?.length || 0;
+  console.time(`[hclust] total (N=${N}, D=${D})`);
+  console.time(`[hclust] agnes (distance+merge)`);
   const tree = hclust.agnes(
     arrayWithEmbed.map((e) => e.embed),
     {
@@ -11460,14 +11520,34 @@ function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc
       distanceFunction: distFunc === "cossim" ? (a, b) => 1 - cossim(a, b) : (a, b) => euclidean(a, b)
     }
   );
-  const subtrees = nCluster < 1 ? tree.cut(nCluster) : tree.group(nCluster).children;
+  console.timeEnd(`[hclust] agnes (distance+merge)`);
+  console.time(`[hclust] cut`);
+  let subtrees;
+  let isHybridSim = false;
+  if (nCluster && typeof nCluster === "object") {
+    const { sim = 0.7, Kmax = 50 } = nCluster;
+    subtrees = tree.cut(sim);
+    const simBased = subtrees.length;
+    if (simBased > Kmax) {
+      subtrees = tree.group(Kmax).children;
+      isHybridSim = false;
+    } else {
+      isHybridSim = true;
+    }
+    console.log(`[cluster] \uC720\uC0AC\uB3C4 ${sim} \uAE30\uC900 ${simBased}\uAC1C \u2192 \uCD5C\uC885 ${subtrees.length}\uAC1C (Kmax=${Kmax})`);
+  } else {
+    subtrees = nCluster < 1 ? tree.cut(nCluster) : tree.group(nCluster).children;
+  }
+  console.timeEnd(`[hclust] cut`);
+  console.time(`[hclust] post-process (break-big + traverse)`);
   const totalItems = arrayWithEmbed.length;
   const threshold = totalItems * 0.2;
   const finalClusters = [];
   let nextClusterId = 0;
+  const breakBigActive = isHybridSim || typeof nCluster === "number" && nCluster < 1;
   subtrees.forEach((subtree) => {
     const leafCount = countLeaves(subtree);
-    if (nCluster < 1 && leafCount > threshold && leafCount >= 8) {
+    if (breakBigActive && leafCount > threshold && leafCount >= 8) {
       const numSubClusters = Math.ceil(leafCount / threshold);
       subtree.group(numSubClusters).children.forEach((sub) => {
         const data = [];
@@ -11486,6 +11566,8 @@ function makeCluster_breakBig_optimized(arrayWithEmbed, nCluster = 0.8, distFunc
       if (data.length) finalClusters.push({ cid: nextClusterId++, data });
     }
   });
+  console.timeEnd(`[hclust] post-process (break-big + traverse)`);
+  console.timeEnd(`[hclust] total (N=${N}, D=${D})`);
   return finalClusters.sort((a, b) => b.data.length - a.data.length).map((d, i) => ({
     cid: i + 1,
     data: d.data.map((t) => ({ ...t, cluster: i + 1 }))
@@ -11703,7 +11785,7 @@ async function getLabels(clusters, language, { datasetInfo, text_id, labelOption
     const hint = cluster.stance_hint ? ` (stance_hint: ${cluster.stance_hint})` : "";
     return `
 Cluster ${cluster.clusterId}${hint}:
-${cluster.sentences.slice(0, 20).map((d, i) => `${cluster.textids[i]}: ${d.slice(0, 256)}`).join("\n")}
+${cluster.sentences.slice(0, 40).map((d, i) => `${cluster.textids[i]}: ${d.slice(0, 256)}`).join("\n")}
 `;
   }).join("\n");
   const option = datasetInfo?.data_type?.match(/키워드/) ? " \uBD80\uC815 \uC758\uBBF8\uC778 \uACBD\uC6B0 \uC774\uC720\uB97C \uC124\uBA85\uD558\uB294 \uD0A4\uC6CC\uB4DC\uB3C4 \uCD94\uAC00\uD574\uC918." : " \uBD80\uC815 \uC758\uBBF8\uC778 \uACBD\uC6B0 \uC774\uC720\uB97C \uC124\uBA85\uD558\uB294 \uD0A4\uC6CC\uB4DC\uB3C4 \uCD94\uAC00\uD574\uC918. \uC758\uBBF8\uB97C \uAD6C\uCCB4\uC801\uC73C\uB85C \uB4DC\uB7EC\uB0B4\uB294 \uC9E7\uC740 \uBB38\uC7A5\uC73C\uB85C.";
@@ -13043,8 +13125,16 @@ var AffinityBubblePipeline = class {
       selUsecase,
       selLabelLanguage,
       clusterSimValue,
-      clusterSimValue2
+      clusterSimValue2,
+      embeddingDimensions,
+      maxSet,
+      sampleSize
     } = options;
+    if (embeddingDimensions !== void 0) {
+      this.level1.options.embeddingDimensions = embeddingDimensions;
+    }
+    if (maxSet !== void 0) this.level1.options.maxSet = maxSet;
+    if (sampleSize !== void 0) this.level1.options.sampleSize = sampleSize;
     const startStage = this._determineStartStage(chunkData, options);
     console.log(`[Pipeline] Starting from stage: ${startStage}`);
     this.state.reset();
@@ -13098,11 +13188,27 @@ var AffinityBubblePipeline = class {
       if (startStage === "embedding" || startStage === "clustering" || startStage === "labeling") {
         this.state.setProgress("labeling", 30, "\uB808\uC774\uBE14 \uC0DD\uC131...");
         onProgress(this.state.progress, this.state.snapshot());
-        const clustersForLabeling = level1Result.interimClusters.map((c) => ({
-          clusterId: c.cluster,
-          sentences: c.cellDatas.map((d) => d.text),
-          textids: c.cellDatas.map((d) => d.textid)
-        }));
+        const interleaveCellDatas = (cellDatas) => {
+          if (!cellDatas || cellDatas.length === 0) return [];
+          const sorted = [...cellDatas].sort((a, b) => (b.size || 1) - (a.size || 1));
+          const half = Math.ceil(sorted.length / 2);
+          const top = sorted.slice(0, half);
+          const bottom = sorted.slice(half).reverse();
+          const out = [];
+          for (let i = 0; i < Math.max(top.length, bottom.length); i++) {
+            if (i < top.length) out.push(top[i]);
+            if (i < bottom.length) out.push(bottom[i]);
+          }
+          return out;
+        };
+        const clustersForLabeling = level1Result.interimClusters.map((c) => {
+          const ordered = interleaveCellDatas(c.cellDatas);
+          return {
+            clusterId: c.cluster,
+            sentences: ordered.map((d) => d.text),
+            textids: ordered.map((d) => d.textid)
+          };
+        });
         labels = await this._doLabeling(
           clustersForLabeling,
           { labelOption, selLabelLanguage },
@@ -13264,8 +13370,10 @@ var AffinityBubblePipeline = class {
       }
     );
     if (labels.length && this.api.getEmbeddings) {
-      const embeddings = await this.api.getEmbeddings(labels.map((d) => d.label));
-      return labels.map((d, i) => ({ ...d, embed: embeddings[i] }));
+      const dim = this.level1?.options?.embeddingDimensions;
+      const embeddings = await this.api.getEmbeddings(labels.map((d) => d.label), dim ? { dimensions: dim } : {});
+      const trimmed = dim ? embeddings.map((e) => e && e.length > dim ? e.slice(0, dim) : e) : embeddings;
+      return labels.map((d, i) => ({ ...d, embed: trimmed[i] }));
     }
     return labels;
   }
@@ -13432,6 +13540,13 @@ var AffinityBubblePipeline = class {
         };
       });
     }).filter((d) => d && d.item);
+    const llmFlaggedCount = outliers.length;
+    const restEtcCount = etcCells.length;
+    console.log(`[outlier] LLM \uC9C0\uBAA9 ${llmFlaggedCount}, rest 999 (sim \uBBF8\uB2EC) ${restEtcCount}`);
+    const _outlierSample = outliers[0]?.item?.embed?.length;
+    const _labelSample = labels[0]?.embed?.length;
+    const _interimSample = interimClusters[0]?.cellDatas?.[0]?.embed?.length;
+    console.log(`[debug-dim] outlier=${_outlierSample}, label=${_labelSample}, interim cellData=${_interimSample}`);
     outliers = [...outliers, ...etcCells.map((c) => ({
       textid: c.textid,
       text: c.text,
@@ -13443,16 +13558,37 @@ var AffinityBubblePipeline = class {
       console.log(`Re-classifying ${outliers.length} outliers...`);
       const totalOutliers = outliers.length;
       onProgress(0, { phase: "classify", total: totalOutliers, done: 0 });
-      const EMBED_AUTO_THRESHOLD = 0.8;
+      const EMBED_AUTO_THRESHOLD = 0.7;
       const needsLLM = [];
       let autoAssigned = 0;
       if (skipStage1) {
         needsLLM.push(...outliers);
         console.log(`Stage 1 (embed): SKIPPED, all ${totalOutliers} outliers \u2192 Stage 2 LLM`);
       } else {
-        const labelsWithEmbed = labels.filter((l) => l.embed && l.embed.length > 0);
+        const clusterCentroids = /* @__PURE__ */ new Map();
+        for (const c of interimClusters) {
+          if (!c.cellDatas?.length) continue;
+          const firstEmbed = c.cellDatas.find((d) => d.embed && d.embed.length)?.embed;
+          if (!firstEmbed) continue;
+          const dim = firstEmbed.length;
+          const cent = new Array(dim).fill(0);
+          let n = 0;
+          for (const item of c.cellDatas) {
+            if (!item.embed || item.embed.length !== dim) continue;
+            for (let i = 0; i < dim; i++) cent[i] += item.embed[i];
+            n++;
+          }
+          if (n > 0) {
+            for (let i = 0; i < dim; i++) cent[i] /= n;
+            clusterCentroids.set(c.cluster, cent);
+          }
+        }
+        const labelsWithEmbed = labels.filter((l) => {
+          const cent = clusterCentroids.get(l.cluster);
+          return cent && cent.length > 0 || l.embed && l.embed.length > 0;
+        });
         const labelPool = labelsWithEmbed.map((l) => {
-          const e = l.embed;
+          const e = clusterCentroids.get(l.cluster) || l.embed;
           let normSq = 0;
           for (let i = 0; i < e.length; i++) normSq += e[i] * e[i];
           return {
@@ -13501,15 +13637,34 @@ var AffinityBubblePipeline = class {
         done: autoAssigned
       });
       if (needsLLM.length > 0) {
-        const allLabelTexts = labels.map((d) => d.label);
+        const TOP_K_PER_CLUSTER = 5;
+        const labelTopWords = /* @__PURE__ */ new Map();
+        for (const c of interimClusters) {
+          const sorted = [...c.cellDatas || []].sort((a, b) => (b.size || 1) - (a.size || 1));
+          const seen = /* @__PURE__ */ new Set();
+          const top = [];
+          for (const item of sorted) {
+            const t = (item.text || "").trim();
+            if (!t || seen.has(t)) continue;
+            seen.add(t);
+            top.push(t);
+            if (top.length >= TOP_K_PER_CLUSTER) break;
+          }
+          labelTopWords.set(c.cluster, top);
+        }
+        const augmentedCategories = labels.map((l) => {
+          const top = labelTopWords.get(l.cluster) || [];
+          return top.length ? `${l.label} (\uC608: ${top.join(", ")})` : l.label;
+        });
+        const augToLabel = new Map(augmentedCategories.map((c, i) => [c, labels[i]]));
         try {
           const result = await this.deps.classifyWithIdThreads(
-            allLabelTexts,
+            augmentedCategories,
             needsLLM.map((d) => `${d.textid} : ${d.text}`),
-            10,
-            // chunkSize: 25 → 10 (LLM 집중도 향상)
+            20,
+            // chunkSize: 10 → 20 (LLM 호출 횟수 절반)
             5,
-            // maxConcurrent: 3 → 5 (call 단축 이득 활용)
+            // maxConcurrent: 5 유지 (rate limit 안전)
             (p) => {
               const clamped = Math.max(0, Math.min(1, p));
               const llmDone = Math.round(clamped * needsLLM.length);
@@ -13523,18 +13678,41 @@ var AffinityBubblePipeline = class {
               );
             }
           );
+          const norm = (s) => (s || "").replace(/\s+/g, "");
+          const findLabel = (cat) => {
+            const c = (cat || "").trim();
+            if (!c) return null;
+            if (augToLabel.has(c)) return augToLabel.get(c);
+            let m = labels.find((l) => l.label === c);
+            if (m) return m;
+            m = labels.find((l) => c.startsWith(l.label));
+            if (m) return m;
+            const ncat = norm(c);
+            m = labels.find((l) => ncat.startsWith(norm(l.label)));
+            if (m) return m;
+            m = labels.find((l) => l.label.includes(c) && c.length >= 4);
+            if (m) return m;
+            return null;
+          };
           if (result && result.length > 0) {
             const outlierMap = new Map(needsLLM.map((d) => [d.textid, d]));
+            let unmatched = 0;
             result.forEach((d) => {
               const originalId = d.id;
               const match = outlierMap.get(originalId);
               if (match && d.category) {
-                const newClusterId = labelMap.get(d.category);
-                if (newClusterId !== void 0) {
-                  remappingMap.set(originalId, newClusterId);
+                const matchedLabel = findLabel(d.category);
+                if (matchedLabel) {
+                  remappingMap.set(originalId, matchedLabel.cluster);
+                } else {
+                  unmatched++;
+                  console.warn(`[cluster] LLM \uBD84\uB958 \uB9E4\uCE6D \uC2E4\uD328: "${d.category}" (id ${originalId})`);
                 }
               }
             });
+            if (unmatched > 0) {
+              console.warn(`[cluster] Stage 2 LLM \uACB0\uACFC \uB9E4\uCE6D \uC2E4\uD328 ${unmatched}/${result.length}\uAC74 \u2014 cluster 999\uB85C fallback`);
+            }
           }
         } catch (e) {
           console.error("Error during _rearrangeOutliers:", e);
