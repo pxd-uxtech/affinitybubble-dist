@@ -11783,8 +11783,9 @@ async function getLabels(clusters, language, { datasetInfo, text_id, labelOption
   const hasStanceHint = clusters.some((c) => c.stance_hint);
   const cluster_data = clusters.map((cluster) => {
     const hint = cluster.stance_hint ? ` (stance_hint: ${cluster.stance_hint})` : "";
+    const refineLabel = cluster.refine_label ? ` (refine_label: "${cluster.refine_label}")` : "";
     return `
-Cluster ${cluster.clusterId}${hint}:
+Cluster ${cluster.clusterId}${hint}${refineLabel}:
 ${cluster.sentences.slice(0, 40).map((d, i) => `${cluster.textids[i]}: ${d.slice(0, 256)}`).join("\n")}
 `;
   }).join("\n");
@@ -12323,7 +12324,10 @@ var Level2Pipeline = class {
     } else if (selUsecase?.category === "\uB3C4\uBA54\uC778") {
       userbigLabelOption += " 7\uB2E8\uC5B4 \uC774\uB0B4\uC758 \uAC04\uACB0\uD55C \uBB38\uC7A5\uC73C\uB85C.";
     }
-    const textsForTopic = level1Labels.map((d) => d.label);
+    const textsForTopic = level1Labels.map((d) => {
+      const hint = d.stance_hint ? ` [${d.stance_hint}]` : "";
+      return `${d.label}${hint}`;
+    });
     const userInput = {
       service_type: this._getServiceType(selUsecase),
       texts: textsForTopic.join("\n"),
@@ -12391,7 +12395,10 @@ var Level2Pipeline = class {
     let accumulated = [];
     const result = await this.classifyWithIdThreads(
       bigLabels,
-      labelClusters.map((d) => `${d.cluster} : ${d.label} ${d.description || ""}`),
+      labelClusters.map((d) => {
+        const hint = d.stance_hint ? ` [${d.stance_hint}]` : "";
+        return `${d.cluster} : ${d.label}${hint} ${d.description || ""}`;
+      }),
       10,
       3,
       (progress, chunk) => {
@@ -13205,6 +13212,10 @@ var AffinityBubblePipeline = class {
           const ordered = interleaveCellDatas(c.cellDatas);
           return {
             clusterId: c.cluster,
+            stance_hint: c.stance_hint || "",
+            // V2 refine 결과 — getLabels가 보고 get_label_with_stance 분기
+            refine_label: c.label || "",
+            // V2 refine이 만든 1차 라벨 — getLabels 프롬프트에 hint로 주입
             sentences: ordered.map((d) => d.text),
             textids: ordered.map((d) => d.textid)
           };
@@ -13242,8 +13253,15 @@ var AffinityBubblePipeline = class {
       onProgress(this.state.progress, this.state.snapshot());
       this.state.setProgress("level2", 50, "\uC0C1\uC704 \uD1A0\uD53D \uCD94\uCD9C...");
       onProgress(this.state.progress, this.state.snapshot());
+      const stanceByCluster = new Map(
+        (level1Result?.interimClusters || []).map((c) => [c.cluster, c.stance_hint || ""])
+      );
+      const labelClustersWithStance = labelClusters.map((lc) => ({
+        ...lc,
+        stance_hint: lc.stance_hint || stanceByCluster.get(lc.cluster) || ""
+      }));
       const level2Result = await this.level2.run(
-        labelClusters,
+        labelClustersWithStance,
         { selUsecase, bigLabelOption, selLabelLanguage, clusterSimValue2 },
         (p) => {
           this.state.setProgress("level2", 50 + p.progress * 0.4, p.message);
