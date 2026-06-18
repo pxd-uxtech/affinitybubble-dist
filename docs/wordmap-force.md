@@ -1,5 +1,7 @@
 # wordmap-force-library
 
+![Wordmap-Force 예시](./wordmap-force-example.png)
+
 계층형 플랫 데이터(소분류 c1, 대분류 c2, 단어, 빈도)를 force-directed 워드맵으로 그려 주는 D3 v7 기반 ESM 라이브러리. 어피니티버블 voronoi-treemap의 라벨 계층/색상 규칙을 따르되 force sim으로 단어를 자유 배치한다.
 
 - 같은 c2 자녀 c1들이 c2 주변 disc로 모임 (`clusterDiscFactor`)

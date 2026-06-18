@@ -26,6 +26,8 @@ import { DataInput } from "https://raw.githack.com/pxd-uxtech/affinitybubble-dis
 
 ## Wordmap-Force (Vanilla JS)
 
+![Wordmap-Force 예시](./docs/wordmap-force-example.png)
+
 D3 v7 기반 force-directed 워드맵. 옵션 / 데이터 형식 / 알고리즘은 [docs/wordmap-force.md](./docs/wordmap-force.md) 참조.
 
 ```html
